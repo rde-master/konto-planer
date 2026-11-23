@@ -1,0 +1,167 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens modelled on iOS system colors.
+ * Theme: follows the device (prefers-color-scheme) unless <html data-theme="light|dark"> overrides it.
+ */
+:root {
+	color-scheme: light;
+	--kp-bg: #f2f2f7;
+	--kp-bg-elevated: #ffffff;
+	--kp-card: #ffffff;
+	--kp-card-2: #f2f2f7;
+	--kp-label: #000000;
+	--kp-label-2: rgb(60 60 67 / 0.6);
+	--kp-label-3: rgb(60 60 67 / 0.3);
+	--kp-separator: rgb(60 60 67 / 0.29);
+	--kp-fill: rgb(120 120 128 / 0.12);
+	--kp-fill-strong: rgb(120 120 128 / 0.2);
+	--kp-accent: #007aff;
+	--kp-accent-contrast: #ffffff;
+	--kp-red: #ff3b30;
+	--kp-green: #34c759;
+	--kp-orange: #ff9500;
+	--kp-glass: rgb(255 255 255 / 0.62);
+	--kp-glass-border: rgb(255 255 255 / 0.7);
+	--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+	--kp-glass-blur: blur(24px) saturate(180%);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--kp-bg: #000000;
+		--kp-bg-elevated: #1c1c1e;
+		--kp-card: #1c1c1e;
+		--kp-card-2: #2c2c2e;
+		--kp-label: #ffffff;
+		--kp-label-2: rgb(235 235 245 / 0.6);
+		--kp-label-3: rgb(235 235 245 / 0.3);
+		--kp-separator: rgb(84 84 88 / 0.65);
+		--kp-fill: rgb(118 118 128 / 0.24);
+		--kp-fill-strong: rgb(118 118 128 / 0.36);
+		--kp-accent: #0a84ff;
+		--kp-red: #ff453a;
+		--kp-green: #30d158;
+		--kp-orange: #ff9f0a;
+		--kp-glass: rgb(36 36 40 / 0.6);
+		--kp-glass-border: rgb(255 255 255 / 0.1);
+		--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+	}
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--kp-bg: #000000;
+	--kp-bg-elevated: #1c1c1e;
+	--kp-card: #1c1c1e;
+	--kp-card-2: #2c2c2e;
+	--kp-label: #ffffff;
+	--kp-label-2: rgb(235 235 245 / 0.6);
+	--kp-label-3: rgb(235 235 245 / 0.3);
+	--kp-separator: rgb(84 84 88 / 0.65);
+	--kp-fill: rgb(118 118 128 / 0.24);
+	--kp-fill-strong: rgb(118 118 128 / 0.36);
+	--kp-accent: #0a84ff;
+	--kp-red: #ff453a;
+	--kp-green: #30d158;
+	--kp-orange: #ff9f0a;
+	--kp-glass: rgb(36 36 40 / 0.6);
+	--kp-glass-border: rgb(255 255 255 / 0.1);
+	--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+}
+
+/* Accessibility: honour the system settings for transparency and contrast. */
+@media (prefers-reduced-transparency: reduce) {
+	:root {
+		--kp-glass: var(--kp-bg-elevated);
+		--kp-glass-blur: none;
+	}
+}
+
+@media (prefers-contrast: more) {
+	:root {
+		--kp-separator: var(--kp-label-2);
+		--kp-label-2: var(--kp-label);
+		--kp-glass: var(--kp-bg-elevated);
+		--kp-glass-blur: none;
+		--kp-glass-border: var(--kp-separator);
+	}
+}
+
+@theme inline {
+	--color-bg: var(--kp-bg);
+	--color-bg-elevated: var(--kp-bg-elevated);
+	--color-card: var(--kp-card);
+	--color-card-2: var(--kp-card-2);
+	--color-label: var(--kp-label);
+	--color-label-2: var(--kp-label-2);
+	--color-label-3: var(--kp-label-3);
+	--color-separator: var(--kp-separator);
+	--color-fill: var(--kp-fill);
+	--color-fill-strong: var(--kp-fill-strong);
+	--color-accent: var(--kp-accent);
+	--color-accent-contrast: var(--kp-accent-contrast);
+	--color-danger: var(--kp-red);
+	--color-success: var(--kp-green);
+	--color-warning: var(--kp-orange);
+	--font-sans:
+		-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		sans-serif;
+	--radius-card: 1.5rem;
+	--radius-row: 0.75rem;
+}
+
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	body {
+		background: var(--kp-bg);
+		color: var(--kp-label);
+		font-family: var(--font-sans);
+		font-size: 17px;
+		line-height: 1.3;
+		-webkit-font-smoothing: antialiased;
+		min-height: 100dvh;
+	}
+
+	:focus-visible {
+		outline: 3px solid var(--kp-accent);
+		outline-offset: 2px;
+	}
+}
+
+@utility glass {
+	/* Text never sits directly on busy glass: the tint keeps contrast, blur only softens the background. */
+	background: var(--kp-glass);
+	-webkit-backdrop-filter: var(--kp-glass-blur);
+	backdrop-filter: var(--kp-glass-blur);
+	border: 0.5px solid var(--kp-glass-border);
+	box-shadow: var(--kp-glass-shadow);
+}
+
+@utility tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+@utility pt-safe {
+	padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

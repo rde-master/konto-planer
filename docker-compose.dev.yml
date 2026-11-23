@@ -1,0 +1,14 @@
+# Local development database only. Start with: pnpm db:up
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kontoplaner
+      POSTGRES_PASSWORD: kontoplaner
+      POSTGRES_DB: kontoplaner
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - devdb:/var/lib/postgresql/data
+volumes:
+  devdb:

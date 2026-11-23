@@ -8,7 +8,10 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 - Selbstständig arbeiten bis zum Pull Request. **Nie direkt auf `main` committen oder pushen; nie selbst mergen.** Der Merge erfolgt nur durch den Repo-Besitzer.
 - Eine Funktion = ein Feature-Branch = ein Pull Request, in der Reihenfolge des Releaseplans (docs/PLAN.md, Abschnitt „Releaseplan“).
 - Branch-Namen: `feat/0.x-kurzname`, `fix/kurzname`.
+- Im Repo ist nur Squash-Merge erlaubt: **der PR-Titel wird zur Commit-Nachricht auf `main`** und muss daher selbst ein Conventional Commit sein (z. B. `feat: foundation with login and PWA`).
 - Commits nach Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`, `ci:`). `feat:` erzeugt beim Merge die nächste Unterversion 0.x.0, `fix:` die 0.x.1. Kein `BREAKING CHANGE` vor 1.0.0.
+- **Release-Ablauf (Version im PR):** Jeder `feat`/`fix`-PR erhöht selbst die Version in `package.json` und ergänzt `CHANGELOG.md` um `## [x.y.z] – Titel` (deutsch, für Benutzer geschrieben). Die CI prüft das mit `scripts/check-pr.mjs`. Nach dem Merge erzeugt `release.yml` Tag, GitHub-Release und Docker-Image (`:x.y.z`, `:x.y`, `:latest`).
+- Schemaänderungen: `src/lib/server/db/schema.ts` anpassen, dann `pnpm db:generate --name <name>`; die Migration wird mit eingecheckt.
 - Vor jedem PR lokal: `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`, bei UI-Änderungen `pnpm test:e2e`.
 - Abnahme je Version: läuft im Docker-Stack, am Handy-Format bedienbar, Rechenlogik durch Vitest-Tests abgedeckt.
 - Unklare fachliche Fragen stellen statt raten.
@@ -16,7 +19,10 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 ## Technik
 
 - TypeScript durchgängig, SvelteKit + Tailwind, PWA. PostgreSQL über Drizzle; Migrationen laufen beim App-Start.
-- Node 24 LTS, Paketmanager **pnpm**.
+- Node 24 LTS, Paketmanager **pnpm**. SvelteKit **3**: Konfiguration in `vite.config.ts`, Umgebungsvariablen über `src/env.ts` und `$app/env/private`, Hooks-Typen aus `@sveltejs/kit/hooks`, Service Worker in `src/service-worker/` mit eigener tsconfig.
+- Importe aus `src/lib` über `#lib/...` **mit Endung** (`#lib/server/auth.js`, `#lib/components/Page.svelte`).
+- Links über `resolve()` aus `$app/paths` mit typisierten Pfaden ohne führenden Schrägstrich (`resolve('konten')`).
+- Formulare: klassische Form Actions mit `use:enhance`; Felder mit `formString()` aus `#lib/server/validation.js` lesen.
 - Beträge immer als **ganze Cent (integer)**, nie als Float. Nur Euro.
 - Zeitzone fest `Europe/Berlin`. Bankarbeitstage nach TARGET-Kalender.
 - Grafiken mit Apache ECharts. Tests: Vitest (Logik), Playwright (Handy-Viewport).
@@ -35,5 +41,5 @@ iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop
 
 ## Lokale Entwicklung
 
-- Docker und Docker Compose sind installiert; Dev-Datenbank über `docker compose` (Postgres 17).
-- GitHub-Zugriff über `gh`.
+- Docker und Docker Compose sind installiert; Dev-Datenbank mit `pnpm db:up` (Postgres 17, `docker-compose.dev.yml`). E2E-Tests nutzen die Datenbank `kontoplaner_e2e`, die bei jedem Lauf neu angelegt wird.
+- GitHub-Zugriff über `gh` (Konto rde-master), Repo `rde-master/konto-planer`. `main` ist geschützt: nur per PR, linearer Verlauf, kein Force-Push.

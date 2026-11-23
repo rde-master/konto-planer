@@ -34,3 +34,8 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 .claude/settings.local.json
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+.output

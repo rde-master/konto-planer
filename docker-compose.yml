@@ -1,0 +1,39 @@
+# Production stack. Configure via .env next to this file (see .env.example).
+name: konto-planer
+
+services:
+  app:
+    image: ghcr.io/rde-master/konto-planer:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-kontoplaner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-kontoplaner}
+      ORIGIN: ${ORIGIN:?set ORIGIN in .env (public URL behind the reverse proxy)}
+      APP_SECRET: ${APP_SECRET:-}
+      TZ: Europe/Berlin
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    volumes:
+      - app-data:/app/data
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kontoplaner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-kontoplaner}
+      TZ: Europe/Berlin
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  app-data:
+  db-data:
