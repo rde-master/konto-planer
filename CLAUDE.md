@@ -40,6 +40,7 @@ iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop
 - Konten ohne Zugriff liefern **404** (nicht 403), damit ihre Existenz nicht erkennbar ist.
 - Archivierte Konten sind schreibgeschützt, bis der Admin sie wiederherstellt. Löschen nur, solange keine abhängigen Daten existieren (`accountHasData()` in `src/lib/server/accounts.ts` – neue Tabellen mit Kontobezug dort ergänzen).
 - Konten haben eine Farbe aus den iOS-Systemfarben (`src/lib/colors.ts`).
+- **Kategorien:** global, genau eine Ebene (Haupt- und Unterkategorie). Nur Hauptkategorien haben eine Farbe, Unterkategorien erben sie. Anlegen/ändern darf jeder Benutzer, löschen nur der Admin. Löschen einer Hauptkategorie löscht ihre Unterkategorien mit. Neue Fremdschlüssel auf `categories` immer mit `ON DELETE SET NULL` (Buchungen bleiben, gelten als unkategorisiert).
 - Beträge: Eingabe deutsch („1.234,56“), Speicherung ganze Cent (`src/lib/money.ts`).
 
 ## UI-Bausteine (`src/lib/components`)

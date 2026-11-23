@@ -3,7 +3,7 @@ import { ACCOUNT_COLORS } from './colors.js';
 
 // Shared (client-safe) vocabulary of the audit log: entity types, actions and German labels.
 
-export const ENTITY_TYPES = ['auth', 'user', 'account'] as const;
+export const ENTITY_TYPES = ['auth', 'user', 'account', 'category'] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
 export const ACTIONS = [
@@ -26,7 +26,8 @@ export type AuditAction = (typeof ACTIONS)[number];
 export const ENTITY_LABELS: Record<EntityType, string> = {
 	auth: 'Anmeldung',
 	user: 'Benutzer',
-	account: 'Konto'
+	account: 'Konto',
+	category: 'Kategorie'
 };
 
 export const ACTION_LABELS: Record<AuditAction, string> = {
@@ -67,7 +68,8 @@ const FIELD_LABELS: Record<string, string> = {
 	iban: 'IBAN',
 	openingBalance: 'Startsaldo',
 	openingDate: 'Stand am',
-	overdraftLimit: 'Dispo'
+	overdraftLimit: 'Dispo',
+	parent: 'Hauptkategorie'
 };
 
 export function fieldLabel(field: string): string {
