@@ -21,6 +21,11 @@
 	let passwordOpen = $state(false);
 	let passwordSaved = $state(false);
 	let pending = $state(false);
+	let contractsPending = $state(false);
+	const contractErrors = $derived(
+		form?.action === 'contracts' && 'errors' in form ? form.errors : undefined
+	);
+	const contractsSaved = $derived(form?.action === 'contracts' && 'success' in form);
 	const pwErrors = $derived(
 		form?.action === 'password' && 'errors' in form ? form.errors : undefined
 	);
@@ -94,6 +99,48 @@
 				iconColor="bg-[#ff9500]"
 			/>
 		</ListGroup>
+
+		<section class="mb-8">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Kündbare Verträge</h2>
+			<form
+				method="POST"
+				action="?/contracts"
+				use:enhance={() => {
+					contractsPending = true;
+					return async ({ update }) => {
+						await update({ reset: false });
+						contractsPending = false;
+					};
+				}}
+			>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<FormField
+						label="Standard-Vorlauf in Tagen"
+						name="defaultLeadDays"
+						value={String(data.defaultLeadDays ?? 30)}
+						inputmode="numeric"
+						autocomplete="off"
+						error={contractErrors?.defaultLeadDays}
+					/>
+					<li>
+						<button
+							type="submit"
+							disabled={contractsPending}
+							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill disabled:opacity-50"
+						>
+							Vorlauf sichern
+						</button>
+					</li>
+				</ul>
+			</form>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2" role={contractsSaved ? 'status' : undefined}>
+				{contractsSaved
+					? 'Vorlauf gesichert.'
+					: 'So viele Tage vor Ablauf der Kündigungsfrist gilt ein Vertrag als „bald kündbar“. Je Vertrag änderbar.'}
+			</p>
+		</section>
 	{/if}
 
 	<LogoutButton />

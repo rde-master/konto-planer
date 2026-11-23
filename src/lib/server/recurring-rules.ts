@@ -11,6 +11,7 @@ import {
 	type PaymentMethod,
 	type RecurringKind
 } from '../recurring.js';
+import { RENEWALS, type Contract } from '../contracts.js';
 import type { FieldErrors } from './validation.js';
 
 export type RecurringInput = {
@@ -207,4 +208,74 @@ export function validateAmount(input: {
 	if (!isValidDate(input.validFrom)) errors.validFrom = 'Bitte ein Datum wählen.';
 	if (Object.keys(errors).length || amount === null) return { values: null, errors };
 	return { values: { amount, validFrom: input.validFrom }, errors: null };
+}
+
+export type ContractInput = {
+	contract: boolean;
+	termEnd: string;
+	noticeEvery: string;
+	noticeUnit: string;
+	renewal: string;
+	renewalMonths: string;
+	leadDays: string;
+	cancelledOn: string;
+};
+
+function wholeNumber(value: string, min: number, max: number): number | null {
+	const v = value.trim();
+	if (!/^\d+$/.test(v)) return null;
+	const n = Number(v);
+	return n >= min && n <= max ? n : null;
+}
+
+/**
+ * Validates contract data. Only expenses can be cancellable contracts; for other kinds or a
+ * switched-off toggle the result is `null` (no contract).
+ */
+export function validateContract(
+	input: ContractInput,
+	kind: string
+): { values: Contract | null; errors: null } | { values: null; errors: FieldErrors } {
+	if (!input.contract || kind !== 'expense') return { values: null, errors: null };
+	const errors: FieldErrors = {};
+
+	const renewal = RENEWALS.find((r) => r === input.renewal);
+	if (!renewal) errors.renewal = 'Bitte eine Verlängerung wählen.';
+
+	let termEnd: string | null = null;
+	if (input.termEnd) {
+		if (!isValidDate(input.termEnd)) errors.termEnd = 'Bitte ein gültiges Datum wählen.';
+		else termEnd = input.termEnd;
+	} else if (renewal && renewal !== 'indefinite')
+		errors.termEnd = 'Bitte das Ende der Laufzeit angeben.';
+
+	const noticeEvery = wholeNumber(input.noticeEvery, 0, 366);
+	if (noticeEvery === null) errors.noticeEvery = 'Bitte eine Zahl von 0 bis 366 eingeben.';
+	const noticeUnit = CUSTOM_UNITS.find((u) => u === input.noticeUnit);
+	if (!noticeUnit) errors.noticeUnit = 'Bitte Tage, Wochen oder Monate wählen.';
+
+	let renewalMonths: number | null = null;
+	if (renewal === 'period') {
+		renewalMonths = wholeNumber(input.renewalMonths, 1, 120);
+		if (renewalMonths === null) errors.renewalMonths = 'Bitte 1 bis 120 Monate eingeben.';
+	}
+
+	let leadDays: number | null = null;
+	if (input.leadDays.trim()) {
+		leadDays = wholeNumber(input.leadDays, 0, 365);
+		if (leadDays === null) errors.leadDays = 'Bitte 0 bis 365 Tage eingeben.';
+	}
+
+	let cancelledOn: string | null = null;
+	if (input.cancelledOn) {
+		if (!isValidDate(input.cancelledOn)) errors.cancelledOn = 'Bitte ein gültiges Datum wählen.';
+		else cancelledOn = input.cancelledOn;
+	}
+
+	if (Object.keys(errors).length || !renewal || noticeEvery === null || !noticeUnit)
+		return { values: null, errors };
+	return {
+		values: { termEnd, noticeEvery, noticeUnit, renewal, renewalMonths, leadDays, cancelledOn },
+		errors: null
+	};
 }

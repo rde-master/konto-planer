@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.10.0] – Vertragsdaten
+
+### Neu
+
+- Ausgaben lassen sich als „Kündbarer Vertrag“ markieren, mit Laufzeit, Kündigungsfrist (in Tagen, Wochen oder Monaten) und Verlängerung
+- Drei Arten der Verlängerung: unbefristet (nach der Mindestlaufzeit jederzeit mit Frist kündbar), um eine feste Zeit (z. B. 12 Monate) oder keine (endet zum Laufzeitende)
+- Die App berechnet, bis wann gekündigt werden muss und zu welchem Termin der Vertrag dann endet
+- „Bald kündbar“ oben in der Dauerposten-Liste, sobald die Kündigungsfrist innerhalb des Vorlaufs abläuft
+- Standard-Vorlauf für alle Verträge in den Einstellungen (Admin, vorbelegt mit 30 Tagen), je Vertrag änderbar
+- „Gekündigt am“ setzt das Ende des Dauerpostens automatisch auf das berechnete Vertragsende; das Ende bleibt danach von Hand änderbar
+- Vertragsdaten und Einstellungen stehen im Protokoll
+
 ## [0.9.0] – Umbuchungen zwischen Konten
 
 ### Neu

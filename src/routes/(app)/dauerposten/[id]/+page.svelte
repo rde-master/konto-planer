@@ -14,6 +14,13 @@
 	import { formatEuro, formatEuroInput } from '#lib/money.js';
 	import { formatIban } from '#lib/iban.js';
 	import { formatDay } from '#lib/dates.js';
+	import {
+		cancelSoon,
+		contractStatus,
+		periodLabel,
+		reminderDay,
+		renewalLabel
+	} from '#lib/contracts.js';
 	import { KIND_LABELS, PAYMENT_METHOD_LABELS, amountOn, intervalLabel } from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
@@ -63,6 +70,17 @@
 	});
 
 	const fieldValues = $derived(updateInput ?? { ...item, amount: undefined });
+	const contractValues = $derived(
+		updateInput ? (updateInput.contract ? updateInput : null) : item.contract
+	);
+	const contract = $derived(item.contract);
+	const contractState = $derived(contract ? contractStatus(contract, data.today) : null);
+	const reminder = $derived(
+		contract ? reminderDay(contract, data.today, data.defaultLeadDays) : null
+	);
+	const soon = $derived(
+		contract !== null && !item.archivedAt && cancelSoon(contract, data.today, data.defaultLeadDays)
+	);
 
 	function openAmount(entry: { id: string; amount: number; validFrom: string } | null) {
 		amountEntry = entry;
@@ -132,6 +150,38 @@
 		</p>
 	{/if}
 
+	{#if contract && contractState}
+		<ListGroup
+			header="Vertrag"
+			footer={soon
+				? 'Die Kündigungsfrist läuft bald ab. Die Kündigung muss bis zum genannten Tag beim Anbieter sein.'
+				: undefined}
+		>
+			{#if contractState.state === 'fixed'}
+				<ListRow label="Kündigen bis" value={formatDay(contractState.deadline)} />
+				<ListRow label="Vertragsende dann" value={formatDay(contractState.end)} />
+			{:else if contractState.state === 'anytime'}
+				<ListRow label="Kündbar" value="jederzeit" />
+				<ListRow label="Frühestes Ende" value={formatDay(contractState.end)} />
+			{:else if contractState.state === 'ends'}
+				<ListRow label="Endet am" value={`${formatDay(contractState.end)} (ohne Kündigung)`} />
+			{:else}
+				<ListRow label="Gekündigt am" value={formatDay(contract.cancelledOn ?? '')} />
+				<ListRow label="Vertragsende" value={formatDay(contractState.end)} />
+			{/if}
+			<ListRow
+				label="Kündigungsfrist"
+				value={periodLabel(contract.noticeEvery, contract.noticeUnit)}
+			/>
+			<ListRow label="Verlängerung" value={renewalLabel(contract)} />
+			{#if contract.termEnd}<ListRow
+					label="Laufzeit bis"
+					value={formatDay(contract.termEnd)}
+				/>{/if}
+			{#if reminder}<ListRow label="Bald kündbar ab" value={formatDay(reminder)} />{/if}
+		</ListGroup>
+	{/if}
+
 	<section class="mb-8">
 		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Betragsverlauf</h2>
 		<ul
@@ -189,6 +239,8 @@
 				accounts={data.accountOptions}
 				targets={data.targetOptions}
 				categories={data.categoryGroups}
+				contract={contractValues}
+				defaultLeadDays={data.defaultLeadDays}
 				kinds={transfer ? ['transfer'] : ['expense', 'income']}
 			/>
 			<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>

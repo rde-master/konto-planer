@@ -4,7 +4,14 @@ import { KIND_LABELS, PAYMENT_METHOD_LABELS } from './recurring.js';
 
 // Shared (client-safe) vocabulary of the audit log: entity types, actions and German labels.
 
-export const ENTITY_TYPES = ['auth', 'user', 'account', 'category', 'recurring'] as const;
+export const ENTITY_TYPES = [
+	'auth',
+	'user',
+	'account',
+	'category',
+	'recurring',
+	'settings'
+] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
 export const ACTIONS = [
@@ -30,7 +37,8 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	user: 'Benutzer',
 	account: 'Konto',
 	category: 'Kategorie',
-	recurring: 'Dauerposten'
+	recurring: 'Dauerposten',
+	settings: 'Einstellungen'
 };
 
 export const ACTION_LABELS: Record<AuditAction, string> = {
@@ -88,7 +96,14 @@ const FIELD_LABELS: Record<string, string> = {
 	isSalary: 'Gehalt',
 	paymentMethod: 'Zahlart',
 	amount: 'Betrag',
-	validFrom: 'Gültig ab'
+	validFrom: 'Gültig ab',
+	contract: 'Kündbarer Vertrag',
+	termEnd: 'Laufzeit bis',
+	notice: 'Kündigungsfrist',
+	renewal: 'Verlängerung',
+	leadDays: 'Vorlauf (Tage)',
+	cancelledOn: 'Gekündigt am',
+	defaultLeadDays: 'Standard-Vorlauf (Tage)'
 };
 
 export function fieldLabel(field: string): string {

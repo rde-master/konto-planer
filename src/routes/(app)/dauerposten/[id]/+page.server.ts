@@ -10,8 +10,17 @@ import {
 	updateAmount,
 	updateRecurring
 } from '#lib/server/recurring.js';
-import { validateAmount, validateRecurring } from '#lib/server/recurring-rules.js';
-import { readRecurringForm, recurringFormContext } from '#lib/server/recurring-form.js';
+import {
+	validateAmount,
+	validateContract,
+	validateRecurring
+} from '#lib/server/recurring-rules.js';
+import {
+	readContractForm,
+	readRecurringForm,
+	recurringFormContext
+} from '#lib/server/recurring-form.js';
+import { getSettings } from '#lib/server/settings.js';
 import { fieldError, formString } from '#lib/server/validation.js';
 import { dueDates } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
@@ -21,10 +30,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = locals.user!;
 	const item = await getRecurringFor(user, params.id);
 	if (!item) error(404, 'Dauerposten nicht gefunden.');
-	const { options } = await recurringFormContext(user, item);
+	const [{ options }, settings] = await Promise.all([
+		recurringFormContext(user, item),
+		getSettings()
+	]);
 	const today = todayBerlin();
 	return {
 		item,
+		defaultLeadDays: settings.defaultLeadDays,
 		...options,
 		upcoming: item.archivedAt ? [] : dueDates(item, today, '9999-12-31', 6),
 		today,
@@ -40,14 +53,21 @@ function recurringError(action: string, e: unknown) {
 export const actions: Actions = {
 	update: async ({ request, locals, params }) => {
 		const user = locals.user!;
-		const input = readRecurringForm(await request.formData());
+		const data = await request.formData();
+		const input = { ...readRecurringForm(data), ...readContractForm(data) };
 		const item = await getRecurringFor(user, params.id);
 		if (!item) error(404, 'Dauerposten nicht gefunden.');
 		const { ctx } = await recurringFormContext(user, item);
 		const { values, errors } = validateRecurring(input, ctx);
-		if (!values) return fail(400, { action: 'update', input, errors });
+		const contract = validateContract(input, input.kind);
+		if (!values || contract.errors)
+			return fail(400, {
+				action: 'update',
+				input,
+				errors: { ...(errors ?? {}), ...(contract.errors ?? {}) }
+			});
 		try {
-			await updateRecurring(user, params.id, values);
+			await updateRecurring(user, params.id, values, contract.values);
 		} catch (e) {
 			return recurringError('update', e);
 		}
