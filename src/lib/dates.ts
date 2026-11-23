@@ -48,3 +48,14 @@ export function groupByDay<T>(items: T[], at: (item: T) => Date): { day: string;
 	}
 	return groups;
 }
+
+/** Today's Berlin date as "YYYY-MM-DD" (for date inputs and defaults). */
+export function todayBerlin(now = new Date()): string {
+	return berlinDay(now);
+}
+
+/** "01.11.2026" for a "YYYY-MM-DD" calendar date. */
+export function formatDay(day: string): string {
+	const [y, m, d] = day.split('-');
+	return `${d}.${m}.${y}`;
+}
