@@ -1,0 +1,36 @@
+# Dependencies & build
+node_modules/
+.svelte-kit/
+build/
+dist/
+.pnpm-store/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Real bank exports must never be committed – only fake fixtures
+*.csv
+!tests/fixtures/**/*.csv
+
+# Runtime data
+data/
+backups/
+uploads/
+*.dump
+*.sql.gz
+
+# Tests
+test-results/
+playwright-report/
+coverage/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.claude/settings.local.json
