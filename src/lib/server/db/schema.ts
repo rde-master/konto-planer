@@ -1,10 +1,13 @@
 import {
+	bigint,
 	bigserial,
+	date,
 	index,
 	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	uuid
@@ -76,3 +79,44 @@ export const auditLog = pgTable(
 		index('audit_log_entity_idx').on(t.entityType, t.entityId)
 	]
 );
+
+export const accountType = pgEnum('account_type', ['giro', 'sparbuch']);
+export const accessLevel = pgEnum('access_level', ['view', 'edit']);
+
+/** Bank account. All amounts in euro cents. */
+export const accounts = pgTable('accounts', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	name: text('name').notNull(),
+	type: accountType('type').notNull(),
+	color: text('color').notNull().default('blue'),
+	/** Normalised (no spaces, upper case); used to check imports. */
+	iban: text('iban').unique(),
+	/** Balance on `openingDate`; bookings from that day on are added. */
+	openingBalance: bigint('opening_balance', { mode: 'number' }).notNull().default(0),
+	openingDate: date('opening_date', { mode: 'string' }).notNull(),
+	/** Overdraft limit as a positive amount; 0 = none. Only for giro accounts. */
+	overdraftLimit: bigint('overdraft_limit', { mode: 'number' }).notNull().default(0),
+	archivedAt: timestamp('archived_at', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+/** Which user may see or edit which account. Admins need no entry. */
+export const accountAccess = pgTable(
+	'account_access',
+	{
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		level: accessLevel('level').notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.accountId, t.userId] }),
+		index('account_access_user_idx').on(t.userId)
+	]
+);
+
+export type Account = typeof accounts.$inferSelect;

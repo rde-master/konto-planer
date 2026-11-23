@@ -55,6 +55,13 @@ describe('labels', () => {
 		expect(formatFieldValue('email', null)).toBe('–');
 		expect(formatFieldValue('lockedUntil', '2026-11-23T11:15:00.000Z')).toBe('23.11.2026, 12:15');
 		expect(formatFieldValue('reason', 'locked')).toBe('Anmeldung war gesperrt');
+		expect(formatFieldValue('openingBalance', 123456).replace(/\s/g, ' ')).toBe('1.234,56 €');
+		expect(formatFieldValue('openingDate', '2026-11-01')).toBe('1.11.2026');
+		expect(formatFieldValue('type', 'sparbuch')).toBe('Sparbuch');
+		expect(formatFieldValue('color', 'green')).toBe('Grün');
+		expect(formatFieldValue('Max Beispiel', 'edit')).toBe('Bearbeiten');
+		expect(entryTitle('account', 'archive')).toBe('Konto archiviert');
+		expect(entryTitle('account', 'access_change')).toBe('Zugriffe geändert');
 	});
 });
 

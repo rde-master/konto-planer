@@ -33,6 +33,15 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop, große Titel, Blätter von unten, gruppierte Listen, iOS-Blau als Akzent, Hell/Dunkel nach System und umschaltbar. `prefers-reduced-transparency`, `prefers-contrast`, `prefers-reduced-motion` beachten.
 **Keine Apple-Schrift- oder Symboldateien ins Repo** – Systemschrift (`-apple-system, system-ui`) und ein frei lizenziertes Symbolset verwenden.
 
+## Fachliche Entscheidungen (ergänzen den Plan)
+
+- **Startsaldo mit Datum** („Stand am“): Kontostand = Startsaldo + Buchungen **ab** diesem Datum. Ältere Buchungen werden gespeichert, zählen aber nicht zum Stand.
+- **Kontozugriff:** „sehen“ = nur lesen. „bearbeiten“ = Inhalte (Buchungen, Dauerposten, Import) **und** Kontodaten (Name, IBAN, Dispo, Startsaldo, Farbe). Konten anlegen, archivieren, wiederherstellen, löschen und Zugriffe vergeben: nur Admin. Admin sieht und bearbeitet alle Konten.
+- Konten ohne Zugriff liefern **404** (nicht 403), damit ihre Existenz nicht erkennbar ist.
+- Archivierte Konten sind schreibgeschützt, bis der Admin sie wiederherstellt. Löschen nur, solange keine abhängigen Daten existieren (`accountHasData()` in `src/lib/server/accounts.ts` – neue Tabellen mit Kontobezug dort ergänzen).
+- Konten haben eine Farbe aus den iOS-Systemfarben (`src/lib/colors.ts`).
+- Beträge: Eingabe deutsch („1.234,56“), Speicherung ganze Cent (`src/lib/money.ts`).
+
 ## UI-Bausteine (`src/lib/components`)
 
 `Page` (großer Titel, `back`, `actions`), `ListGroup`/`ListRow` (gruppierte Listen; `href`, `onclick`, `value`), `FormField` (Eingabe als Listenzeile), `SegmentedField` (Radio-Segmente, `initial`), `Sheet` (Blatt von unten, Bestätigen-Knopf sendet `formId`), `Button` (`filled`, `tinted`, `plain`, `destructive`), `ComingSoon`. Admin-Seiten mit `requireAdmin()` aus `#lib/server/guards.js` schützen.

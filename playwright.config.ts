@@ -13,7 +13,12 @@ export default defineConfig({
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 1 : 0,
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
-	use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
+	use: {
+		baseURL: `http://localhost:${PORT}`,
+		trace: 'retain-on-failure',
+		locale: 'de-DE',
+		timezoneId: 'Europe/Berlin'
+	},
 	projects: [
 		{
 			name: 'iphone',
