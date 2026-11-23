@@ -8,13 +8,17 @@
 	import {
 		INTERVALS,
 		INTERVAL_LABELS,
+		KIND_LABELS,
 		PAYMENT_METHODS,
-		PAYMENT_METHOD_LABELS
+		PAYMENT_METHOD_LABELS,
+		TRANSFER_PAYMENT_METHODS,
+		type RecurringKind
 	} from '#lib/recurring.js';
 
 	export type RecurringFormValues = {
 		accountId: string;
 		kind: string;
+		targetAccountId: string | null;
 		name: string;
 		counterparty: string | null;
 		iban: string | null;
@@ -35,26 +39,40 @@
 	/**
 	 * Shared fields of a recurring item. Kind and interval drive which fields are shown.
 	 * `withAmount` adds the first amount (creation only; later changes go to the amount history).
+	 * `kinds` are the selectable kinds; with a single kind the segmented control is hidden.
+	 * Income and expenses use giro accounts only, transfers any account the user may edit.
 	 */
 	let {
 		values,
 		errors,
 		accounts,
+		targets,
 		categories,
+		kinds = ['expense', 'income', 'transfer'],
 		withAmount = false
 	}: {
 		values: RecurringFormValues;
 		errors?: Partial<Record<string, string>>;
-		accounts: { value: string; label: string }[];
+		accounts: { value: string; label: string; giro: boolean }[];
+		targets: { value: string; label: string }[];
 		categories: { label: string; options: { value: string; label: string }[] }[];
+		kinds?: RecurringKind[];
 		withAmount?: boolean;
 	} = $props();
 
 	let kind = $state(untrack(() => values.kind));
 	let interval = $state(untrack(() => values.interval));
+	let sourceId = $state(untrack(() => values.accountId));
 	function chooseInterval(value: string) {
 		interval = value;
 	}
+	function chooseSource(value: string) {
+		sourceId = value;
+	}
+
+	const transfer = $derived(kind === 'transfer');
+	const sourceOptions = $derived(transfer ? accounts : accounts.filter((a) => a.giro));
+	const targetOptions = $derived(targets.filter((t) => t.value !== sourceId));
 
 	const intervalOptions = INTERVALS.map((i) => ({
 		value: i,
@@ -63,10 +81,13 @@
 				? 'Frei (alle …)'
 				: INTERVAL_LABELS[i][0].toUpperCase() + INTERVAL_LABELS[i].slice(1)
 	}));
-	const paymentOptions = [
+	const paymentOptions = $derived([
 		{ value: '', label: 'Keine Angabe' },
-		...PAYMENT_METHODS.map((p) => ({ value: p, label: PAYMENT_METHOD_LABELS[p] }))
-	];
+		...(transfer ? TRANSFER_PAYMENT_METHODS : PAYMENT_METHODS).map((p) => ({
+			value: p,
+			label: PAYMENT_METHOD_LABELS[p]
+		}))
+	]);
 	const unitOptions = [
 		{ value: 'day', label: 'Tage' },
 		{ value: 'week', label: 'Wochen' },
@@ -78,21 +99,27 @@
 	class="mb-6"
 	onchange={(e) => {
 		const t = e.target as HTMLInputElement;
-		if (t.name === 'kind') kind = t.value;
+		if (t.name === 'kind') {
+			kind = t.value;
+			// The previous source may not be offered for the new kind.
+			if (!sourceOptions.some((a) => a.value === sourceId))
+				sourceId = sourceOptions[0]?.value ?? '';
+		}
 	}}
 >
-	<div class="overflow-hidden rounded-[var(--radius-row)] bg-card">
-		<SegmentedField
-			name="kind"
-			label="Art"
-			initial={values.kind}
-			error={errors?.kind}
-			options={[
-				{ value: 'expense', label: 'Ausgabe' },
-				{ value: 'income', label: 'Einnahme' }
-			]}
-		/>
-	</div>
+	{#if kinds.length > 1}
+		<div class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+			<SegmentedField
+				name="kind"
+				label="Art"
+				initial={values.kind}
+				error={errors?.kind}
+				options={kinds.map((k) => ({ value: k, label: KIND_LABELS[k] }))}
+			/>
+		</div>
+	{:else}
+		<input type="hidden" name="kind" value={kinds[0]} />
+	{/if}
 </section>
 
 <section class="mb-6">
@@ -102,7 +129,7 @@
 			name="name"
 			value={values.name}
 			autocomplete="off"
-			placeholder={kind === 'income' ? 'z. B. Gehalt' : 'z. B. Miete'}
+			placeholder={kind === 'income' ? 'z. B. Gehalt' : transfer ? 'z. B. Sparrate' : 'z. B. Miete'}
 			maxlength={60}
 			required
 			error={errors?.name}
@@ -120,20 +147,31 @@
 			/>
 		{/if}
 		<SelectField
-			label="Konto"
+			label={transfer ? 'Von Konto' : 'Konto'}
 			name="accountId"
-			options={accounts}
-			value={values.accountId}
+			options={sourceOptions}
+			value={sourceId}
 			error={errors?.accountId}
+			onchange={chooseSource}
 		/>
-		<SelectField
-			label="Kategorie"
-			name="categoryId"
-			options={[{ value: '', label: 'Keine' }]}
-			groups={categories}
-			value={values.categoryId ?? ''}
-			error={errors?.categoryId}
-		/>
+		{#if transfer}
+			<SelectField
+				label="Auf Konto"
+				name="targetAccountId"
+				options={[{ value: '', label: 'Bitte wählen' }, ...targetOptions]}
+				value={values.targetAccountId ?? ''}
+				error={errors?.targetAccountId}
+			/>
+		{:else}
+			<SelectField
+				label="Kategorie"
+				name="categoryId"
+				options={[{ value: '', label: 'Keine' }]}
+				groups={categories}
+				value={values.categoryId ?? ''}
+				error={errors?.categoryId}
+			/>
+		{/if}
 		<ToggleField
 			label="Schwankender Betrag"
 			name="variable"
@@ -194,30 +232,11 @@
 	</p>
 </section>
 
-<section class="mb-6">
-	<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
-		{kind === 'income' ? 'Zahler' : 'Empfänger'}
-	</h3>
-	<ul class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card">
-		<FormField
-			label={kind === 'income' ? 'Zahler (optional)' : 'Empfänger (optional)'}
-			name="counterparty"
-			value={values.counterparty ?? ''}
-			autocomplete="off"
-			placeholder="Name wie auf dem Kontoauszug"
-			maxlength={70}
-			error={errors?.counterparty}
-		/>
-		<FormField
-			label="IBAN (optional)"
-			name="iban"
-			value={values.iban ? formatIban(values.iban) : ''}
-			autocomplete="off"
-			autocapitalize="characters"
-			spellcheck={false}
-			error={errors?.iban}
-		/>
-		{#if kind === 'expense'}
+{#if transfer}
+	<section class="mb-6">
+		<ul
+			class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+		>
 			<SelectField
 				label="Zahlart"
 				name="paymentMethod"
@@ -225,34 +244,75 @@
 				value={values.paymentMethod ?? ''}
 				error={errors?.paymentMethod}
 			/>
+		</ul>
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Die Umbuchung zählt auf dem Zielkonto automatisch als Eingang. Das Zielkonto muss dir nicht
+			gehören.
+		</p>
+	</section>
+{:else}
+	<section class="mb-6">
+		<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
+			{kind === 'income' ? 'Zahler' : 'Empfänger'}
+		</h3>
+		<ul
+			class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+		>
 			<FormField
-				label="Mandatsreferenz (optional)"
-				name="mandateReference"
-				value={values.mandateReference ?? ''}
+				label={kind === 'income' ? 'Zahler (optional)' : 'Empfänger (optional)'}
+				name="counterparty"
+				value={values.counterparty ?? ''}
 				autocomplete="off"
-				spellcheck={false}
-				maxlength={35}
-				error={errors?.mandateReference}
+				placeholder="Name wie auf dem Kontoauszug"
+				maxlength={70}
+				error={errors?.counterparty}
 			/>
 			<FormField
-				label="Gläubiger-ID (optional)"
-				name="creditorId"
-				value={values.creditorId ?? ''}
+				label="IBAN (optional)"
+				name="iban"
+				value={values.iban ? formatIban(values.iban) : ''}
 				autocomplete="off"
 				autocapitalize="characters"
 				spellcheck={false}
-				error={errors?.creditorId}
+				error={errors?.iban}
 			/>
-		{:else}
-			<ToggleField
-				label="Gehalt"
-				name="isSalary"
-				initial={values.isSalary}
-				hint="Gehaltseingänge bestimmen später den Stichtag."
-			/>
-		{/if}
-	</ul>
-	<p class="mt-1.5 px-4 text-[13px] text-label-2">
-		Mit diesen Angaben ordnet der Import später Buchungen dem Dauerposten zu.
-	</p>
-</section>
+			{#if kind === 'expense'}
+				<SelectField
+					label="Zahlart"
+					name="paymentMethod"
+					options={paymentOptions}
+					value={values.paymentMethod ?? ''}
+					error={errors?.paymentMethod}
+				/>
+				<FormField
+					label="Mandatsreferenz (optional)"
+					name="mandateReference"
+					value={values.mandateReference ?? ''}
+					autocomplete="off"
+					spellcheck={false}
+					maxlength={35}
+					error={errors?.mandateReference}
+				/>
+				<FormField
+					label="Gläubiger-ID (optional)"
+					name="creditorId"
+					value={values.creditorId ?? ''}
+					autocomplete="off"
+					autocapitalize="characters"
+					spellcheck={false}
+					error={errors?.creditorId}
+				/>
+			{:else}
+				<ToggleField
+					label="Gehalt"
+					name="isSalary"
+					initial={values.isSalary}
+					hint="Gehaltseingänge bestimmen später den Stichtag."
+				/>
+			{/if}
+		</ul>
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Mit diesen Angaben ordnet der Import später Buchungen dem Dauerposten zu.
+		</p>
+	</section>
+{/if}

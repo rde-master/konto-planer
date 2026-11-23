@@ -76,6 +76,7 @@ const FIELD_LABELS: Record<string, string> = {
 	parent: 'Hauptkategorie',
 	account: 'Konto',
 	kind: 'Art',
+	targetAccount: 'Zielkonto',
 	counterparty: 'Empfänger/Zahler',
 	mandateReference: 'Mandatsreferenz',
 	creditorId: 'Gläubiger-ID',

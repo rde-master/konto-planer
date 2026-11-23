@@ -5,6 +5,7 @@ import {
 	INTERVALS,
 	PAYMENT_METHODS,
 	RECURRING_KINDS,
+	TRANSFER_PAYMENT_METHODS,
 	type CustomUnit,
 	type Interval,
 	type PaymentMethod,
@@ -15,6 +16,7 @@ import type { FieldErrors } from './validation.js';
 export type RecurringInput = {
 	accountId: string;
 	kind: string;
+	targetAccountId: string;
 	name: string;
 	counterparty: string;
 	iban: string;
@@ -34,6 +36,7 @@ export type RecurringInput = {
 export type RecurringValues = {
 	accountId: string;
 	kind: RecurringKind;
+	targetAccountId: string | null;
 	name: string;
 	counterparty: string | null;
 	iban: string | null;
@@ -80,36 +83,56 @@ function optional(value: string, max: number, field: string, errors: FieldErrors
 	return v || null;
 }
 
-/**
- * Validates the recurring-item form. `accountIds` are the accounts the user may add items to,
- * `categoryIds` the existing categories.
- */
+export type RecurringContext = {
+	/** Accounts the user may add income and expenses to (giro accounts). */
+	accountIds: Set<string>;
+	/** Accounts the user may transfer from (giro and savings). */
+	transferSourceIds?: Set<string>;
+	/** Accounts that may receive a transfer (all active accounts of the app). */
+	targetAccountIds?: Set<string>;
+	categoryIds: Set<string>;
+};
+
+/** Validates the recurring-item form. Transfers have no category and no payee data. */
 export function validateRecurring(
 	input: RecurringInput,
-	ctx: { accountIds: Set<string>; categoryIds: Set<string> }
+	ctx: RecurringContext
 ): { values: RecurringValues; errors: null } | { values: null; errors: FieldErrors } {
 	const errors: FieldErrors = {};
 
-	if (!ctx.accountIds.has(input.accountId)) errors.accountId = 'Bitte ein Konto wählen.';
-
 	const kind = RECURRING_KINDS.find((k) => k === input.kind);
-	if (!kind) errors.kind = 'Bitte Ausgabe oder Einnahme wählen.';
+	if (!kind) errors.kind = 'Bitte Ausgabe, Einnahme oder Umbuchung wählen.';
+	const transfer = kind === 'transfer';
+
+	const sources = transfer ? (ctx.transferSourceIds ?? new Set()) : ctx.accountIds;
+	if (!sources.has(input.accountId)) errors.accountId = 'Bitte ein Konto wählen.';
+
+	let targetAccountId: string | null = null;
+	if (transfer) {
+		if (!(ctx.targetAccountIds ?? new Set()).has(input.targetAccountId))
+			errors.targetAccountId = 'Bitte ein Zielkonto wählen.';
+		else if (input.targetAccountId === input.accountId)
+			errors.targetAccountId = 'Quell- und Zielkonto müssen verschieden sein.';
+		else targetAccountId = input.targetAccountId;
+	}
 
 	const name = input.name.trim().replace(/\s+/g, ' ');
 	if (!name) errors.name = 'Bitte eine Bezeichnung angeben.';
 	else if (name.length > 60) errors.name = 'Höchstens 60 Zeichen.';
 
-	const counterparty = optional(input.counterparty, 70, 'counterparty', errors);
-	const mandateReference = optional(input.mandateReference, 35, 'mandateReference', errors);
+	// Transfers know their target account; payee data and category do not apply.
+	const counterparty = transfer ? null : optional(input.counterparty, 70, 'counterparty', errors);
+	const mandateReference =
+		kind === 'expense' ? optional(input.mandateReference, 35, 'mandateReference', errors) : null;
 
-	const iban = normalizeIban(input.iban);
+	const iban = transfer ? '' : normalizeIban(input.iban);
 	if (iban && !isValidIban(iban)) errors.iban = 'Diese IBAN ist ungültig (Prüfziffer oder Länge).';
 
-	const creditorId = normalizeCreditorId(input.creditorId);
+	const creditorId = kind === 'expense' ? normalizeCreditorId(input.creditorId) : '';
 	if (creditorId && !isValidCreditorId(creditorId))
 		errors.creditorId = 'Diese Gläubiger-ID ist ungültig (z. B. DE98ZZZ09999999999).';
 
-	const categoryId = input.categoryId || null;
+	const categoryId = transfer ? null : input.categoryId || null;
 	if (categoryId && !ctx.categoryIds.has(categoryId))
 		errors.categoryId = 'Diese Kategorie gibt es nicht mehr.';
 
@@ -139,8 +162,9 @@ export function validateRecurring(
 	}
 
 	let paymentMethod: PaymentMethod | null = null;
-	if (kind === 'expense' && input.paymentMethod) {
-		paymentMethod = PAYMENT_METHODS.find((p) => p === input.paymentMethod) ?? null;
+	if ((kind === 'expense' || transfer) && input.paymentMethod) {
+		const allowed: readonly PaymentMethod[] = transfer ? TRANSFER_PAYMENT_METHODS : PAYMENT_METHODS;
+		paymentMethod = allowed.find((p) => p === input.paymentMethod) ?? null;
 		if (!paymentMethod) errors.paymentMethod = 'Bitte eine Zahlart wählen.';
 	}
 
@@ -149,6 +173,7 @@ export function validateRecurring(
 		values: {
 			accountId: input.accountId,
 			kind,
+			targetAccountId,
 			name,
 			counterparty,
 			iban: iban || null,

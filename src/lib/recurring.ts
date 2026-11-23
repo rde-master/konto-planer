@@ -1,7 +1,7 @@
 // Client-safe logic for recurring items: intervals, due dates and amount history.
 // Calendar dates are "YYYY-MM-DD" strings; amounts are positive integer cents.
 
-export const RECURRING_KINDS = ['expense', 'income'] as const;
+export const RECURRING_KINDS = ['expense', 'income', 'transfer'] as const;
 export type RecurringKind = (typeof RECURRING_KINDS)[number];
 
 export const INTERVALS = [
@@ -23,8 +23,12 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const KIND_LABELS: Record<RecurringKind, string> = {
 	expense: 'Ausgabe',
-	income: 'Einnahme'
+	income: 'Einnahme',
+	transfer: 'Umbuchung'
 };
+
+/** Payment methods that make sense for a transfer between own accounts. */
+export const TRANSFER_PAYMENT_METHODS = ['standing_order', 'manual'] as const;
 
 export const INTERVAL_LABELS: Record<Interval, string> = {
 	weekly: 'wöchentlich',
@@ -194,7 +198,19 @@ export function monthlyEquivalent(
 	return Math.round((amount * times) / 12);
 }
 
-/** Signed amount: expenses negative, income positive. */
-export function signed(kind: RecurringKind, amount: number): number {
-	return kind === 'expense' ? -amount : amount;
+/**
+ * Effect of an item on one account: expenses negative, income positive. A transfer is
+ * negative on its source account, positive on its target account and 0 elsewhere.
+ */
+export function effectOn(
+	item: { kind: RecurringKind; accountId: string; targetAccountId: string | null },
+	accountId: string,
+	amount: number
+): number {
+	if (item.kind === 'transfer') {
+		if (accountId === item.accountId) return -amount;
+		return accountId === item.targetAccountId ? amount : 0;
+	}
+	if (accountId !== item.accountId) return 0;
+	return item.kind === 'expense' ? -amount : amount;
 }
