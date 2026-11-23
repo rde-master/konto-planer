@@ -18,6 +18,11 @@ const contract = (over: Partial<Contract>): Contract => ({
 	renewalMonths: 12,
 	leadDays: null,
 	cancelledOn: null,
+	cancelName: null,
+	cancelStreet: null,
+	cancelPostalCode: null,
+	cancelCity: null,
+	cancelEmail: null,
 	...over
 });
 

@@ -104,7 +104,12 @@ function toContract(row: ContractRow): Contract {
 		renewal: row.renewal,
 		renewalMonths: row.renewalMonths,
 		leadDays: row.leadDays,
-		cancelledOn: row.cancelledOn
+		cancelledOn: row.cancelledOn,
+		cancelName: row.cancelName,
+		cancelStreet: row.cancelStreet,
+		cancelPostalCode: row.cancelPostalCode,
+		cancelCity: row.cancelCity,
+		cancelEmail: row.cancelEmail
 	};
 }
 
@@ -272,6 +277,13 @@ async function accountName(executor: Executor, id: string | null) {
 	return a?.name ?? null;
 }
 
+/** Cancellation address on one line for the audit log. */
+function addressText(c: Contract): string | null {
+	const city = [c.cancelPostalCode, c.cancelCity].filter(Boolean).join(' ');
+	const text = [c.cancelName, c.cancelStreet, city, c.cancelEmail].filter(Boolean).join(', ');
+	return text || null;
+}
+
 /** Contract fields as shown in the audit log; only for expenses. */
 function contractAudit(kind: RecurringValues['kind'], c: Contract | null) {
 	if (kind !== 'expense') return {};
@@ -281,7 +293,8 @@ function contractAudit(kind: RecurringValues['kind'], c: Contract | null) {
 		notice: c ? periodLabel(c.noticeEvery, c.noticeUnit) : null,
 		renewal: c ? renewalLabel(c) : null,
 		leadDays: c?.leadDays ?? null,
-		cancelledOn: c?.cancelledOn ?? null
+		cancelledOn: c?.cancelledOn ?? null,
+		cancelAddress: c ? addressText(c) : null
 	};
 }
 
@@ -310,6 +323,8 @@ async function auditFields(executor: Executor, v: RecurringValues, c: Contract |
 		variable: v.variable,
 		isSalary: v.isSalary,
 		paymentMethod: v.paymentMethod,
+		customerNumber: v.customerNumber,
+		note: v.note,
 		...contractAudit(v.kind, c)
 	};
 }
@@ -351,7 +366,9 @@ function valuesOf(item: RecurringItem): RecurringValues {
 		endDate: item.endDate,
 		variable: item.variable,
 		isSalary: item.isSalary,
-		paymentMethod: item.paymentMethod
+		paymentMethod: item.paymentMethod,
+		customerNumber: item.customerNumber,
+		note: item.note
 	};
 }
 
@@ -379,7 +396,7 @@ async function requireTarget(executor: Executor, values: RecurringValues, curren
 	if (!target || target.archivedAt) throw new RecurringError('Bitte ein Zielkonto wählen.');
 }
 
-async function requireEditable(viewer: Viewer, id: string) {
+export async function requireEditable(viewer: Viewer, id: string) {
 	const item = await getRecurringFor(viewer, id);
 	if (!item) throw new RecurringError('Dauerposten nicht gefunden.');
 	if (!item.canEdit) throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');

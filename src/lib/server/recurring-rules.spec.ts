@@ -31,7 +31,9 @@ const valid: RecurringInput = {
 	endDate: '',
 	variable: true,
 	isSalary: true,
-	paymentMethod: 'direct_debit'
+	paymentMethod: 'direct_debit',
+	customerNumber: ' KD-4711 ',
+	note: 'Zeile 1\r\nZeile 2  '
 };
 
 describe('isValidCreditorId', () => {
@@ -65,7 +67,9 @@ describe('validateRecurring', () => {
 				variable: true,
 				// Salary flag only for income.
 				isSalary: false,
-				paymentMethod: 'direct_debit'
+				paymentMethod: 'direct_debit',
+				customerNumber: 'KD-4711',
+				note: 'Zeile 1\nZeile 2'
 			}
 		});
 	});
@@ -128,6 +132,15 @@ describe('validateRecurring', () => {
 				{ targetAccountId: null }
 			);
 		});
+	});
+
+	it('limits note and customer number', () => {
+		const { errors } = validateRecurring(
+			{ ...valid, note: 'x'.repeat(2001), customerNumber: 'x'.repeat(51) },
+			ctx
+		);
+		expect(errors?.note).toBe('Höchstens 2000 Zeichen.');
+		expect(errors?.customerNumber).toBe('Höchstens 50 Zeichen.');
 	});
 
 	it('validates custom intervals', () => {
@@ -199,7 +212,12 @@ describe('validateContract', () => {
 		renewal: 'period',
 		renewalMonths: '12',
 		leadDays: '',
-		cancelledOn: ''
+		cancelledOn: '',
+		cancelName: ' Mobilfunk  Muster GmbH ',
+		cancelStreet: 'Musterweg 1',
+		cancelPostalCode: '12345',
+		cancelCity: 'Musterstadt',
+		cancelEmail: 'kuendigung@example.org'
 	};
 
 	it('returns clean values', () => {
@@ -210,7 +228,12 @@ describe('validateContract', () => {
 			renewal: 'period',
 			renewalMonths: 12,
 			leadDays: null,
-			cancelledOn: null
+			cancelledOn: null,
+			cancelName: 'Mobilfunk Muster GmbH',
+			cancelStreet: 'Musterweg 1',
+			cancelPostalCode: '12345',
+			cancelCity: 'Musterstadt',
+			cancelEmail: 'kuendigung@example.org'
 		});
 	});
 
@@ -236,12 +259,13 @@ describe('validateContract', () => {
 				noticeEvery: '-1',
 				renewalMonths: '0',
 				leadDays: 'viel',
-				cancelledOn: '2027-02-30'
+				cancelledOn: '2027-02-30',
+				cancelEmail: 'keine-adresse'
 			},
 			'expense'
 		);
 		expect(Object.keys(errors ?? {}).sort()).toEqual(
-			['cancelledOn', 'leadDays', 'noticeEvery', 'renewalMonths'].sort()
+			['cancelEmail', 'cancelledOn', 'leadDays', 'noticeEvery', 'renewalMonths'].sort()
 		);
 	});
 });

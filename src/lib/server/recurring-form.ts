@@ -24,7 +24,9 @@ export function readRecurringForm(data: FormData): RecurringInput {
 		endDate: formString(data, 'endDate'),
 		variable: formString(data, 'variable') === 'on',
 		isSalary: formString(data, 'isSalary') === 'on',
-		paymentMethod: formString(data, 'paymentMethod')
+		paymentMethod: formString(data, 'paymentMethod'),
+		customerNumber: formString(data, 'customerNumber'),
+		note: formString(data, 'note')
 	};
 }
 
@@ -38,7 +40,12 @@ export function readContractForm(data: FormData): ContractInput {
 		renewal: formString(data, 'renewal'),
 		renewalMonths: formString(data, 'renewalMonths'),
 		leadDays: formString(data, 'leadDays'),
-		cancelledOn: formString(data, 'cancelledOn')
+		cancelledOn: formString(data, 'cancelledOn'),
+		cancelName: formString(data, 'cancelName'),
+		cancelStreet: formString(data, 'cancelStreet'),
+		cancelPostalCode: formString(data, 'cancelPostalCode'),
+		cancelCity: formString(data, 'cancelCity'),
+		cancelEmail: formString(data, 'cancelEmail')
 	};
 }
 

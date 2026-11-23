@@ -32,6 +32,8 @@ export type RecurringInput = {
 	variable: boolean;
 	isSalary: boolean;
 	paymentMethod: string;
+	customerNumber: string;
+	note: string;
 };
 
 export type RecurringValues = {
@@ -52,6 +54,8 @@ export type RecurringValues = {
 	variable: boolean;
 	isSalary: boolean;
 	paymentMethod: PaymentMethod | null;
+	customerNumber: string | null;
+	note: string | null;
 };
 
 export function isValidDate(value: string): boolean {
@@ -83,6 +87,15 @@ function optional(value: string, max: number, field: string, errors: FieldErrors
 	if (v.length > max) errors[field] = `Höchstens ${max} Zeichen.`;
 	return v || null;
 }
+
+/** Multi-line text: trimmed, line breaks kept (normalised to \n). */
+function multiline(value: string, max: number, field: string, errors: FieldErrors): string | null {
+	const v = value.replace(/\r\n?/g, '\n').trim();
+	if (v.length > max) errors[field] = `Höchstens ${max} Zeichen.`;
+	return v || null;
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type RecurringContext = {
 	/** Accounts the user may add income and expenses to (giro accounts). */
@@ -162,6 +175,9 @@ export function validateRecurring(
 		else endDate = input.endDate;
 	}
 
+	const customerNumber = optional(input.customerNumber, 50, 'customerNumber', errors);
+	const note = multiline(input.note, 2000, 'note', errors);
+
 	let paymentMethod: PaymentMethod | null = null;
 	if ((kind === 'expense' || transfer) && input.paymentMethod) {
 		const allowed: readonly PaymentMethod[] = transfer ? TRANSFER_PAYMENT_METHODS : PAYMENT_METHODS;
@@ -188,7 +204,9 @@ export function validateRecurring(
 			endDate,
 			variable: input.variable,
 			isSalary: kind === 'income' && input.isSalary,
-			paymentMethod
+			paymentMethod,
+			customerNumber,
+			note
 		},
 		errors: null
 	};
@@ -219,6 +237,11 @@ export type ContractInput = {
 	renewalMonths: string;
 	leadDays: string;
 	cancelledOn: string;
+	cancelName: string;
+	cancelStreet: string;
+	cancelPostalCode: string;
+	cancelCity: string;
+	cancelEmail: string;
 };
 
 function wholeNumber(value: string, min: number, max: number): number | null {
@@ -272,10 +295,31 @@ export function validateContract(
 		else cancelledOn = input.cancelledOn;
 	}
 
+	const cancelName = optional(input.cancelName, 70, 'cancelName', errors);
+	const cancelStreet = optional(input.cancelStreet, 70, 'cancelStreet', errors);
+	const cancelPostalCode = optional(input.cancelPostalCode, 10, 'cancelPostalCode', errors);
+	const cancelCity = optional(input.cancelCity, 50, 'cancelCity', errors);
+	const cancelEmail = input.cancelEmail.trim() || null;
+	if (cancelEmail && (cancelEmail.length > 254 || !EMAIL.test(cancelEmail)))
+		errors.cancelEmail = 'Bitte eine gültige E-Mail-Adresse eingeben.';
+
 	if (Object.keys(errors).length || !renewal || noticeEvery === null || !noticeUnit)
 		return { values: null, errors };
 	return {
-		values: { termEnd, noticeEvery, noticeUnit, renewal, renewalMonths, leadDays, cancelledOn },
+		values: {
+			termEnd,
+			noticeEvery,
+			noticeUnit,
+			renewal,
+			renewalMonths,
+			leadDays,
+			cancelledOn,
+			cancelName,
+			cancelStreet,
+			cancelPostalCode,
+			cancelCity,
+			cancelEmail
+		},
 		errors: null
 	};
 }

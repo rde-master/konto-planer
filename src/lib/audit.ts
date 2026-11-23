@@ -28,7 +28,9 @@ export const ACTIONS = [
 	'archive',
 	'restore',
 	'access_change',
-	'amount_change'
+	'amount_change',
+	'attachment_add',
+	'attachment_delete'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -55,7 +57,9 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	archive: 'Archiviert',
 	restore: 'Wiederhergestellt',
 	access_change: 'Zugriffe geändert',
-	amount_change: 'Betrag geändert'
+	amount_change: 'Betrag geändert',
+	attachment_add: 'Anhang hinzugefügt',
+	attachment_delete: 'Anhang gelöscht'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -103,6 +107,11 @@ const FIELD_LABELS: Record<string, string> = {
 	renewal: 'Verlängerung',
 	leadDays: 'Vorlauf (Tage)',
 	cancelledOn: 'Gekündigt am',
+	cancelAddress: 'Kündigungsadresse',
+	customerNumber: 'Kundennummer',
+	note: 'Notiz',
+	fileName: 'Datei',
+	size: 'Größe (Bytes)',
 	defaultLeadDays: 'Standard-Vorlauf (Tage)'
 };
 

@@ -34,6 +34,10 @@ docker compose exec db pg_restore -U kontoplaner -d kontoplaner --no-owner /tmp/
 
 Danach das Image der Version vor dem Update in `docker-compose.yml` eintragen (z. B. `:0.4.0` statt `:latest`) und `docker compose up -d` – eine neuere Version würde sonst sofort wieder migrieren.
 
+### Dokumente
+
+PDF-Anhänge an Dauerposten (bis 10 MB je Datei) liegen im Volume `app-data` unter `attachments/`, nicht in der Datenbank. Die Sicherung vor Updates enthält sie nicht – bei eigenen Sicherungen das Volume `app-data` mitsichern.
+
 Am iPhone: Seite in Safari öffnen → Teilen → „Zum Home-Bildschirm“.
 
 ## Entwicklung

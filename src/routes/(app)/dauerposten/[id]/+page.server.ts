@@ -21,6 +21,13 @@ import {
 	recurringFormContext
 } from '#lib/server/recurring-form.js';
 import { getSettings } from '#lib/server/settings.js';
+import {
+	addAttachment,
+	attachmentIdsOf,
+	deleteAttachment,
+	listAttachments,
+	removeAttachmentFiles
+} from '#lib/server/attachments.js';
 import { fieldError, formString } from '#lib/server/validation.js';
 import { dueDates } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
@@ -30,14 +37,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = locals.user!;
 	const item = await getRecurringFor(user, params.id);
 	if (!item) error(404, 'Dauerposten nicht gefunden.');
-	const [{ options }, settings] = await Promise.all([
+	const [{ options }, settings, attachments] = await Promise.all([
 		recurringFormContext(user, item),
-		getSettings()
+		getSettings(),
+		listAttachments(item.id)
 	]);
 	const today = todayBerlin();
 	return {
 		item,
 		defaultLeadDays: settings.defaultLeadDays,
+		attachments,
 		...options,
 		upcoming: item.archivedAt ? [] : dueDates(item, today, '9999-12-31', 6),
 		today,
@@ -142,12 +151,37 @@ export const actions: Actions = {
 		return { action: 'restore', success: true };
 	},
 
+	attachmentAdd: async ({ request, locals, params }) => {
+		const file = (await request.formData()).get('file');
+		if (!(file instanceof File) || file.size === 0)
+			return fail(400, { action: 'attachment', message: 'Bitte eine PDF-Datei wählen.' });
+		try {
+			await addAttachment(locals.user!, params.id, file);
+		} catch (e) {
+			return recurringError('attachment', e);
+		}
+		return { action: 'attachmentAdd', success: true };
+	},
+
+	attachmentDelete: async ({ request, locals, params }) => {
+		const attachmentId = formString(await request.formData(), 'attachmentId');
+		try {
+			await deleteAttachment(locals.user!, params.id, attachmentId);
+		} catch (e) {
+			return recurringError('attachment', e);
+		}
+		return { action: 'attachmentDelete', success: true };
+	},
+
 	delete: async ({ locals, params }) => {
+		// Files are removed after the rows (cascade) are gone.
+		const files = await attachmentIdsOf([params.id]);
 		try {
 			await deleteRecurring(locals.user!, params.id);
 		} catch (e) {
 			return recurringError('delete', e);
 		}
+		await removeAttachmentFiles(files);
 		redirect(303, '/dauerposten');
 	}
 };

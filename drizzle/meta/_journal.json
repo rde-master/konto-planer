@@ -57,6 +57,13 @@
       "when": 1795467359355,
       "tag": "0007_contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795468360184,
+      "tag": "0008_contract_details",
+      "breakpoints": true
     }
   ]
 }

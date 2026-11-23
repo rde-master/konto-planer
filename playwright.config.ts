@@ -29,6 +29,12 @@ export default defineConfig({
 		command: 'node scripts/e2e-reset-db.mjs && node build',
 		port: PORT,
 		reuseExistingServer: false,
-		env: { DATABASE_URL, PORT: String(PORT), ORIGIN: `http://localhost:${PORT}` }
+		env: {
+			DATABASE_URL,
+			PORT: String(PORT),
+			ORIGIN: `http://localhost:${PORT}`,
+			BODY_SIZE_LIMIT: '12M',
+			ATTACHMENT_DIR: 'test-results/attachments'
+		}
 	}
 });
