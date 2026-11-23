@@ -49,7 +49,7 @@ export const actions: Actions = {
 			});
 		}
 		try {
-			await updateUser(actor.id, params.id, { ...input, role });
+			await updateUser(actor, params.id, { ...input, role });
 		} catch (e) {
 			return userError('update', e);
 		}
@@ -57,13 +57,13 @@ export const actions: Actions = {
 	},
 
 	reset: async ({ request, locals, params }) => {
-		requireAdmin(locals.user);
+		const actor = requireAdmin(locals.user);
 		const data = await request.formData();
 		const password = formString(data, 'password');
 		const errors = validatePasswordPair(password, formString(data, 'confirm'));
 		if (errors) return fail(400, { action: 'reset' as const, errors });
 		try {
-			await resetPassword(params.id, password);
+			await resetPassword(actor, params.id, password);
 		} catch (e) {
 			return userError('reset', e);
 		}
@@ -71,9 +71,9 @@ export const actions: Actions = {
 	},
 
 	unlock: async ({ locals, params }) => {
-		requireAdmin(locals.user);
+		const actor = requireAdmin(locals.user);
 		try {
-			await unlockUser(params.id);
+			await unlockUser(actor, params.id);
 		} catch (e) {
 			return userError('unlock', e);
 		}
@@ -83,7 +83,7 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const actor = requireAdmin(locals.user);
 		try {
-			await deleteUser(actor.id, params.id);
+			await deleteUser(actor, params.id);
 		} catch (e) {
 			return userError('delete', e);
 		}

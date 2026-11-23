@@ -33,6 +33,6 @@ export async function recordFailure(username: string, now = Date.now()): Promise
 }
 
 /** Successful login or admin unlock: forget all failures. */
-export async function clearFailures(username: string) {
-	await db.delete(loginThrottle).where(eq(loginThrottle.username, username));
+export async function clearFailures(username: string, executor: Pick<typeof db, 'delete'> = db) {
+	await executor.delete(loginThrottle).where(eq(loginThrottle.username, username));
 }

@@ -12,6 +12,7 @@
 		formId,
 		confirmDisabled = false,
 		destructive = false,
+		closeLabel = 'Abbrechen',
 		children
 	}: {
 		open?: boolean;
@@ -20,6 +21,8 @@
 		formId?: string;
 		confirmDisabled?: boolean;
 		destructive?: boolean;
+		/** "Fertig" for read-only sheets. */
+		closeLabel?: string;
 		children: Snippet;
 	} = $props();
 
@@ -56,7 +59,7 @@
 				class="justify-self-start py-2 text-[17px] text-accent"
 				onclick={() => (open = false)}
 			>
-				Abbrechen
+				{closeLabel}
 			</button>
 			<h2 id={titleId} class="text-[17px] font-semibold">{title}</h2>
 			{#if confirmLabel && formId}
