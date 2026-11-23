@@ -1,4 +1,5 @@
 import {
+	check,
 	bigint,
 	bigserial,
 	boolean,
@@ -230,3 +231,42 @@ export const recurringAmounts = pgTable(
 
 export type RecurringItem = typeof recurringItems.$inferSelect;
 export type RecurringAmount = typeof recurringAmounts.$inferSelect;
+
+export const contractRenewal = pgEnum('contract_renewal', ['indefinite', 'period', 'none']);
+
+/** Contract data of a cancellable expense (1:1 with the recurring item). */
+export const contracts = pgTable(
+	'contracts',
+	{
+		recurringId: uuid('recurring_id')
+			.primaryKey()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		/** End of the (initial) minimum term. */
+		termEnd: date('term_end', { mode: 'string' }),
+		noticeEvery: integer('notice_every').notNull(),
+		noticeUnit: customUnit('notice_unit').notNull(),
+		renewal: contractRenewal('renewal').notNull(),
+		renewalMonths: integer('renewal_months'),
+		/** Reminder lead in days; null = default from the settings. */
+		leadDays: integer('lead_days'),
+		cancelledOn: date('cancelled_on', { mode: 'string' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		check('contracts_term_end_check', sql`${t.termEnd} is not null or ${t.renewal} = 'indefinite'`)
+	]
+);
+
+/** App-wide settings: exactly one row (id 1). */
+export const appSettings = pgTable(
+	'app_settings',
+	{
+		id: integer('id').primaryKey().default(1),
+		defaultLeadDays: integer('default_lead_days').notNull().default(30),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [check('app_settings_single_row', sql`${t.id} = 1`)]
+);
+
+export type ContractRow = typeof contracts.$inferSelect;

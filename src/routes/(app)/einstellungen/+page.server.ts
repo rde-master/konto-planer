@@ -4,7 +4,13 @@ import { fieldError, formString } from '#lib/server/validation.js';
 import { validatePasswordPair } from '#lib/server/user-rules.js';
 import { UserError, changeOwnPassword } from '#lib/server/users.js';
 import { SESSION_COOKIE } from '#lib/server/session-token.js';
-import type { Actions } from './$types';
+import { getSettings, updateSettings } from '#lib/server/settings.js';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	if (locals.user?.role !== 'admin') return { defaultLeadDays: null };
+	return { defaultLeadDays: (await getSettings()).defaultLeadDays };
+};
 
 export const actions: Actions = {
 	theme: async ({ request, cookies }) => {
@@ -39,5 +45,18 @@ export const actions: Actions = {
 			throw e;
 		}
 		return { action: 'password' as const, success: true };
+	},
+
+	contracts: async ({ request, locals }) => {
+		if (locals.user?.role !== 'admin') return fail(403);
+		const raw = formString(await request.formData(), 'defaultLeadDays').trim();
+		const days = Number(raw);
+		if (!/^\d+$/.test(raw) || days > 365)
+			return fail(400, {
+				action: 'contracts' as const,
+				errors: fieldError('defaultLeadDays', 'Bitte 0 bis 365 Tage eingeben.')
+			});
+		await updateSettings(locals.user, { defaultLeadDays: days });
+		return { action: 'contracts' as const, success: true };
 	}
 };

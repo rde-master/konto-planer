@@ -14,6 +14,7 @@
 		TRANSFER_PAYMENT_METHODS,
 		type RecurringKind
 	} from '#lib/recurring.js';
+	import { RENEWALS, RENEWAL_LABELS } from '#lib/contracts.js';
 
 	export type RecurringFormValues = {
 		accountId: string;
@@ -36,6 +37,17 @@
 		amount?: string;
 	};
 
+	/** Contract fields, from a stored contract or a re-shown form. */
+	export type ContractFormValues = {
+		termEnd: string | null;
+		noticeEvery: string | number;
+		noticeUnit: string;
+		renewal: string;
+		renewalMonths: string | number | null;
+		leadDays: string | number | null;
+		cancelledOn: string | null;
+	};
+
 	/**
 	 * Shared fields of a recurring item. Kind and interval drive which fields are shown.
 	 * `withAmount` adds the first amount (creation only; later changes go to the amount history).
@@ -49,7 +61,9 @@
 		targets,
 		categories,
 		kinds = ['expense', 'income', 'transfer'],
-		withAmount = false
+		withAmount = false,
+		contract = null,
+		defaultLeadDays
 	}: {
 		values: RecurringFormValues;
 		errors?: Partial<Record<string, string>>;
@@ -58,7 +72,20 @@
 		categories: { label: string; options: { value: string; label: string }[] }[];
 		kinds?: RecurringKind[];
 		withAmount?: boolean;
+		/** Contract data; null = not a cancellable contract. */
+		contract?: ContractFormValues | null;
+		defaultLeadDays: number;
 	} = $props();
+
+	let contractOn = $state(untrack(() => contract !== null));
+	let renewal = $state(untrack(() => contract?.renewal ?? 'indefinite'));
+	function toggleContract(checked: boolean) {
+		contractOn = checked;
+	}
+	function chooseRenewal(value: string) {
+		renewal = value;
+	}
+	const renewalOptions = RENEWALS.map((r) => ({ value: r, label: RENEWAL_LABELS[r] }));
 
 	let kind = $state(untrack(() => values.kind));
 	let interval = $state(untrack(() => values.interval));
@@ -231,6 +258,89 @@
 		Fällt der Tag in einem Monat weg (z. B. der 31.), gilt der letzte Tag des Monats.
 	</p>
 </section>
+
+{#if kind === 'expense'}
+	<section class="mb-6">
+		<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Vertrag</h3>
+		<ul
+			class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+		>
+			<ToggleField
+				label="Kündbarer Vertrag"
+				name="contract"
+				initial={contractOn}
+				hint="Laufzeit und Kündigungsfrist, z. B. Handy oder Versicherung."
+				onchange={toggleContract}
+			/>
+			{#if contractOn}
+				<FormField
+					label={renewal === 'indefinite' ? 'Mindestlaufzeit bis (optional)' : 'Laufzeit bis'}
+					name="termEnd"
+					type="date"
+					value={contract?.termEnd ?? ''}
+					error={errors?.termEnd}
+				/>
+				<FormField
+					label="Kündigungsfrist"
+					name="noticeEvery"
+					value={contract?.noticeEvery?.toString() ?? '1'}
+					inputmode="numeric"
+					autocomplete="off"
+					error={errors?.noticeEvery}
+				/>
+				<SelectField
+					label="Frist in"
+					name="noticeUnit"
+					options={unitOptions}
+					value={contract?.noticeUnit ?? 'month'}
+					error={errors?.noticeUnit}
+				/>
+				<SelectField
+					label="Verlängerung"
+					name="renewal"
+					options={renewalOptions}
+					value={renewal}
+					error={errors?.renewal}
+					onchange={chooseRenewal}
+				/>
+				{#if renewal === 'period'}
+					<FormField
+						label="Verlängerung um (Monate)"
+						name="renewalMonths"
+						value={contract?.renewalMonths?.toString() || '12'}
+						inputmode="numeric"
+						autocomplete="off"
+						error={errors?.renewalMonths}
+					/>
+				{/if}
+				<FormField
+					label="Vorlauf in Tagen (optional)"
+					name="leadDays"
+					value={contract?.leadDays?.toString() ?? ''}
+					inputmode="numeric"
+					autocomplete="off"
+					placeholder={`Standard: ${defaultLeadDays}`}
+					error={errors?.leadDays}
+				/>
+				<FormField
+					label="Gekündigt am (optional)"
+					name="cancelledOn"
+					type="date"
+					value={contract?.cancelledOn ?? ''}
+					error={errors?.cancelledOn}
+				/>
+			{/if}
+		</ul>
+		{#if contractOn}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Verlängerung „Unbefristet“: nach der Mindestlaufzeit jederzeit mit Frist kündbar. „Keine“:
+				endet ohne Kündigung zum Laufzeitende. Der Vorlauf bestimmt, wann der Vertrag als „bald
+				kündbar“ gilt. „Gekündigt am“ setzt das Ende des Dauerpostens auf das berechnete
+				Vertragsende.
+			</p>
+		{/if}
+	</section>
+{/if}
 
 {#if transfer}
 	<section class="mb-6">

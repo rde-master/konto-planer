@@ -1,5 +1,5 @@
 import { formString } from './validation.js';
-import type { RecurringContext, RecurringInput } from './recurring-rules.js';
+import type { ContractInput, RecurringContext, RecurringInput } from './recurring-rules.js';
 import { accountsForNewItems, transferTargets, type RecurringDetail } from './recurring.js';
 import { listCategories } from './categories.js';
 import { buildTree } from './category-rules.js';
@@ -25,6 +25,20 @@ export function readRecurringForm(data: FormData): RecurringInput {
 		variable: formString(data, 'variable') === 'on',
 		isSalary: formString(data, 'isSalary') === 'on',
 		paymentMethod: formString(data, 'paymentMethod')
+	};
+}
+
+/** Reads the contract fields of the recurring form. */
+export function readContractForm(data: FormData): ContractInput {
+	return {
+		contract: formString(data, 'contract') === 'on',
+		termEnd: formString(data, 'termEnd'),
+		noticeEvery: formString(data, 'noticeEvery'),
+		noticeUnit: formString(data, 'noticeUnit'),
+		renewal: formString(data, 'renewal'),
+		renewalMonths: formString(data, 'renewalMonths'),
+		leadDays: formString(data, 'leadDays'),
+		cancelledOn: formString(data, 'cancelledOn')
 	};
 }
 

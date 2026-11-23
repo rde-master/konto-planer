@@ -3,9 +3,11 @@ import { db } from './db/index.js';
 import {
 	accounts,
 	categories,
+	contracts,
 	recurringAmounts,
 	recurringItems,
 	users,
+	type ContractRow,
 	type RecurringAmount,
 	type RecurringItem
 } from './db/schema.js';
@@ -16,6 +18,7 @@ import { getAccountFor, listAccountsFor, type AccountWithLevel } from './account
 import type { RecurringValues } from './recurring-rules.js';
 import { amountOn, intervalLabel, nextDue } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
+import { endDateAfterSave, periodLabel, renewalLabel, type Contract } from '../contracts.js';
 
 export class RecurringError extends Error {}
 
@@ -31,6 +34,8 @@ export type RecurringSummary = RecurringItem & {
 	/** Receiving account of a transfer. */
 	targetAccount: AccountInfo | null;
 	category: { name: string; color: string | null; parentName: string | null } | null;
+	/** Contract data of a cancellable expense. */
+	contract: Contract | null;
 	amount: number | null;
 	nextDue: string | null;
 	canEdit: boolean;
@@ -91,6 +96,24 @@ async function accountInfos(visible: AccountWithLevel[], ids: string[]) {
 	return byId;
 }
 
+function toContract(row: ContractRow): Contract {
+	return {
+		termEnd: row.termEnd,
+		noticeEvery: row.noticeEvery,
+		noticeUnit: row.noticeUnit,
+		renewal: row.renewal,
+		renewalMonths: row.renewalMonths,
+		leadDays: row.leadDays,
+		cancelledOn: row.cancelledOn
+	};
+}
+
+async function contractsOf(executor: Executor, ids: string[]) {
+	if (!ids.length) return new Map<string, Contract>();
+	const rows = await executor.select().from(contracts).where(inArray(contracts.recurringId, ids));
+	return new Map(rows.map((r) => [r.recurringId, toContract(r)]));
+}
+
 async function categoryInfo(executor: Executor) {
 	const rows = await executor.select().from(categories);
 	const byId = new Map(rows.map((c) => [c.id, c]));
@@ -139,6 +162,10 @@ export async function listRecurringFor(viewer: Viewer): Promise<RecurringSummary
 			)
 		);
 	const category = await categoryInfo(db);
+	const contractById = await contractsOf(
+		db,
+		items.map((i) => i.id)
+	);
 	const today = todayBerlin();
 	return items.map((item) => {
 		const account = accountById.get(item.accountId)!;
@@ -147,6 +174,7 @@ export async function listRecurringFor(viewer: Viewer): Promise<RecurringSummary
 			account,
 			targetAccount: item.targetAccountId ? accountById.get(item.targetAccountId)! : null,
 			category: category(item.categoryId),
+			contract: contractById.get(item.id) ?? null,
 			amount: amountOn(
 				amounts.filter((a) => a.recurringId === item.id),
 				today
@@ -190,12 +218,14 @@ export async function getRecurringFor(viewer: Viewer, id: string): Promise<Recur
 		createdByName = u?.name ?? null;
 	}
 	const category = await categoryInfo(db);
+	const contract = (await contractsOf(db, [item.id])).get(item.id) ?? null;
 	const today = todayBerlin();
 	return {
 		...item,
 		account,
 		targetAccount: item.targetAccountId ? byId.get(item.targetAccountId)! : null,
 		category: category(item.categoryId),
+		contract,
 		amount: amountOn(amounts, today),
 		nextDue: item.archivedAt ? null : nextDue(item, today),
 		canEdit: itemEditable(viewer, account, item),
@@ -242,7 +272,20 @@ async function accountName(executor: Executor, id: string | null) {
 	return a?.name ?? null;
 }
 
-async function auditFields(executor: Executor, v: RecurringValues) {
+/** Contract fields as shown in the audit log; only for expenses. */
+function contractAudit(kind: RecurringValues['kind'], c: Contract | null) {
+	if (kind !== 'expense') return {};
+	return {
+		contract: c !== null,
+		termEnd: c?.termEnd ?? null,
+		notice: c ? periodLabel(c.noticeEvery, c.noticeUnit) : null,
+		renewal: c ? renewalLabel(c) : null,
+		leadDays: c?.leadDays ?? null,
+		cancelledOn: c?.cancelledOn ?? null
+	};
+}
+
+async function auditFields(executor: Executor, v: RecurringValues, c: Contract | null = null) {
 	let category: string | null = null;
 	if (v.categoryId) {
 		const [c] = await executor
@@ -266,8 +309,28 @@ async function auditFields(executor: Executor, v: RecurringValues) {
 		endDate: v.endDate,
 		variable: v.variable,
 		isSalary: v.isSalary,
-		paymentMethod: v.paymentMethod
+		paymentMethod: v.paymentMethod,
+		...contractAudit(v.kind, c)
 	};
+}
+
+/** Stores (or removes) the contract row of an item. */
+async function saveContract(
+	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+	recurringId: string,
+	contract: Contract | null
+) {
+	if (!contract) {
+		await tx.delete(contracts).where(eq(contracts.recurringId, recurringId));
+		return;
+	}
+	await tx
+		.insert(contracts)
+		.values({ recurringId, ...contract })
+		.onConflictDoUpdate({
+			target: contracts.recurringId,
+			set: { ...contract, updatedAt: new Date() }
+		});
 }
 
 function valuesOf(item: RecurringItem): RecurringValues {
@@ -325,9 +388,11 @@ async function requireEditable(viewer: Viewer, id: string) {
 
 export async function createRecurring(
 	actor: NonNullable<Actor> & Viewer,
-	values: RecurringValues,
-	amount: number
+	input: RecurringValues,
+	amount: number,
+	contract: Contract | null = null
 ): Promise<string> {
+	const values = { ...input, endDate: endDateAfterSave(input.endDate, contract, null) };
 	await requireEditableAccount(actor, values);
 	await requireTarget(db, values);
 	return db.transaction(async (tx) => {
@@ -338,13 +403,14 @@ export async function createRecurring(
 		await tx
 			.insert(recurringAmounts)
 			.values({ recurringId: created.id, amount, validFrom: values.startDate });
+		await saveContract(tx, created.id, contract);
 		await audit(tx, {
 			actor,
 			entityType: 'recurring',
 			action: 'create',
 			entityId: created.id,
 			entityLabel: created.name,
-			after: { ...(await auditFields(tx, values)), amount }
+			after: { ...(await auditFields(tx, values, contract)), amount }
 		});
 		return created.id;
 	});
@@ -353,9 +419,14 @@ export async function createRecurring(
 export async function updateRecurring(
 	actor: NonNullable<Actor> & Viewer,
 	id: string,
-	values: RecurringValues
+	input: RecurringValues,
+	contract: Contract | null = null
 ) {
 	const current = await requireEditable(actor, id);
+	const values = {
+		...input,
+		endDate: endDateAfterSave(input.endDate, contract, current.contract)
+	};
 	if (values.kind !== current.kind && (values.kind === 'transfer' || current.kind === 'transfer'))
 		throw new RecurringError('Eine Umbuchung bleibt eine Umbuchung.');
 	if (values.accountId !== current.accountId) await requireEditableAccount(actor, values);
@@ -367,7 +438,11 @@ export async function updateRecurring(
 			.update(recurringItems)
 			.set({ ...values, updatedAt: new Date() })
 			.where(eq(recurringItems.id, id));
-		const changes = diff(await auditFields(tx, valuesOf(current)), await auditFields(tx, values));
+		await saveContract(tx, id, contract);
+		const changes = diff(
+			await auditFields(tx, valuesOf(current), current.contract),
+			await auditFields(tx, values, contract)
+		);
 		if (changes) {
 			await audit(tx, {
 				actor,
@@ -411,7 +486,7 @@ export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: st
 	if (await recurringHasData(id))
 		throw new RecurringError('Der Dauerposten hat Buchungen und kann nur archiviert werden.');
 	await db.transaction(async (tx) => {
-		const before = await auditFields(tx, valuesOf(item));
+		const before = await auditFields(tx, valuesOf(item), item.contract);
 		await tx.delete(recurringItems).where(eq(recurringItems.id, id));
 		await audit(tx, {
 			actor,

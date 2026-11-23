@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	isValidCreditorId,
+	validateContract,
 	validateAmount,
 	validateRecurring,
 	type RecurringInput
@@ -186,5 +187,61 @@ describe('validateAmount', () => {
 		expect(validateAmount({ amount: '0', validFrom: '2027-01-01' }).errors?.amount).toBeDefined();
 		expect(validateAmount({ amount: '-5', validFrom: '2027-01-01' }).errors?.amount).toBeDefined();
 		expect(validateAmount({ amount: '5', validFrom: '' }).errors?.validFrom).toBeDefined();
+	});
+});
+
+describe('validateContract', () => {
+	const input = {
+		contract: true,
+		termEnd: '2027-03-31',
+		noticeEvery: '3',
+		noticeUnit: 'month',
+		renewal: 'period',
+		renewalMonths: '12',
+		leadDays: '',
+		cancelledOn: ''
+	};
+
+	it('returns clean values', () => {
+		expect(validateContract(input, 'expense').values).toEqual({
+			termEnd: '2027-03-31',
+			noticeEvery: 3,
+			noticeUnit: 'month',
+			renewal: 'period',
+			renewalMonths: 12,
+			leadDays: null,
+			cancelledOn: null
+		});
+	});
+
+	it('no contract for other kinds or when switched off', () => {
+		expect(validateContract(input, 'income')).toEqual({ values: null, errors: null });
+		expect(validateContract({ ...input, contract: false }, 'expense')).toEqual({
+			values: null,
+			errors: null
+		});
+	});
+
+	it('term end is optional only for indefinite contracts', () => {
+		expect(validateContract({ ...input, termEnd: '' }, 'expense').errors?.termEnd).toBeDefined();
+		expect(
+			validateContract({ ...input, termEnd: '', renewal: 'indefinite' }, 'expense').values
+		).toMatchObject({ termEnd: null, renewalMonths: null });
+	});
+
+	it('rejects bad numbers and dates', () => {
+		const { errors } = validateContract(
+			{
+				...input,
+				noticeEvery: '-1',
+				renewalMonths: '0',
+				leadDays: 'viel',
+				cancelledOn: '2027-02-30'
+			},
+			'expense'
+		);
+		expect(Object.keys(errors ?? {}).sort()).toEqual(
+			['cancelledOn', 'leadDays', 'noticeEvery', 'renewalMonths'].sort()
+		);
 	});
 });

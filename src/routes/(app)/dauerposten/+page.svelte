@@ -14,6 +14,7 @@
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay, todayBerlin } from '#lib/dates.js';
 	import { effectOn, intervalLabel, monthlyEquivalent } from '#lib/recurring.js';
+	import { cancelSoon, contractStatus } from '#lib/contracts.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -77,7 +78,11 @@
 				: accountId === item.accountId
 					? `auf ${item.targetAccount?.name ?? '–'}`
 					: `von ${item.account.name}`;
-		return [intervalLabel(item), direction, item.isSalary ? 'Gehalt' : null]
+		const cancelled =
+			item.contract?.cancelledOn && item.endDate
+				? `gekündigt zum ${formatDay(item.endDate)}`
+				: null;
+		return [intervalLabel(item), direction, item.isSalary ? 'Gehalt' : null, cancelled]
 			.filter(Boolean)
 			.join(' · ');
 	}
@@ -105,6 +110,25 @@
 	});
 	const formValues = $derived(form && 'input' in form && form.input ? form.input : emptyValues());
 	const formErrors = $derived(form && 'errors' in form ? form.errors : undefined);
+	const formContract = $derived(
+		form && 'input' in form && form.input?.contract ? form.input : null
+	);
+
+	const today = todayBerlin();
+	/** Running contracts whose notice deadline is within the lead time, earliest first. */
+	const cancelSoonEntries = $derived(
+		active
+			.filter((i) => i.contract && cancelSoon(i.contract, today, data.defaultLeadDays))
+			.map((i) => ({
+				item: i,
+				status: contractStatus(i.contract!, today)
+			}))
+			.sort((a, b) =>
+				(a.status.state === 'fixed' ? a.status.deadline : '').localeCompare(
+					b.status.state === 'fixed' ? b.status.deadline : ''
+				)
+			)
+	);
 </script>
 
 {#snippet row({ item, accountId, effect }: Entry)}
@@ -183,6 +207,38 @@
 		</div>
 	{/if}
 
+	{#if cancelSoonEntries.length}
+		<section class="mb-8" aria-label="Bald kündbar">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Bald kündbar</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each cancelSoonEntries as { item, status } (item.id)}
+					<li>
+						<a
+							href={resolve(`dauerposten/${item.id}`)}
+							class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+						>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[17px]">{item.name}</span>
+								<span class="block truncate text-[13px] text-label-2">
+									{status.state === 'fixed' ? `kündbar zum ${formatDay(status.end)}` : ''}
+								</span>
+							</span>
+							<span class="shrink-0 text-right text-[15px] font-semibold tabular">
+								{status.state === 'fixed' ? `bis ${formatDay(status.deadline)}` : ''}
+							</span>
+							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+						</a>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Kündigung muss bis zum genannten Tag beim Anbieter sein.
+			</p>
+		</section>
+	{/if}
+
 	{#each groups as group (group.account.id)}
 		<section class="mb-8" aria-label={group.account.name}>
 			<h2 class="mb-1.5 flex items-center gap-2 px-4 text-[13px] text-label-2 uppercase">
@@ -248,6 +304,8 @@
 					accounts={data.accountOptions}
 					targets={data.targetOptions}
 					categories={data.categoryGroups}
+					contract={formContract}
+					defaultLeadDays={data.defaultLeadDays}
 					kinds={hasGiro ? ['expense', 'income', 'transfer'] : ['transfer']}
 					withAmount
 				/>
