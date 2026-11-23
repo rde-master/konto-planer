@@ -1,8 +1,21 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Path } from '$app/types';
+	import { resolve } from '$app/paths';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 
-	let { title, actions, children }: { title: string; actions?: Snippet; children: Snippet } =
-		$props();
+	let {
+		title,
+		back,
+		actions,
+		children
+	}: {
+		title: string;
+		/** Parent page for the iOS-style back button. */
+		back?: { path: Path; label: string };
+		actions?: Snippet;
+		children: Snippet;
+	} = $props();
 
 	let titleEl: HTMLElement | undefined = $state();
 	let collapsed = $state(false);
@@ -29,7 +42,17 @@
 	]}
 >
 	<div class="mx-auto grid h-13 max-w-3xl grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8">
-		<span></span>
+		<span class="min-w-0">
+			{#if back}
+				<a
+					href={resolve(back.path)}
+					class="-ml-2 flex items-center py-2 text-[17px] text-accent active:opacity-60"
+				>
+					<ChevronLeft class="size-7 shrink-0" strokeWidth={2.2} />
+					<span class="truncate">{back.label}</span>
+				</a>
+			{/if}
+		</span>
 		<span
 			aria-hidden={!collapsed}
 			class={[
