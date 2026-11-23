@@ -1,6 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '#lib/server/guards.js';
-import { UserError, deleteUser, getUser, resetPassword, updateUser } from '#lib/server/users.js';
+import {
+	UserError,
+	deleteUser,
+	getUser,
+	resetPassword,
+	unlockUser,
+	updateUser
+} from '#lib/server/users.js';
+import { activeLock } from '#lib/server/login-throttle.js';
+import { formatLockedUntil } from '#lib/server/login-throttle-rules.js';
 import { parseRole, validatePasswordPair, validateProfile } from '#lib/server/user-rules.js';
 import { formString } from '#lib/server/validation.js';
 import type { Actions, PageServerLoad } from './$types';
@@ -9,10 +18,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	requireAdmin(locals.user);
 	const target = await getUser(params.id);
 	if (!target) error(404, 'Benutzer nicht gefunden.');
-	return { target };
+	const lockedUntil = await activeLock(target.username);
+	return {
+		target,
+		lockedUntil: lockedUntil ? formatLockedUntil(lockedUntil, Date.now()) : null
+	};
 };
 
-function userError(action: 'update' | 'reset' | 'delete', e: unknown) {
+function userError(action: 'update' | 'reset' | 'delete' | 'unlock', e: unknown) {
 	if (e instanceof UserError) return fail(400, { action, message: e.message });
 	throw e;
 }
@@ -55,6 +68,16 @@ export const actions: Actions = {
 			return userError('reset', e);
 		}
 		return { action: 'reset' as const, success: true };
+	},
+
+	unlock: async ({ locals, params }) => {
+		requireAdmin(locals.user);
+		try {
+			await unlockUser(params.id);
+		} catch (e) {
+			return userError('unlock', e);
+		}
+		return { action: 'unlock' as const, success: true };
 	},
 
 	delete: async ({ locals, params }) => {
