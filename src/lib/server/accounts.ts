@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { accountAccess, accounts, recurringItems, users, type Account } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -77,7 +77,9 @@ export async function accountHasData(accountId: string): Promise<boolean> {
 	const [row] = await db
 		.select({ id: recurringItems.id })
 		.from(recurringItems)
-		.where(eq(recurringItems.accountId, accountId))
+		.where(
+			or(eq(recurringItems.accountId, accountId), eq(recurringItems.targetAccountId, accountId))
+		)
 		.limit(1);
 	return row !== undefined;
 }

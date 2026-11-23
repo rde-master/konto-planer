@@ -43,6 +43,13 @@
       "when": 1795452813739,
       "tag": "0005_recurring_items",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795465344450,
+      "tag": "0006_transfers",
+      "breakpoints": true
     }
   ]
 }

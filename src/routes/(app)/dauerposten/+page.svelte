@@ -4,6 +4,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Repeat from '@lucide/svelte/icons/repeat';
 	import Page from '#lib/components/Page.svelte';
@@ -12,12 +13,15 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay, todayBerlin } from '#lib/dates.js';
-	import { intervalLabel, monthlyEquivalent } from '#lib/recurring.js';
+	import { effectOn, intervalLabel, monthlyEquivalent } from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	type Item = (typeof data.items)[number];
+	type Account = Item['account'];
+	/** An item seen from one account: a transfer is listed at its source and its target. */
+	type Entry = { item: Item; accountId: string; effect: number };
 
 	let createOpen = $state(false);
 	let pending = $state(false);
@@ -26,33 +30,63 @@
 	const active = $derived(data.items.filter((i) => !i.archivedAt));
 	const archived = $derived(data.items.filter((i) => i.archivedAt));
 
-	/** Active items grouped by account (accounts in name order). */
+	/** Accounts of an item the viewer can see (level null = name only). */
+	function visibleAccounts(item: Item): Account[] {
+		return [item.account, item.targetAccount].filter(
+			(a): a is Account => a !== null && a.level !== null
+		);
+	}
+
+	function entry(item: Item, accountId: string): Entry {
+		return { item, accountId, effect: effectOn(item, accountId, item.amount ?? 0) };
+	}
+
+	/** Active items grouped by visible account (accounts in name order). */
 	const groups = $derived.by(() => {
-		const byAccount: Record<string, { account: Item['account']; items: Item[] }> = {};
+		const byAccount: Record<string, { account: Account; entries: Entry[] }> = {};
 		for (const item of active) {
-			byAccount[item.account.id] ??= { account: item.account, items: [] };
-			byAccount[item.account.id].items.push(item);
+			for (const account of visibleAccounts(item)) {
+				byAccount[account.id] ??= { account, entries: [] };
+				byAccount[account.id].entries.push(entry(item, account.id));
+			}
 		}
 		return Object.values(byAccount)
 			.sort((a, b) => a.account.name.localeCompare(b.account.name, 'de'))
 			.map((g) => ({
 				...g,
 				// Running items first by next due date, ended ones last.
-				items: g.items.sort((a, b) => (a.nextDue ?? '9999').localeCompare(b.nextDue ?? '9999')),
-				expense: total(g.items, 'expense'),
-				income: total(g.items, 'income')
+				entries: g.entries.sort((a, b) =>
+					(a.item.nextDue ?? '9999').localeCompare(b.item.nextDue ?? '9999')
+				),
+				expense: -total(g.entries.filter((e) => e.effect < 0)),
+				income: total(g.entries.filter((e) => e.effect > 0))
 			}));
 	});
 
-	function total(items: Item[], kind: Item['kind']) {
-		return items
-			.filter((i) => i.kind === kind && i.nextDue !== null)
-			.reduce((sum, i) => sum + monthlyEquivalent(i.amount ?? 0, i), 0);
+	/** Monthly equivalent of running entries, signed. */
+	function total(entries: Entry[]) {
+		return entries
+			.filter((e) => e.item.nextDue !== null)
+			.reduce((sum, e) => sum + monthlyEquivalent(e.effect, e.item), 0);
 	}
 
+	function subtitle({ item, accountId }: Entry) {
+		const direction =
+			item.kind !== 'transfer'
+				? null
+				: accountId === item.accountId
+					? `auf ${item.targetAccount?.name ?? '–'}`
+					: `von ${item.account.name}`;
+		return [intervalLabel(item), direction, item.isSalary ? 'Gehalt' : null]
+			.filter(Boolean)
+			.join(' · ');
+	}
+
+	const hasGiro = $derived(data.accountOptions.some((a) => a.giro));
 	const emptyValues = () => ({
-		accountId: data.accountOptions[0]?.value ?? '',
-		kind: 'expense',
+		accountId: (data.accountOptions.find((a) => a.giro) ?? data.accountOptions[0])?.value ?? '',
+		kind: hasGiro ? 'expense' : 'transfer',
+		targetAccountId: null,
 		name: '',
 		amount: '',
 		counterparty: null,
@@ -73,8 +107,14 @@
 	const formErrors = $derived(form && 'errors' in form ? form.errors : undefined);
 </script>
 
-{#snippet row(item: Item)}
-	{@const Icon = item.kind === 'income' ? ArrowDownLeft : ArrowUpRight}
+{#snippet row({ item, accountId, effect }: Entry)}
+	{@const Icon =
+		item.kind === 'transfer'
+			? ArrowLeftRight
+			: item.kind === 'income'
+				? ArrowDownLeft
+				: ArrowUpRight}
+	{@const color = item.kind === 'transfer' ? 'indigo' : (item.category?.color ?? 'gray')}
 	<li>
 		<a
 			href={resolve(`dauerposten/${item.id}`)}
@@ -85,21 +125,19 @@
 		>
 			<span
 				class="grid size-10 shrink-0 place-items-center rounded-full text-white"
-				style:background-color={accountColorCss(item.category?.color ?? 'gray')}
+				style:background-color={accountColorCss(color)}
 			>
 				<Icon class="size-5" strokeWidth={2.2} />
 			</span>
 			<span class="min-w-0 flex-1">
 				<span class="block truncate text-[17px]">{item.name}</span>
 				<span class="block truncate text-[13px] text-label-2">
-					{[intervalLabel(item), item.isSalary ? 'Gehalt' : null].filter(Boolean).join(' · ')}
+					{subtitle({ item, accountId, effect })}
 				</span>
 			</span>
 			<span class="shrink-0 text-right">
-				<span class={['block text-[17px] tabular', item.kind === 'income' && 'text-income']}>
-					{item.variable ? '≈ ' : ''}{item.kind === 'income' ? '+' : '−'}{formatEuro(
-						item.amount ?? 0
-					)}
+				<span class={['block text-[17px] tabular', effect > 0 && 'text-income']}>
+					{item.variable ? '≈ ' : ''}{effect > 0 ? '+' : '−'}{formatEuro(item.amount ?? 0)}
 				</span>
 				<span class="block text-[13px] text-label-2 tabular">
 					{item.archivedAt ? 'archiviert' : item.nextDue ? formatDay(item.nextDue) : 'beendet'}
@@ -139,8 +177,8 @@
 			<p class="text-[17px] font-semibold">Noch keine Dauerposten</p>
 			<p class="mt-1 text-[15px] text-label-2">
 				{data.accountOptions.length
-					? 'Lege mit „+“ regelmäßige Ausgaben und Einnahmen an, z. B. Miete oder Gehalt.'
-					: 'Du brauchst ein Girokonto mit Recht „Bearbeiten“, um Dauerposten anzulegen.'}
+					? 'Lege mit „+“ regelmäßige Ausgaben, Einnahmen und Umbuchungen an, z. B. Miete, Gehalt oder Sparrate.'
+					: 'Du brauchst ein Konto mit Recht „Bearbeiten“, um Dauerposten anzulegen.'}
 			</p>
 		</div>
 	{/if}
@@ -158,8 +196,8 @@
 			<ul
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 			>
-				{#each group.items as item (item.id)}
-					{@render row(item)}
+				{#each group.entries as e (e.item.id)}
+					{@render row(e)}
 				{/each}
 			</ul>
 			<p class="mt-1.5 px-4 text-[13px] text-label-2 tabular">
@@ -175,7 +213,7 @@
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 			>
 				{#each archived as item (item.id)}
-					{@render row(item)}
+					{@render row(entry(item, visibleAccounts(item)[0]?.id ?? item.accountId))}
 				{/each}
 			</ul>
 		</section>
@@ -208,7 +246,9 @@
 					values={formValues}
 					errors={formErrors}
 					accounts={data.accountOptions}
+					targets={data.targetOptions}
 					categories={data.categoryGroups}
+					kinds={hasGiro ? ['expense', 'income', 'transfer'] : ['transfer']}
 					withAmount
 				/>
 			{/key}

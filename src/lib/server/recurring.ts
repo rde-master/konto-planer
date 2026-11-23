@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { db } from './db/index.js';
 import {
 	accounts,
@@ -20,16 +20,21 @@ import { todayBerlin } from '../dates.js';
 export class RecurringError extends Error {}
 
 type Executor = Pick<typeof db, 'select'>;
+/** `level` null: the viewer cannot see the account; only its name is shown. */
 type AccountInfo = Pick<AccountWithLevel, 'id' | 'name' | 'color' | 'type' | 'archivedAt'> & {
-	level: AccessLevel;
+	level: AccessLevel | null;
 };
 
 export type RecurringSummary = RecurringItem & {
+	/** Source account (for transfers the paying one). */
 	account: AccountInfo;
+	/** Receiving account of a transfer. */
+	targetAccount: AccountInfo | null;
 	category: { name: string; color: string | null; parentName: string | null } | null;
 	amount: number | null;
 	nextDue: string | null;
 	canEdit: boolean;
+	canManage: boolean;
 };
 
 export type RecurringDetail = RecurringSummary & {
@@ -42,9 +47,48 @@ function isUniqueViolation(e: unknown): boolean {
 	return err?.code === '23505' || err?.cause?.code === '23505';
 }
 
-/** Editable: edit right on a non-archived account and the item itself not archived. */
-function itemEditable(account: AccountInfo, item: Pick<RecurringItem, 'archivedAt'>) {
-	return canEditAccount(account.level, account.archivedAt !== null) && item.archivedAt === null;
+/**
+ * May archive, restore and delete: edit right on the non-archived source account. A transfer's
+ * creator keeps this right even without edit access (plan: creator and admin).
+ */
+function itemManageable(
+	viewer: Viewer,
+	account: AccountInfo,
+	item: Pick<RecurringItem, 'kind' | 'createdBy'>
+) {
+	if (account.archivedAt !== null) return false;
+	if (account.level && canEditAccount(account.level, false)) return true;
+	return item.kind === 'transfer' && item.createdBy === viewer.id;
+}
+
+/** Editable: manageable and the item itself not archived. */
+function itemEditable(
+	viewer: Viewer,
+	account: AccountInfo,
+	item: Pick<RecurringItem, 'kind' | 'createdBy' | 'archivedAt'>
+) {
+	return item.archivedAt === null && itemManageable(viewer, account, item);
+}
+
+/** Accounts by id with the viewer's level; accounts the viewer cannot see get level null. */
+async function accountInfos(visible: AccountWithLevel[], ids: string[]) {
+	const byId = new Map<string, AccountInfo>(visible.map((a) => [a.id, a]));
+	const missing = [...new Set(ids)].filter((id) => !byId.has(id));
+	if (missing.length) {
+		const rows = await db
+			.select({
+				id: accounts.id,
+				name: accounts.name,
+				color: accounts.color,
+				type: accounts.type,
+				archivedAt: accounts.archivedAt
+			})
+			.from(accounts)
+			.where(inArray(accounts.id, missing));
+		// Only the name of a foreign account is shown.
+		for (const a of rows) byId.set(a.id, { ...a, color: 'gray', level: null });
+	}
+	return byId;
 }
 
 async function categoryInfo(executor: Executor) {
@@ -62,22 +106,29 @@ async function categoryInfo(executor: Executor) {
 	};
 }
 
-/** All recurring items on accounts the viewer may see, with current amount and next due date. */
+/**
+ * All recurring items on accounts the viewer may see, with current amount and next due date.
+ * Transfers also appear for viewers of the target account only.
+ */
 export async function listRecurringFor(viewer: Viewer): Promise<RecurringSummary[]> {
 	const visible = await listAccountsFor(viewer);
 	if (!visible.length) return [];
-	const accountById = new Map(visible.map((a) => [a.id, a]));
+	const visibleIds = visible.map((a) => a.id);
 	const items = await db
 		.select()
 		.from(recurringItems)
 		.where(
-			inArray(
-				recurringItems.accountId,
-				visible.map((a) => a.id)
+			or(
+				inArray(recurringItems.accountId, visibleIds),
+				inArray(recurringItems.targetAccountId, visibleIds)
 			)
 		)
 		.orderBy(asc(recurringItems.name));
 	if (!items.length) return [];
+	const accountById = await accountInfos(
+		visible,
+		items.flatMap((i) => [i.accountId, i.targetAccountId ?? i.accountId])
+	);
 	const amounts = await db
 		.select()
 		.from(recurringAmounts)
@@ -94,24 +145,37 @@ export async function listRecurringFor(viewer: Viewer): Promise<RecurringSummary
 		return {
 			...item,
 			account,
+			targetAccount: item.targetAccountId ? accountById.get(item.targetAccountId)! : null,
 			category: category(item.categoryId),
 			amount: amountOn(
 				amounts.filter((a) => a.recurringId === item.id),
 				today
 			),
 			nextDue: item.archivedAt ? null : nextDue(item, today),
-			canEdit: itemEditable(account, item)
+			canEdit: itemEditable(viewer, account, item),
+			canManage: itemManageable(viewer, account, item)
 		};
 	});
 }
 
-/** The item if the viewer may see its account, otherwise null (callers answer 404). */
+/**
+ * The item if the viewer may see its account (for transfers: source or target account),
+ * otherwise null (callers answer 404).
+ */
 export async function getRecurringFor(viewer: Viewer, id: string): Promise<RecurringDetail | null> {
 	if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
 	const [item] = await db.select().from(recurringItems).where(eq(recurringItems.id, id));
 	if (!item) return null;
-	const account = await getAccountFor(viewer, item.accountId);
-	if (!account) return null;
+	const [source, target] = await Promise.all([
+		getAccountFor(viewer, item.accountId),
+		item.targetAccountId ? getAccountFor(viewer, item.targetAccountId) : null
+	]);
+	if (!source && !target) return null;
+	const byId = await accountInfos(
+		[source, target].filter((a) => a !== null),
+		[item.accountId, item.targetAccountId ?? item.accountId]
+	);
+	const account = byId.get(item.accountId)!;
 	const amounts = await db
 		.select()
 		.from(recurringAmounts)
@@ -130,19 +194,33 @@ export async function getRecurringFor(viewer: Viewer, id: string): Promise<Recur
 	return {
 		...item,
 		account,
+		targetAccount: item.targetAccountId ? byId.get(item.targetAccountId)! : null,
 		category: category(item.categoryId),
 		amount: amountOn(amounts, today),
 		nextDue: item.archivedAt ? null : nextDue(item, today),
-		canEdit: itemEditable(account, item),
+		canEdit: itemEditable(viewer, account, item),
+		canManage: itemManageable(viewer, account, item),
 		amounts,
 		createdByName
 	};
 }
 
-/** Accounts the user may add recurring items to: giro, edit right, not archived. */
+/**
+ * Accounts the user may add recurring items to: edit right, not archived. Income and expenses
+ * only on giro accounts (`type`), transfers also from savings accounts.
+ */
 export async function accountsForNewItems(viewer: Viewer) {
 	const all = await listAccountsFor(viewer);
-	return all.filter((a) => a.type === 'giro' && canEditAccount(a.level, a.archivedAt !== null));
+	return all.filter((a) => canEditAccount(a.level, a.archivedAt !== null));
+}
+
+/** Possible transfer targets: every active account of the app, shown by name only. */
+export async function transferTargets(): Promise<{ id: string; name: string }[]> {
+	return db
+		.select({ id: accounts.id, name: accounts.name })
+		.from(accounts)
+		.where(isNull(accounts.archivedAt))
+		.orderBy(asc(accounts.name));
 }
 
 /**
@@ -155,11 +233,16 @@ export function recurringHasData(recurringId: string): Promise<boolean> {
 }
 
 /** Audit view of an item: references by name, interval as text. */
-async function auditFields(executor: Executor, v: RecurringValues) {
-	const [account] = await executor
+async function accountName(executor: Executor, id: string | null) {
+	if (!id) return null;
+	const [a] = await executor
 		.select({ name: accounts.name })
 		.from(accounts)
-		.where(eq(accounts.id, v.accountId));
+		.where(eq(accounts.id, id));
+	return a?.name ?? null;
+}
+
+async function auditFields(executor: Executor, v: RecurringValues) {
 	let category: string | null = null;
 	if (v.categoryId) {
 		const [c] = await executor
@@ -169,8 +252,9 @@ async function auditFields(executor: Executor, v: RecurringValues) {
 		category = c?.name ?? null;
 	}
 	return {
-		account: account?.name ?? null,
+		account: await accountName(executor, v.accountId),
 		kind: v.kind,
+		targetAccount: await accountName(executor, v.targetAccountId),
 		name: v.name,
 		counterparty: v.counterparty,
 		iban: v.iban,
@@ -190,6 +274,7 @@ function valuesOf(item: RecurringItem): RecurringValues {
 	return {
 		accountId: item.accountId,
 		kind: item.kind,
+		targetAccountId: item.targetAccountId,
 		name: item.name,
 		counterparty: item.counterparty,
 		iban: item.iban,
@@ -207,15 +292,28 @@ function valuesOf(item: RecurringItem): RecurringValues {
 	};
 }
 
-async function requireEditableAccount(viewer: Viewer, accountId: string) {
-	const account = await getAccountFor(viewer, accountId);
+async function requireEditableAccount(viewer: Viewer, values: RecurringValues) {
+	const account = await getAccountFor(viewer, values.accountId);
 	if (
 		!account ||
-		account.type !== 'giro' ||
+		(values.kind !== 'transfer' && account.type !== 'giro') ||
 		!canEditAccount(account.level, account.archivedAt !== null)
 	)
 		throw new RecurringError('Auf diesem Konto darfst du keine Dauerposten anlegen.');
 	return account;
+}
+
+/** The target must exist and be active; the viewer needs no access to it. */
+async function requireTarget(executor: Executor, values: RecurringValues, currentTarget?: string) {
+	if (values.kind !== 'transfer') return;
+	if (!values.targetAccountId || values.targetAccountId === values.accountId)
+		throw new RecurringError('Bitte ein anderes Zielkonto wählen.');
+	if (values.targetAccountId === currentTarget) return;
+	const [target] = await executor
+		.select({ archivedAt: accounts.archivedAt })
+		.from(accounts)
+		.where(eq(accounts.id, values.targetAccountId));
+	if (!target || target.archivedAt) throw new RecurringError('Bitte ein Zielkonto wählen.');
 }
 
 async function requireEditable(viewer: Viewer, id: string) {
@@ -230,7 +328,8 @@ export async function createRecurring(
 	values: RecurringValues,
 	amount: number
 ): Promise<string> {
-	await requireEditableAccount(actor, values.accountId);
+	await requireEditableAccount(actor, values);
+	await requireTarget(db, values);
 	return db.transaction(async (tx) => {
 		const [created] = await tx
 			.insert(recurringItems)
@@ -257,7 +356,12 @@ export async function updateRecurring(
 	values: RecurringValues
 ) {
 	const current = await requireEditable(actor, id);
-	if (values.accountId !== current.accountId) await requireEditableAccount(actor, values.accountId);
+	if (values.kind !== current.kind && (values.kind === 'transfer' || current.kind === 'transfer'))
+		throw new RecurringError('Eine Umbuchung bleibt eine Umbuchung.');
+	if (values.accountId !== current.accountId) await requireEditableAccount(actor, values);
+	else if (values.kind !== 'transfer' && current.account.type !== 'giro')
+		throw new RecurringError('Auf diesem Konto darfst du keine Dauerposten anlegen.');
+	await requireTarget(db, values, current.targetAccountId ?? undefined);
 	await db.transaction(async (tx) => {
 		await tx
 			.update(recurringItems)
@@ -284,8 +388,7 @@ export async function setRecurringArchived(
 ) {
 	const item = await getRecurringFor(actor, id);
 	if (!item) throw new RecurringError('Dauerposten nicht gefunden.');
-	if (!canEditAccount(item.account.level, item.account.archivedAt !== null))
-		throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');
+	if (!item.canManage) throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');
 	await db.transaction(async (tx) => {
 		await tx
 			.update(recurringItems)
@@ -304,8 +407,7 @@ export async function setRecurringArchived(
 export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: string) {
 	const item = await getRecurringFor(actor, id);
 	if (!item) throw new RecurringError('Dauerposten nicht gefunden.');
-	if (!canEditAccount(item.account.level, item.account.archivedAt !== null))
-		throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');
+	if (!item.canManage) throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');
 	if (await recurringHasData(id))
 		throw new RecurringError('Der Dauerposten hat Buchungen und kann nur archiviert werden.');
 	await db.transaction(async (tx) => {

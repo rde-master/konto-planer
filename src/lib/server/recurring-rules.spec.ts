@@ -6,11 +6,17 @@ import {
 	type RecurringInput
 } from './recurring-rules';
 
-const ctx = { accountIds: new Set(['acc']), categoryIds: new Set(['cat']) };
+const ctx = {
+	accountIds: new Set(['acc']),
+	transferSourceIds: new Set(['acc', 'savings']),
+	targetAccountIds: new Set(['acc', 'savings', 'foreign']),
+	categoryIds: new Set(['cat'])
+};
 
 const valid: RecurringInput = {
 	accountId: 'acc',
 	kind: 'expense',
+	targetAccountId: '',
 	name: '  Strom  ',
 	counterparty: 'Stadtwerke  Musterstadt',
 	iban: 'de89 3704 0044 0532 0130 00',
@@ -43,6 +49,7 @@ describe('validateRecurring', () => {
 			values: {
 				accountId: 'acc',
 				kind: 'expense',
+				targetAccountId: null,
 				name: 'Strom',
 				counterparty: 'Stadtwerke Musterstadt',
 				iban: 'DE89370400440532013000',
@@ -66,6 +73,60 @@ describe('validateRecurring', () => {
 		const { values } = validateRecurring({ ...valid, kind: 'income' }, ctx);
 		expect(values?.isSalary).toBe(true);
 		expect(values?.paymentMethod).toBeNull();
+		expect(values?.creditorId).toBeNull();
+		expect(values?.mandateReference).toBeNull();
+	});
+
+	describe('transfers', () => {
+		const transfer = {
+			...valid,
+			kind: 'transfer',
+			name: 'Sparrate',
+			targetAccountId: 'foreign',
+			paymentMethod: 'standing_order'
+		};
+
+		it('keep the target, drop payee data, category and salary flag', () => {
+			expect(validateRecurring(transfer, ctx).values).toMatchObject({
+				kind: 'transfer',
+				targetAccountId: 'foreign',
+				counterparty: null,
+				iban: null,
+				mandateReference: null,
+				creditorId: null,
+				categoryId: null,
+				isSalary: false,
+				paymentMethod: 'standing_order'
+			});
+		});
+
+		it('may start on a savings account, which income and expenses may not', () => {
+			expect(validateRecurring({ ...transfer, accountId: 'savings' }, ctx).values).not.toBeNull();
+			expect(
+				validateRecurring({ ...valid, accountId: 'savings' }, ctx).errors?.accountId
+			).toBeDefined();
+		});
+
+		it('need a different, known target account', () => {
+			expect(
+				validateRecurring({ ...transfer, targetAccountId: 'acc' }, ctx).errors?.targetAccountId
+			).toBe('Quell- und Zielkonto müssen verschieden sein.');
+			expect(
+				validateRecurring({ ...transfer, targetAccountId: 'archived' }, ctx).errors?.targetAccountId
+			).toBe('Bitte ein Zielkonto wählen.');
+		});
+
+		it('allow only standing order or manual payment', () => {
+			expect(
+				validateRecurring({ ...transfer, paymentMethod: 'direct_debit' }, ctx).errors?.paymentMethod
+			).toBeDefined();
+		});
+
+		it('ignore a target account on other kinds', () => {
+			expect(validateRecurring({ ...valid, targetAccountId: 'foreign' }, ctx).values).toMatchObject(
+				{ targetAccountId: null }
+			);
+		});
 	});
 
 	it('validates custom intervals', () => {
@@ -105,14 +166,14 @@ describe('validateRecurring', () => {
 				categoryId: 'gone',
 				iban: 'DE00 1234',
 				creditorId: 'DE97ZZZ09999999999',
-				name: '',
-				kind: 'transfer'
+				name: ''
 			},
 			ctx
 		);
 		expect(Object.keys(errors ?? {}).sort()).toEqual(
-			['accountId', 'categoryId', 'creditorId', 'iban', 'kind', 'name'].sort()
+			['accountId', 'categoryId', 'creditorId', 'iban', 'name'].sort()
 		);
+		expect(validateRecurring({ ...valid, kind: 'loan' }, ctx).errors?.kind).toBeDefined();
 	});
 });
 

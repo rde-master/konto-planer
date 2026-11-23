@@ -154,7 +154,7 @@ export const categories = pgTable(
 
 export type Category = typeof categories.$inferSelect;
 
-export const recurringKind = pgEnum('recurring_kind', ['expense', 'income']);
+export const recurringKind = pgEnum('recurring_kind', ['expense', 'income', 'transfer']);
 export const recurringInterval = pgEnum('recurring_interval', [
 	'weekly',
 	'monthly',
@@ -167,7 +167,10 @@ export const recurringInterval = pgEnum('recurring_interval', [
 export const customUnit = pgEnum('custom_unit', ['day', 'week', 'month']);
 export const paymentMethod = pgEnum('payment_method', ['direct_debit', 'standing_order', 'manual']);
 
-/** Recurring income or expense of an account. The amount lives in `recurring_amounts`. */
+/**
+ * Recurring income, expense or transfer of an account. The amount lives in `recurring_amounts`.
+ * A transfer moves money from `accountId` to `targetAccountId`.
+ */
 export const recurringItems = pgTable(
 	'recurring_items',
 	{
@@ -176,6 +179,10 @@ export const recurringItems = pgTable(
 			.notNull()
 			.references(() => accounts.id, { onDelete: 'restrict' }),
 		kind: recurringKind('kind').notNull(),
+		/** Only for transfers: the receiving account (any account of the app). */
+		targetAccountId: uuid('target_account_id').references(() => accounts.id, {
+			onDelete: 'restrict'
+		}),
 		/** Display name, e.g. "Miete". */
 		name: text('name').notNull(),
 		/** Payee or payer as on the bank statement; used for import matching. */
@@ -201,6 +208,7 @@ export const recurringItems = pgTable(
 	},
 	(t) => [
 		index('recurring_items_account_idx').on(t.accountId),
+		index('recurring_items_target_account_idx').on(t.targetAccountId),
 		index('recurring_items_category_idx').on(t.categoryId)
 	]
 );

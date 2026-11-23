@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -19,14 +20,19 @@
 	let { data, form }: PageProps = $props();
 
 	const item = $derived(data.item);
-	const Icon = $derived(item.kind === 'income' ? ArrowDownLeft : ArrowUpRight);
-	/** May archive, restore and delete: edit right on a non-archived account. */
-	const canManage = $derived(item.account.level === 'edit' && !item.account.archivedAt);
+	const transfer = $derived(item.kind === 'transfer');
+	const Icon = $derived(
+		transfer ? ArrowLeftRight : item.kind === 'income' ? ArrowDownLeft : ArrowUpRight
+	);
+	const iconColor = $derived(transfer ? 'indigo' : (item.category?.color ?? 'gray'));
+	/** May archive, restore and delete (decided on the server). */
+	const canManage = $derived(item.canManage);
 	/** Entry valid today (amounts are sorted newest first). */
 	const currentId = $derived(
 		(item.amounts.find((a) => a.validFrom <= data.today) ?? item.amounts.at(-1))?.id
 	);
-	const sign = $derived(item.kind === 'income' ? '+' : '−');
+	// A transfer is out and in at the same time, so it is shown without sign.
+	const sign = $derived(transfer ? '' : item.kind === 'income' ? '+' : '−');
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
@@ -82,7 +88,7 @@
 	<section class="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5">
 		<span
 			class="grid size-14 shrink-0 place-items-center rounded-full text-white"
-			style:background-color={accountColorCss(item.category?.color ?? 'gray')}
+			style:background-color={accountColorCss(iconColor)}
 		>
 			<Icon class="size-7" strokeWidth={2} />
 		</span>
@@ -97,14 +103,16 @@
 				{item.variable ? '≈ ' : ''}{sign}{formatEuro(item.amount ?? 0)}
 			</p>
 			<p class="truncate text-[13px] text-label-2">
-				{[
-					item.category
-						? item.category.parentName
-							? `${item.category.parentName} › ${item.category.name}`
-							: item.category.name
-						: 'Ohne Kategorie',
-					item.account.name
-				].join(' · ')}
+				{transfer
+					? `${item.account.name} → ${item.targetAccount?.name ?? '–'}`
+					: [
+							item.category
+								? item.category.parentName
+									? `${item.category.parentName} › ${item.category.name}`
+									: item.category.name
+								: 'Ohne Kategorie',
+							item.account.name
+						].join(' · ')}
 			</p>
 		</div>
 	</section>
@@ -179,7 +187,9 @@
 				values={fieldValues}
 				errors={updateErrors}
 				accounts={data.accountOptions}
+				targets={data.targetOptions}
 				categories={data.categoryGroups}
+				kinds={transfer ? ['transfer'] : ['expense', 'income']}
 			/>
 			<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
 		</form>
@@ -190,7 +200,12 @@
 				? 'Archivierte Dauerposten sind schreibgeschützt.'
 				: 'Du kannst diesen Dauerposten nur ansehen.'}
 		>
-			<ListRow label="Konto" value={item.account.name} />
+			{#if transfer}
+				<ListRow label="Von Konto" value={item.account.name} />
+				<ListRow label="Auf Konto" value={item.targetAccount?.name ?? '–'} />
+			{:else}
+				<ListRow label="Konto" value={item.account.name} />
+			{/if}
 			<ListRow label="Start" value={formatDay(item.startDate)} />
 			{#if item.endDate}<ListRow label="Ende" value={formatDay(item.endDate)} />{/if}
 			{#if item.counterparty}

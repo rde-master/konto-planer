@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addMonths,
+	effectOn,
 	amountOn,
 	dueDates,
 	intervalLabel,
@@ -164,5 +165,20 @@ describe('monthlyEquivalent and labels', () => {
 		expect(intervalLabel({ interval: 'custom', customEvery: 1, customUnit: 'day' })).toBe(
 			'jeden Tag'
 		);
+	});
+});
+
+describe('effectOn', () => {
+	const transfer = { kind: 'transfer' as const, accountId: 'giro', targetAccountId: 'savings' };
+	it('counts a transfer out on the source and in on the target', () => {
+		expect(effectOn(transfer, 'giro', 5000)).toBe(-5000);
+		expect(effectOn(transfer, 'savings', 5000)).toBe(5000);
+		expect(effectOn(transfer, 'other', 5000)).toBe(0);
+	});
+	it('signs income and expenses on their own account only', () => {
+		const expense = { kind: 'expense' as const, accountId: 'giro', targetAccountId: null };
+		expect(effectOn(expense, 'giro', 100)).toBe(-100);
+		expect(effectOn({ ...expense, kind: 'income' }, 'giro', 100)).toBe(100);
+		expect(effectOn(expense, 'savings', 100)).toBe(0);
 	});
 });
