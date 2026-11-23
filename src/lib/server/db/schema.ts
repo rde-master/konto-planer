@@ -10,8 +10,11 @@ import {
 	primaryKey,
 	text,
 	timestamp,
-	uuid
+	uniqueIndex,
+	uuid,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const userRole = pgEnum('user_role', ['admin', 'user']);
 
@@ -120,3 +123,32 @@ export const accountAccess = pgTable(
 );
 
 export type Account = typeof accounts.$inferSelect;
+
+/**
+ * Global category, one level deep: a category without parent is a main category,
+ * one with parent a subcategory. Only main categories have a colour; subcategories
+ * inherit it. Deleting a main category deletes its subcategories.
+ */
+export const categories = pgTable(
+	'categories',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		name: text('name').notNull(),
+		parentId: uuid('parent_id').references((): AnyPgColumn => categories.id, {
+			onDelete: 'cascade'
+		}),
+		color: text('color'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		// Names are unique (case-insensitive) among siblings.
+		uniqueIndex('categories_sibling_name_idx').on(
+			sql`coalesce(${t.parentId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+			sql`lower(${t.name})`
+		),
+		index('categories_parent_idx').on(t.parentId)
+	]
+);
+
+export type Category = typeof categories.$inferSelect;

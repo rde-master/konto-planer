@@ -25,10 +25,13 @@ test('earlier actions appear in the protocol', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1, name: 'Protokoll' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Heute' })).toBeVisible();
 
+	// Later suites add many entries; filter by area so the early ones are on the first page.
+	await page.goto('/einstellungen/protokoll?bereich=user');
 	await expect(row(page, 'Benutzer angelegt', /Erika Muster · von Erika Muster/)).toBeVisible();
 	await expect(row(page, 'Benutzer angelegt', /Lena Sperre · von Erika Muster/)).toBeVisible();
-	await expect(row(page, 'Anmeldung gesperrt', /lena/).first()).toBeVisible();
 	await expect(row(page, 'Sperre aufgehoben', /Lena Sperre/)).toBeVisible();
+	await page.goto('/einstellungen/protokoll?bereich=auth');
+	await expect(row(page, 'Anmeldung gesperrt', /lena/).first()).toBeVisible();
 	await expect(row(page, 'Angemeldet', /Erika Muster/).first()).toBeVisible();
 	await expect(row(page, 'Anmeldung fehlgeschlagen', /gibtsnicht/).first()).toBeVisible();
 	await expect(row(page, 'Abgemeldet', /Erika Muster/).first()).toBeVisible();
@@ -36,7 +39,7 @@ test('earlier actions appear in the protocol', async ({ page }) => {
 
 test('details show the stored values but never the password', async ({ page }) => {
 	await login(page, ADMIN.username, ADMIN.password);
-	await page.goto('/einstellungen/protokoll');
+	await page.goto('/einstellungen/protokoll?bereich=user');
 	await row(page, 'Benutzer angelegt', /Lena Sperre/).click();
 	const sheet = page.getByRole('dialog', { name: 'Eintrag' });
 	await expect(sheet.getByText('Benutzer angelegt')).toBeVisible();
