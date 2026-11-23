@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import KeyRound from '@lucide/svelte/icons/key-round';
 	import Users from '@lucide/svelte/icons/users';
+	import ScrollText from '@lucide/svelte/icons/scroll-text';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -86,6 +87,12 @@
 	{#if data.user.role === 'admin'}
 		<ListGroup header="Verwaltung">
 			<ListRow label="Benutzer" href="einstellungen/benutzer" icon={Users} />
+			<ListRow
+				label="Protokoll"
+				href="einstellungen/protokoll"
+				icon={ScrollText}
+				iconColor="bg-[#ff9500]"
+			/>
 		</ListGroup>
 	{/if}
 

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.js';
 import { users } from '#lib/server/db/schema.js';
 import { createSession, hasAnyUser, hashPassword, setSessionCookie } from '#lib/server/auth.js';
+import { audit } from '#lib/server/audit.js';
 import {
 	formString,
 	normalizeUsername,
@@ -51,6 +52,16 @@ export const actions: Actions = {
 					role: 'admin'
 				})
 				.returning({ id: users.id });
+			if (user) {
+				await audit(tx, {
+					actor: { id: user.id, name },
+					entityType: 'user',
+					action: 'create',
+					entityId: user.id,
+					entityLabel: name,
+					after: { name, username, email: email || null, role: 'admin' }
+				});
+			}
 			return user;
 		});
 		if (!created) redirect(303, '/login');

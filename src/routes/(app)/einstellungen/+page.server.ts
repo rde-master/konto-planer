@@ -29,7 +29,7 @@ export const actions: Actions = {
 		const errors = validatePasswordPair(password, confirm);
 		if (errors) return fail(400, { action: 'password' as const, errors });
 		try {
-			await changeOwnPassword(locals.user.id, cookies.get(SESSION_COOKIE) ?? '', current, password);
+			await changeOwnPassword(locals.user, cookies.get(SESSION_COOKIE) ?? '', current, password);
 		} catch (e) {
 			if (e instanceof UserError)
 				return fail(400, {

@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	create: async ({ request, locals }) => {
-		requireAdmin(locals.user);
+		const actor = requireAdmin(locals.user);
 		const data = await request.formData();
 		const input = {
 			name: formString(data, 'name'),
@@ -34,7 +34,7 @@ export const actions: Actions = {
 		if (errors || !role) return fail(400, { values, errors: errors ?? {} });
 
 		try {
-			await createUser({ ...input, role });
+			await createUser(actor, { ...input, role });
 		} catch (e) {
 			if (e instanceof UserError) {
 				return fail(400, { values, errors: fieldError('username', e.message) });

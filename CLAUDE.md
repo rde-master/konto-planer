@@ -41,7 +41,7 @@ iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop
 
 - Öffentliches Repo (MIT). **Nur erfundene Testdaten.** Echte Bankexporte (`*.csv` außerhalb von `tests/fixtures/`), `.env` und Zugangsdaten nie einchecken.
 - Tokens nur als Hash speichern; SMTP- und Home-Assistant-Zugangsdaten verschlüsselt.
-- Jede Änderung an Daten ins Protokoll (ab 0.5.0).
+- **Protokoll:** Jede Anlage, Änderung und Löschung schreibt mit `audit(tx, …)` aus `#lib/server/audit.js` in **derselben Transaktion** einen Eintrag; bei Änderungen nur die geänderten Felder (`diff()` aus `audit-rules.ts`). Neue Bereiche/Aktionen und Feldnamen in `src/lib/audit.ts` ergänzen (deutsche Bezeichnungen). Passwörter, Hashes, Tokens filtert `sanitize()` heraus – trotzdem nie absichtlich übergeben.
 
 ## Lokale Entwicklung
 
