@@ -41,6 +41,7 @@ iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop
 - Archivierte Konten sind schreibgeschützt, bis der Admin sie wiederherstellt. Löschen nur, solange keine abhängigen Daten existieren (`accountHasData()` in `src/lib/server/accounts.ts` – neue Tabellen mit Kontobezug dort ergänzen).
 - Konten haben eine Farbe aus den iOS-Systemfarben (`src/lib/colors.ts`).
 - **Kategorien:** global, genau eine Ebene (Haupt- und Unterkategorie). Nur Hauptkategorien haben eine Farbe, Unterkategorien erben sie. Anlegen/ändern darf jeder Benutzer, löschen nur der Admin. Löschen einer Hauptkategorie löscht ihre Unterkategorien mit. Neue Fremdschlüssel auf `categories` immer mit `ON DELETE SET NULL` (Buchungen bleiben, gelten als unkategorisiert).
+- **Dauerposten:** nur auf Girokonten (Sparbücher bekommen Eingänge per Umbuchung). Bezeichnung (Pflicht) plus optionaler Empfänger/Zahler für den Import. Beträge positiv in `recurring_amounts` mit „gültig ab“ (Zukunft erlaubt); Vorzeichen ergibt sich aus der Art. Intervall „frei“ = alle N Tage/Wochen/Monate. Fehlt der Tag im Monat, gilt der Monatsletzte; Fälligkeiten werden immer vom Start aus berechnet (`src/lib/recurring.ts`). Löschen nur ohne Buchungen (`recurringHasData()` ergänzen), sonst archivieren.
 - Beträge: Eingabe deutsch („1.234,56“), Speicherung ganze Cent (`src/lib/money.ts`).
 
 ## UI-Bausteine (`src/lib/components`)

@@ -1,9 +1,10 @@
 import { formatEuro } from './money.js';
 import { ACCOUNT_COLORS } from './colors.js';
+import { KIND_LABELS, PAYMENT_METHOD_LABELS } from './recurring.js';
 
 // Shared (client-safe) vocabulary of the audit log: entity types, actions and German labels.
 
-export const ENTITY_TYPES = ['auth', 'user', 'account', 'category'] as const;
+export const ENTITY_TYPES = ['auth', 'user', 'account', 'category', 'recurring'] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
 export const ACTIONS = [
@@ -19,7 +20,8 @@ export const ACTIONS = [
 	'password_change',
 	'archive',
 	'restore',
-	'access_change'
+	'access_change',
+	'amount_change'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -27,7 +29,8 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	auth: 'Anmeldung',
 	user: 'Benutzer',
 	account: 'Konto',
-	category: 'Kategorie'
+	category: 'Kategorie',
+	recurring: 'Dauerposten'
 };
 
 export const ACTION_LABELS: Record<AuditAction, string> = {
@@ -43,7 +46,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	password_change: 'Passwort geändert',
 	archive: 'Archiviert',
 	restore: 'Wiederhergestellt',
-	access_change: 'Zugriffe geändert'
+	access_change: 'Zugriffe geändert',
+	amount_change: 'Betrag geändert'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -69,7 +73,21 @@ const FIELD_LABELS: Record<string, string> = {
 	openingBalance: 'Startsaldo',
 	openingDate: 'Stand am',
 	overdraftLimit: 'Dispo',
-	parent: 'Hauptkategorie'
+	parent: 'Hauptkategorie',
+	account: 'Konto',
+	kind: 'Art',
+	counterparty: 'Empfänger/Zahler',
+	mandateReference: 'Mandatsreferenz',
+	creditorId: 'Gläubiger-ID',
+	category: 'Kategorie',
+	interval: 'Intervall',
+	startDate: 'Start',
+	endDate: 'Ende',
+	variable: 'Schwankend',
+	isSalary: 'Gehalt',
+	paymentMethod: 'Zahlart',
+	amount: 'Betrag',
+	validFrom: 'Gültig ab'
 };
 
 export function fieldLabel(field: string): string {
@@ -79,6 +97,8 @@ export function fieldLabel(field: string): string {
 const VALUE_LABELS: Record<string, Record<string, string>> = {
 	role: { admin: 'Admin', user: 'Benutzer' },
 	type: { giro: 'Girokonto', sparbuch: 'Sparbuch' },
+	kind: KIND_LABELS,
+	paymentMethod: PAYMENT_METHOD_LABELS,
 	color: Object.fromEntries(Object.entries(ACCOUNT_COLORS).map(([k, v]) => [k, v.label])),
 	reason: {
 		locked: 'Anmeldung war gesperrt',
@@ -94,7 +114,7 @@ const dateTime = new Intl.DateTimeFormat('de-DE', {
 });
 
 /** Fields stored in cents. */
-const CENT_FIELDS = new Set(['openingBalance', 'overdraftLimit']);
+const CENT_FIELDS = new Set(['openingBalance', 'overdraftLimit', 'amount']);
 /** Values that mean the same in every field (access levels). */
 const COMMON_VALUES: Record<string, string> = { view: 'Sehen', edit: 'Bearbeiten' };
 
@@ -106,6 +126,7 @@ export function formatFieldValue(field: string, value: unknown): string {
 	if (typeof value === 'string' && ISO_DATE.test(value)) return dateTime.format(new Date(value));
 	if (typeof value === 'string')
 		return VALUE_LABELS[field]?.[value] ?? COMMON_VALUES[value] ?? value;
-	if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+	if (typeof value === 'boolean') return value ? 'Ja' : 'Nein';
+	if (typeof value === 'number') return String(value);
 	return JSON.stringify(value);
 }
