@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
-import { runMigrations } from '#lib/server/db/index.js';
+import { prepareDatabase } from '#lib/server/db/migrate.js';
 import {
 	clearSessionCookie,
 	hasAnyUser,
@@ -13,7 +13,7 @@ import { THEME_COOKIE, parseTheme } from '#lib/theme.js';
 
 export const init: ServerInit = async () => {
 	if (building) return;
-	await runMigrations();
+	await prepareDatabase();
 };
 
 /** Routes reachable without a session. */

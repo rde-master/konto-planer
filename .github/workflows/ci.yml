@@ -75,3 +75,23 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  upgrade:
+    name: Upgrade from last release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build image of this PR
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: konto-planer:pr
+          cache-from: type=gha
+      - name: Update from the latest release, check migrations, login and backup
+        run: |
+          if ! docker pull ghcr.io/${{ github.repository }}:latest; then
+            echo "No release yet, nothing to upgrade from."; exit 0
+          fi
+          scripts/upgrade-test.sh ghcr.io/${{ github.repository }}:latest konto-planer:pr

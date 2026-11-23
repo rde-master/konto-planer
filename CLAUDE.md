@@ -11,7 +11,7 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 - Im Repo ist nur Squash-Merge erlaubt: **der PR-Titel wird zur Commit-Nachricht auf `main`** und muss daher selbst ein Conventional Commit sein (z. B. `feat: foundation with login and PWA`).
 - Commits nach Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`, `ci:`). `feat:` erzeugt beim Merge die nächste Unterversion 0.x.0, `fix:` die 0.x.1. Kein `BREAKING CHANGE` vor 1.0.0.
 - **Release-Ablauf (Version im PR):** Jeder `feat`/`fix`-PR erhöht selbst die Version in `package.json` und ergänzt `CHANGELOG.md` um `## [x.y.z] – Titel` (deutsch, für Benutzer geschrieben). Die CI prüft das mit `scripts/check-pr.mjs`. Nach dem Merge erzeugt `release.yml` Tag, GitHub-Release und Docker-Image (`:x.y.z`, `:x.y`, `:latest`).
-- Schemaänderungen: `src/lib/server/db/schema.ts` anpassen, dann `pnpm db:generate --name <name>`; die Migration wird mit eingecheckt.
+- Schemaänderungen: `src/lib/server/db/schema.ts` anpassen, dann `pnpm db:generate --name <name>`; die Migration wird mit eingecheckt. Vor jeder Migration sichert die App per `pg_dump` (`src/lib/server/backup.ts`). `scripts/upgrade-test.sh <altes-image> <neues-image>` prüft den Update-Weg (läuft in der CI gegen das letzte Release; lokal mit `TMPDIR` im Scratchpad).
 - Vor jedem PR lokal: `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`, bei UI-Änderungen `pnpm test:e2e`.
 - Abnahme je Version: läuft im Docker-Stack, am Handy-Format bedienbar, Rechenlogik durch Vitest-Tests abgedeckt.
 - Unklare fachliche Fragen stellen statt raten.

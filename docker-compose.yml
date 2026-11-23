@@ -12,6 +12,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-kontoplaner}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-kontoplaner}
       ORIGIN: ${ORIGIN:?set ORIGIN in .env (public URL behind the reverse proxy)}
       APP_SECRET: ${APP_SECRET:-}
+      BACKUP_BEFORE_MIGRATION: ${BACKUP_BEFORE_MIGRATION:-true}
       TZ: Europe/Berlin
     ports:
       - '${APP_PORT:-3000}:3000'
