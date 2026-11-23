@@ -11,6 +11,7 @@
 		icon: Icon,
 		iconColor = 'bg-accent',
 		destructive = false,
+		onclick,
 		trailing
 	}: {
 		label: string;
@@ -19,6 +20,8 @@
 		icon?: Component;
 		iconColor?: string;
 		destructive?: boolean;
+		/** Renders the row as a button (e.g. to open a sheet). */
+		onclick?: () => void;
 		trailing?: Snippet;
 	} = $props();
 </script>
@@ -42,6 +45,14 @@
 		<a href={resolve(href)} class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill">
 			{@render content()}
 		</a>
+	{:else if onclick}
+		<button
+			type="button"
+			{onclick}
+			class="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left active:bg-fill"
+		>
+			{@render content()}
+		</button>
 	{:else}
 		<div class="flex min-h-11 items-center gap-3 px-4 py-2.5">{@render content()}</div>
 	{/if}

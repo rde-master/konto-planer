@@ -8,7 +8,7 @@
 		class: className,
 		...rest
 	}: {
-		variant?: 'filled' | 'tinted' | 'plain';
+		variant?: 'filled' | 'tinted' | 'plain' | 'destructive';
 		children: Snippet;
 	} & HTMLButtonAttributes = $props();
 </script>
@@ -20,6 +20,7 @@
 		variant === 'filled' && 'bg-accent text-accent-contrast',
 		variant === 'tinted' && 'bg-fill text-accent',
 		variant === 'plain' && 'text-accent',
+		variant === 'destructive' && 'bg-danger text-white',
 		className
 	]}
 >

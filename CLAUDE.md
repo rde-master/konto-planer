@@ -33,6 +33,10 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop, große Titel, Blätter von unten, gruppierte Listen, iOS-Blau als Akzent, Hell/Dunkel nach System und umschaltbar. `prefers-reduced-transparency`, `prefers-contrast`, `prefers-reduced-motion` beachten.
 **Keine Apple-Schrift- oder Symboldateien ins Repo** – Systemschrift (`-apple-system, system-ui`) und ein frei lizenziertes Symbolset verwenden.
 
+## UI-Bausteine (`src/lib/components`)
+
+`Page` (großer Titel, `back`, `actions`), `ListGroup`/`ListRow` (gruppierte Listen; `href`, `onclick`, `value`), `FormField` (Eingabe als Listenzeile), `SegmentedField` (Radio-Segmente, `initial`), `Sheet` (Blatt von unten, Bestätigen-Knopf sendet `formId`), `Button` (`filled`, `tinted`, `plain`, `destructive`), `ComingSoon`. Admin-Seiten mit `requireAdmin()` aus `#lib/server/guards.js` schützen.
+
 ## Daten und Sicherheit
 
 - Öffentliches Repo (MIT). **Nur erfundene Testdaten.** Echte Bankexporte (`*.csv` außerhalb von `tests/fixtures/`), `.env` und Zugangsdaten nie einchecken.

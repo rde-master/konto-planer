@@ -31,3 +31,8 @@ export function formString(data: FormData, key: string): string {
 	const value = data.get(key);
 	return typeof value === 'string' ? value : '';
 }
+
+/** Builds a FieldErrors object for a single field (keeps action return types uniform). */
+export function fieldError(field: string, message: string): FieldErrors {
+	return { [field]: message };
+}
