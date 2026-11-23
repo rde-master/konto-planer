@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.4.0] – Sicherung vor Update
+
+### Neu
+
+- Bevor ein Update die Datenbank ändert, legt die App automatisch eine vollständige Sicherung an (`pg_dump`, im Volume `app-data` unter `backups/`, Name mit Datum und Zielversion)
+- Die neuesten 10 Sicherungen bleiben erhalten, ältere werden danach entfernt
+- Schlägt die Sicherung fehl, startet die App nicht und die Datenbank bleibt unverändert; der Grund steht im Log
+- Anleitung zum Wiederherstellen im README
+
+### Technik
+
+- Neue Pflichtprüfung „Upgrade from last release“: jeder Pull Request wird als Update auf die letzte veröffentlichte Version getestet – Migration, Anmeldung mit bestehendem Konto und, falls migriert wurde, ob sich die Sicherung wieder einspielen lässt
+
 ## [0.3.0] – Login-Sperre
 
 ### Neu

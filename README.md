@@ -17,6 +17,23 @@ docker compose up -d
 
 Dann die Adresse aus `ORIGIN` im Browser öffnen und den ersten Admin anlegen. Updates: `docker compose pull && docker compose up -d` – Migrationen laufen beim Start automatisch.
 
+### Sicherung vor Updates
+
+Bevor ein Update die Datenbank ändert, legt die App automatisch eine Sicherung im Volume `app-data` unter `backups/` ab (z. B. `2026-11-23_12-08-34_vor-0.5.0.dump`); die neuesten 10 bleiben erhalten. Schlägt die Sicherung fehl, startet die App nicht und die Datenbank bleibt unverändert – im Log steht der Grund. Regelmäßige Sicherungen ersetzt das nicht.
+
+Sicherung wiederherstellen (ersetzt den aktuellen Stand vollständig; Benutzer und Datenbankname wie in `.env`):
+
+```sh
+docker compose stop app
+docker compose cp app:/app/data/backups/<datei>.dump ./restore.dump
+docker compose cp ./restore.dump db:/tmp/restore.dump
+docker compose exec db dropdb -U kontoplaner kontoplaner
+docker compose exec db createdb -U kontoplaner kontoplaner
+docker compose exec db pg_restore -U kontoplaner -d kontoplaner --no-owner /tmp/restore.dump
+```
+
+Danach das Image der Version vor dem Update in `docker-compose.yml` eintragen (z. B. `:0.4.0` statt `:latest`) und `docker compose up -d` – eine neuere Version würde sonst sofort wieder migrieren.
+
 Am iPhone: Seite in Safari öffnen → Teilen → „Zum Home-Bildschirm“.
 
 ## Entwicklung
