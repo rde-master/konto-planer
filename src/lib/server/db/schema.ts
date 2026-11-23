@@ -1,6 +1,7 @@
 import {
 	bigint,
 	bigserial,
+	boolean,
 	date,
 	index,
 	integer,
@@ -152,3 +153,72 @@ export const categories = pgTable(
 );
 
 export type Category = typeof categories.$inferSelect;
+
+export const recurringKind = pgEnum('recurring_kind', ['expense', 'income']);
+export const recurringInterval = pgEnum('recurring_interval', [
+	'weekly',
+	'monthly',
+	'quarterly',
+	'semiannual',
+	'yearly',
+	'custom',
+	'once'
+]);
+export const customUnit = pgEnum('custom_unit', ['day', 'week', 'month']);
+export const paymentMethod = pgEnum('payment_method', ['direct_debit', 'standing_order', 'manual']);
+
+/** Recurring income or expense of an account. The amount lives in `recurring_amounts`. */
+export const recurringItems = pgTable(
+	'recurring_items',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'restrict' }),
+		kind: recurringKind('kind').notNull(),
+		/** Display name, e.g. "Miete". */
+		name: text('name').notNull(),
+		/** Payee or payer as on the bank statement; used for import matching. */
+		counterparty: text('counterparty'),
+		iban: text('iban'),
+		mandateReference: text('mandate_reference'),
+		creditorId: text('creditor_id'),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		interval: recurringInterval('interval').notNull(),
+		/** Only for interval "custom": every N units. */
+		customEvery: integer('custom_every'),
+		customUnit: customUnit('custom_unit'),
+		startDate: date('start_date', { mode: 'string' }).notNull(),
+		endDate: date('end_date', { mode: 'string' }),
+		/** Amount varies; the forecast uses the latest known value. */
+		variable: boolean('variable').notNull().default(false),
+		isSalary: boolean('is_salary').notNull().default(false),
+		paymentMethod: paymentMethod('payment_method'),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		archivedAt: timestamp('archived_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('recurring_items_account_idx').on(t.accountId),
+		index('recurring_items_category_idx').on(t.categoryId)
+	]
+);
+
+/** Amount history: every price change is kept. Amounts are positive cents. */
+export const recurringAmounts = pgTable(
+	'recurring_amounts',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		validFrom: date('valid_from', { mode: 'string' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('recurring_amounts_item_date_idx').on(t.recurringId, t.validFrom)]
+);
+
+export type RecurringItem = typeof recurringItems.$inferSelect;
+export type RecurringAmount = typeof recurringAmounts.$inferSelect;

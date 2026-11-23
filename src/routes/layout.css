@@ -21,6 +21,7 @@
 	--kp-accent-contrast: #ffffff;
 	--kp-red: #ff3b30;
 	--kp-green: #34c759;
+	--kp-green-text: #248a3d;
 	--kp-orange: #ff9500;
 	--kp-glass: rgb(255 255 255 / 0.62);
 	--kp-glass-border: rgb(255 255 255 / 0.7);
@@ -45,6 +46,7 @@
 		--kp-accent: #0a84ff;
 		--kp-red: #ff453a;
 		--kp-green: #30d158;
+		--kp-green-text: #30d158;
 		--kp-orange: #ff9f0a;
 		--kp-glass: rgb(36 36 40 / 0.6);
 		--kp-glass-border: rgb(255 255 255 / 0.1);
@@ -68,6 +70,7 @@
 	--kp-accent: #0a84ff;
 	--kp-red: #ff453a;
 	--kp-green: #30d158;
+	--kp-green-text: #30d158;
 	--kp-orange: #ff9f0a;
 	--kp-glass: rgb(36 36 40 / 0.6);
 	--kp-glass-border: rgb(255 255 255 / 0.1);
@@ -108,6 +111,7 @@
 	--color-accent-contrast: var(--kp-accent-contrast);
 	--color-danger: var(--kp-red);
 	--color-success: var(--kp-green);
+	--color-income: var(--kp-green-text);
 	--color-warning: var(--kp-orange);
 	--font-sans:
 		-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,

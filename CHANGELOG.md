@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.8.0] – Dauerposten
+
+### Neu
+
+- Dauerposten für regelmäßige Ausgaben und Einnahmen auf Girokonten: Bezeichnung, Betrag, Konto, Kategorie, Empfänger oder Zahler, IBAN, Zahlart, Mandatsreferenz und Gläubiger-ID (mit Prüfziffer-Check)
+- Alle Intervalle: wöchentlich, monatlich, vierteljährlich, halbjährlich, jährlich, einmalig und frei (alle N Tage, Wochen oder Monate), mit optionalem Ende
+- Fällt der Tag in einem Monat weg (z. B. der 31.), gilt der letzte Tag des Monats
+- Betragsverlauf: Jede Preisänderung bleibt mit „gültig ab“ erhalten, auch für künftige Änderungen; die nächsten Fälligkeiten zeigen den jeweils gültigen Betrag
+- Kennzeichen für schwankende Beträge und für Gehaltseingänge
+- Übersicht je Konto mit nächster Fälligkeit und Summe der Ausgaben und Einnahmen pro Monat
+- Archivieren, Wiederherstellen und Löschen; Konten mit Dauerposten lassen sich nur noch archivieren
+- Wer ein Konto nur sehen darf, sieht dessen Dauerposten schreibgeschützt
+- Alle Änderungen stehen im Protokoll
+
 ## [0.7.0] – Kategorien
 
 ### Neu

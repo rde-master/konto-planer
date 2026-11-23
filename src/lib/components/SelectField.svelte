@@ -6,6 +6,7 @@
 		label,
 		name,
 		options,
+		groups = [],
 		value = '',
 		error,
 		onchange
@@ -13,6 +14,8 @@
 		label: string;
 		name: string;
 		options: { value: string; label: string }[];
+		/** Additional options shown in <optgroup>s after `options`. */
+		groups?: { label: string; options: { value: string; label: string }[] }[];
 		value?: string;
 		error?: string;
 		onchange?: (value: string) => void;
@@ -35,6 +38,13 @@
 		>
 			{#each options as option (option.value)}
 				<option value={option.value}>{option.label}</option>
+			{/each}
+			{#each groups as group (group.label)}
+				<optgroup label={group.label}>
+					{#each group.options as option (option.value)}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</optgroup>
 			{/each}
 		</select>
 		<ChevronsUpDown class="pointer-events-none absolute right-0 size-4 text-label-3" />

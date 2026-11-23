@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { db } from './db/index.js';
-import { accountAccess, accounts, users, type Account } from './db/schema.js';
+import { accountAccess, accounts, recurringItems, users, type Account } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import {
@@ -73,9 +73,13 @@ export async function getAccountFor(viewer: Viewer, id: string): Promise<Account
  * Accounts with data are archived instead of deleted. Extend this when new
  * tables with an account reference are added.
  */
-export function accountHasData(accountId: string): Promise<boolean> {
-	void accountId;
-	return Promise.resolve(false);
+export async function accountHasData(accountId: string): Promise<boolean> {
+	const [row] = await db
+		.select({ id: recurringItems.id })
+		.from(recurringItems)
+		.where(eq(recurringItems.accountId, accountId))
+		.limit(1);
+	return row !== undefined;
 }
 
 export async function createAccount(
