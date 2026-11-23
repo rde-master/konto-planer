@@ -29,6 +29,7 @@
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 	const status = $derived.by(() => {
 		if (form?.action === 'update' && 'success' in form) return 'Änderungen gesichert.';
+		if (form?.action === 'unlock' && 'success' in form) return 'Sperre aufgehoben.';
 		if (form?.action === 'reset' && 'success' in form)
 			return 'Passwort zurückgesetzt. Alle Geräte dieses Benutzers wurden abgemeldet.';
 		return undefined;
@@ -47,6 +48,21 @@
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			{status}
 		</p>
+	{/if}
+
+	{#if data.lockedUntil}
+		<section
+			class="mb-8 rounded-[var(--radius-row)] bg-card px-4 py-3"
+			aria-labelledby="lock-title"
+		>
+			<h2 id="lock-title" class="text-[17px] font-semibold text-warning">Anmeldung gesperrt</h2>
+			<p class="mt-1 text-[15px] text-label-2">
+				Nach zu vielen Fehlversuchen gesperrt bis {data.lockedUntil}.
+			</p>
+			<form method="POST" action="?/unlock" use:enhance class="mt-3">
+				<Button type="submit" variant="tinted">Sperre aufheben</Button>
+			</form>
+		</section>
 	{/if}
 
 	<form
@@ -150,7 +166,7 @@
 		</ul>
 		<p class="mt-1.5 px-4 text-[13px] text-label-2">
 			Mindestens 10 Zeichen. {target.name} wird auf allen Geräten abgemeldet und meldet sich mit dem neuen
-			Passwort an.
+			Passwort an. Eine Login-Sperre wird dabei aufgehoben.
 		</p>
 	</form>
 </Sheet>

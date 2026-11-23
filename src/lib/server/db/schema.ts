@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const userRole = pgEnum('user_role', ['admin', 'user']);
 
@@ -30,3 +30,14 @@ export const sessions = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+
+/**
+ * Failed logins per (normalised) username – also for unknown names, so a lock reveals nothing
+ * about which accounts exist. Deleted on successful login or admin unlock.
+ */
+export const loginThrottle = pgTable('login_throttle', {
+	username: text('username').primaryKey(),
+	failedCount: integer('failed_count').notNull().default(0),
+	lastFailedAt: timestamp('last_failed_at', { withTimezone: true }),
+	lockedUntil: timestamp('locked_until', { withTimezone: true })
+});

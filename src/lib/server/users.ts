@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword } from './auth.js';
 import { checkDelete, checkRoleChange, type Role } from './user-rules.js';
 import { normalizeUsername } from './validation.js';
 import { hashSessionToken } from './session-token.js';
+import { clearFailures } from './login-throttle.js';
 
 export class UserError extends Error {}
 
@@ -123,18 +124,27 @@ export async function deleteUser(actorId: string, targetId: string) {
 	});
 }
 
-/** Admin reset: sets a new password and signs the user out on all devices. */
+/** Admin reset: sets a new password, lifts a login lock and signs the user out on all devices. */
 export async function resetPassword(targetId: string, password: string) {
 	const passwordHash = await hashPassword(password);
-	await db.transaction(async (tx) => {
-		const updated = await tx
+	const username = await db.transaction(async (tx) => {
+		const [updated] = await tx
 			.update(users)
 			.set({ passwordHash, updatedAt: new Date() })
 			.where(eq(users.id, targetId))
-			.returning({ id: users.id });
-		if (updated.length === 0) throw new UserError('Benutzer nicht gefunden.');
+			.returning({ username: users.username });
+		if (!updated) throw new UserError('Benutzer nicht gefunden.');
 		await tx.delete(sessions).where(eq(sessions.userId, targetId));
+		return updated.username;
 	});
+	await clearFailures(username);
+}
+
+/** Admin unlock after too many failed logins. */
+export async function unlockUser(targetId: string) {
+	const user = await getUser(targetId);
+	if (!user) throw new UserError('Benutzer nicht gefunden.');
+	await clearFailures(user.username);
 }
 
 /** Own password change: requires the current password and signs out all other devices. */
