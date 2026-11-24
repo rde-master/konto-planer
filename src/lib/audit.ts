@@ -142,7 +142,8 @@ const FIELD_LABELS: Record<string, string> = {
 	dueRemoved: 'Entfernt',
 	cutoffMode: 'Stichtag',
 	cutoffItem: 'Stichtag-Eingang',
-	cutoffDate: 'Stichtag-Datum'
+	cutoffDate: 'Stichtag-Datum',
+	buffer: 'Puffer'
 };
 
 export function fieldLabel(field: string): string {
@@ -173,6 +174,7 @@ const dateTime = new Intl.DateTimeFormat('de-DE', {
 const CENT_FIELDS = new Set([
 	'openingBalance',
 	'overdraftLimit',
+	'buffer',
 	'amount',
 	'balanceBefore',
 	'balanceAfter'

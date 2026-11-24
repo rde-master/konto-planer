@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.19.0] – Puffer je Konto
+
+### Neu
+
+- Girokonten haben einen optionalen Puffer: ein Sicherheitsbetrag, der immer zum Mindestbestand dazukommt
+- Den Puffer stellt ein, wer das Konto bearbeiten darf, neben dem Dispo-Rahmen
+- Die Kontoseite zeigt beim Mindestbestand, wie viel davon Puffer ist; der verfügbare Betrag sinkt entsprechend
+- Änderungen am Puffer stehen im Protokoll
+
 ## [0.18.0] – Mindestbestand mit Stichtag und Dispo-Hinweis
 
 ### Neu

@@ -13,7 +13,8 @@ const valid: AccountInput = {
 	iban: 'de89 3704 0044 0532 0130 00',
 	openingBalance: '1.234,56',
 	openingDate: '2026-11-01',
-	overdraftLimit: '1.000'
+	overdraftLimit: '1.000',
+	buffer: ''
 };
 
 describe('validateAccount', () => {
@@ -27,7 +28,8 @@ describe('validateAccount', () => {
 				iban: 'DE89370400440532013000',
 				openingBalance: 123456,
 				openingDate: '2026-11-01',
-				overdraftLimit: 100000
+				overdraftLimit: 100000,
+				buffer: 0
 			}
 		});
 	});
@@ -52,11 +54,18 @@ describe('validateAccount', () => {
 			iban: 'DE00 1234',
 			openingBalance: 'viel',
 			openingDate: '2026-02-30',
-			overdraftLimit: '-5'
+			overdraftLimit: '-5',
+			buffer: ''
 		});
 		expect(Object.keys(r.errors ?? {}).sort()).toEqual(
 			['color', 'iban', 'name', 'openingBalance', 'openingDate', 'type'].sort()
 		);
+	});
+
+	it('takes a buffer on giro accounts only', () => {
+		expect(validateAccount({ ...valid, buffer: '250' }).values?.buffer).toBe(25000);
+		expect(validateAccount({ ...valid, buffer: '-1' }).errors?.buffer).toBeDefined();
+		expect(validateAccount({ ...valid, type: 'sparbuch', buffer: '250' }).values?.buffer).toBe(0);
 	});
 
 	it('rejects a negative overdraft on giro accounts', () => {
