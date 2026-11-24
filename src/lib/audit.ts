@@ -2,6 +2,7 @@ import { formatEuro } from './money.js';
 import { ACCOUNT_COLORS } from './colors.js';
 import { KIND_LABELS, PAYMENT_METHOD_LABELS } from './recurring.js';
 import { CUTOFF_MODE_LABELS } from './minimum.js';
+import { INTEREST_RHYTHM_LABELS } from './interest.js';
 
 // Shared (client-safe) vocabulary of the audit log: entity types, actions and German labels.
 
@@ -38,7 +39,9 @@ export const ACTIONS = [
 	'resume',
 	'adjust',
 	'due_sync',
-	'skip'
+	'skip',
+	'interest_credit',
+	'interest_rate'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -74,7 +77,9 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	resume: 'Pause beendet',
 	adjust: 'Kontostand korrigiert',
 	due_sync: 'Fälligkeiten vorläufig gebucht',
-	skip: 'Vorläufige Buchung zurückgenommen'
+	skip: 'Vorläufige Buchung zurückgenommen',
+	interest_credit: 'Zinsen gutgeschrieben',
+	interest_rate: 'Zinssatz geändert'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -143,7 +148,12 @@ const FIELD_LABELS: Record<string, string> = {
 	cutoffMode: 'Stichtag',
 	cutoffItem: 'Stichtag-Eingang',
 	cutoffDate: 'Stichtag-Datum',
-	buffer: 'Puffer'
+	buffer: 'Puffer',
+	interestRate: 'Zinssatz',
+	interestRhythm: 'Zinsgutschrift',
+	creditsCreated: 'Neu gebucht',
+	creditsUpdated: 'Angepasst',
+	creditsRemoved: 'Entfernt'
 };
 
 export function fieldLabel(field: string): string {
@@ -156,6 +166,7 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
 	kind: KIND_LABELS,
 	paymentMethod: PAYMENT_METHOD_LABELS,
 	cutoffMode: CUTOFF_MODE_LABELS,
+	interestRhythm: INTEREST_RHYTHM_LABELS,
 	color: Object.fromEntries(Object.entries(ACCOUNT_COLORS).map(([k, v]) => [k, v.label])),
 	reason: {
 		locked: 'Anmeldung war gesperrt',

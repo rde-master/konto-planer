@@ -37,7 +37,8 @@
 		manual: 'Manuell erfasst',
 		import: 'Import',
 		adjustment: 'Anpassung',
-		provisional: 'Vorläufig aus Dauerposten'
+		provisional: 'Vorläufig aus Dauerposten',
+		interest: 'Zinsen (berechnet)'
 	};
 
 	let savePending = $state(false);
@@ -77,7 +78,23 @@
 	const dueErrors = $derived(
 		form?.action === 'changeDue' && 'errors' in form ? form.errors : undefined
 	);
-	const dueSaved = $derived(form?.action === 'changeDue' && 'success' in form);
+	const dueSaved = $derived(
+		(form?.action === 'changeDue' || form?.action === 'creditAmount') && 'success' in form
+	);
+	const credit = $derived(data.credit);
+	let creditOpen = $state(false);
+	const creditErrors = $derived(
+		form?.action === 'creditAmount' && 'errors' in form ? form.errors : undefined
+	);
+
+	const creditEnhance: SubmitFunction = () => {
+		duePending = true;
+		return async ({ result, update }) => {
+			duePending = false;
+			if (result.type === 'success') creditOpen = false;
+			await update({ reset: false });
+		};
+	};
 
 	const dueEnhance: SubmitFunction = () => {
 		duePending = true;
@@ -211,6 +228,34 @@
 				/>{/if}
 			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
 		</ListGroup>
+		{#if credit}
+			<ListGroup
+				header="Zinsgutschrift"
+				footer={credit.amountSet
+					? 'Betrag von Hand gesetzt; er bleibt, auch wenn sich die Berechnung ändert.'
+					: 'Berechnet aus Stand und Zinssatz. Weicht die Bank ab, übernimm ihren Betrag.'}
+			>
+				<ListRow label="Periode bis" value={formatDay(credit.periodEnd)} />
+			</ListGroup>
+			{#if credit.canEdit}
+				<ListGroup>
+					<ListRow label="Betrag anpassen" onclick={() => (creditOpen = true)} />
+					{#if credit.amountSet}
+						<li>
+							<form method="POST" action="?/creditAmount" use:enhance>
+								<input type="hidden" name="reset" value="on" />
+								<button
+									type="submit"
+									class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+								>
+									Berechneten Betrag verwenden
+								</button>
+							</form>
+						</li>
+					{/if}
+				</ListGroup>
+			{/if}
+		{/if}
 		{#if due}
 			<ListGroup
 				header="Vorläufige Buchung"
@@ -234,18 +279,20 @@
 			{/if}
 		{/if}
 		<p class="mb-8 px-4 text-[13px] text-label-2">
-			{booking.source === 'provisional'
-				? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
-				: booking.source === 'adjustment'
-					? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
-					: 'Du kannst diese Buchung nur ansehen.'}
+			{booking.source === 'interest'
+				? 'Zinsgutschriften berechnet die App selbst.'
+				: booking.source === 'provisional'
+					? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
+					: booking.source === 'adjustment'
+						? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
+						: 'Du kannst diese Buchung nur ansehen.'}
 		</p>
 		{#if booking.canDelete}
 			<ListGroup header="Verwaltung">
 				<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
 			</ListGroup>
 		{/if}
-		{#if data.templateAccounts.length && booking.source !== 'adjustment'}
+		{#if data.templateAccounts.length && booking.source !== 'adjustment' && booking.source !== 'interest'}
 			<ListGroup>
 				<ListRow
 					label="Als Vorlage sichern"
@@ -377,6 +424,30 @@
 		</p>
 		<form method="POST" action="?/skipDue" use:enhance>
 			<Button type="submit" variant="destructive">Zurücknehmen</Button>
+		</form>
+	</Sheet>
+{/if}
+
+{#if credit?.canEdit}
+	<Sheet
+		bind:open={creditOpen}
+		title="Betrag anpassen"
+		confirmLabel="Sichern"
+		formId="credit-amount"
+		confirmDisabled={duePending}
+	>
+		<form id="credit-amount" method="POST" action="?/creditAmount" use:enhance={creditEnhance}>
+			<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+				<FormField
+					label="Zinsen laut Bank in €"
+					name="amount"
+					value={formatEuroInput(credit.amount)}
+					inputmode="decimal"
+					autocomplete="off"
+					required
+					error={creditErrors?.amount}
+				/>
+			</ul>
 		</form>
 	</Sheet>
 {/if}

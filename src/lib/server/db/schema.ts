@@ -90,6 +90,7 @@ export const accountType = pgEnum('account_type', ['giro', 'sparbuch']);
 export const accessLevel = pgEnum('access_level', ['view', 'edit']);
 
 export const cutoffMode = pgEnum('cutoff_mode', ['salary', 'month_end', 'date']);
+export const interestRhythm = pgEnum('interest_rhythm', ['monthly', 'quarterly', 'yearly']);
 
 /** Bank account. All amounts in euro cents. */
 export const accounts = pgTable('accounts', {
@@ -114,6 +115,8 @@ export const accounts = pgTable('accounts', {
 	}),
 	/** Mode "date": the fixed day. */
 	cutoffDate: date('cutoff_date', { mode: 'string' }),
+	/** Savings accounts: interest is credited at the end of each period. */
+	interestRhythm: interestRhythm('interest_rhythm').notNull().default('yearly'),
 	archivedAt: timestamp('archived_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -321,7 +324,8 @@ export const bookingSource = pgEnum('booking_source', [
 	'manual',
 	'import',
 	'adjustment',
-	'provisional'
+	'provisional',
+	'interest'
 ]);
 
 /**
@@ -438,3 +442,44 @@ export const dueItems = pgTable(
 );
 
 export type DueItem = typeof dueItems.$inferSelect;
+
+/** Interest rate history of a savings account (thousandths of a percent: 2,75 % = 2750). */
+export const accountInterestRates = pgTable(
+	'account_interest_rates',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		rate: integer('rate').notNull(),
+		validFrom: date('valid_from', { mode: 'string' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		uniqueIndex('account_interest_rates_account_date_idx').on(t.accountId, t.validFrom),
+		check('account_interest_rates_range', sql`${t.rate} between 0 and 100000`)
+	]
+);
+
+/**
+ * Interest credited at the end of a period, booked provisionally (`bookings.source = 'interest'`).
+ * Untouched credits follow the computation; an amount set by hand is kept.
+ */
+export const interestCredits = pgTable(
+	'interest_credits',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		periodEnd: date('period_end', { mode: 'string' }).notNull(),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		amountSet: boolean('amount_set').notNull().default(false),
+		bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('interest_credits_account_period_idx').on(t.accountId, t.periodEnd)]
+);
+
+export type InterestCredit = typeof interestCredits.$inferSelect;

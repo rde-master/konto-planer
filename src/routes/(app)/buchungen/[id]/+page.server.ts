@@ -14,6 +14,7 @@ import { readTemplateForm, templateFormContext } from '#lib/server/template-form
 import { fieldError, formString } from '#lib/server/validation.js';
 import { DueError, changeDue, dueForBooking, skipDue } from '#lib/server/due.js';
 import { parseEuro } from '#lib/money.js';
+import { InterestError, creditForBooking, setCreditAmount } from '#lib/server/interest.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -26,9 +27,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		: [{ value: booking.accountId, label: booking.account.name }, ...options.bookingAccounts];
 	const due =
 		booking.source === 'provisional' ? await dueForBooking(locals.user!, booking.id) : null;
+	const credit =
+		booking.source === 'interest' ? await creditForBooking(locals.user!, booking.id) : null;
 	return {
 		booking,
 		due,
+		credit,
 		accounts,
 		categoryGroups: options.categoryGroups,
 		/** Accounts a template may name: only those the user can book on. */
@@ -105,6 +109,31 @@ export const actions: Actions = {
 			throw e;
 		}
 		return { action: 'changeDue', success: true };
+	},
+
+	/** Interest credit: the amount of the bank, or back to the computed one. */
+	creditAmount: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const credit = await creditForBooking(user, params.id);
+		if (!credit) error(404, 'Buchung nicht gefunden.');
+		const data = await request.formData();
+		let amount: number | null = null;
+		if (formString(data, 'reset') !== 'on') {
+			amount = parseEuro(formString(data, 'amount'));
+			if (amount === null || amount <= 0)
+				return fail(400, {
+					action: 'creditAmount',
+					errors: fieldError('amount', 'Bitte einen Betrag größer 0 eingeben, z. B. 12,34.')
+				});
+		}
+		try {
+			await setCreditAmount(user, credit.id, amount);
+		} catch (e) {
+			if (e instanceof InterestError)
+				return fail(400, { action: 'creditAmount', errors: fieldError('amount', e.message) });
+			throw e;
+		}
+		return { action: 'creditAmount', success: true };
 	},
 
 	skipDue: async ({ locals, params }) => {

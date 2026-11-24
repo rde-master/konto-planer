@@ -15,6 +15,7 @@ import { getRecurringFor } from './recurring.js';
 import { duesUntil, reconcileDues, type ExpectedDue } from '../due.js';
 import { todayBerlin } from '../dates.js';
 import { isValidDate } from './recurring-rules.js';
+import { syncInterest } from './interest.js';
 
 export class DueError extends Error {}
 
@@ -102,6 +103,13 @@ async function refreshBookings(tx: Tx, item: RecurringItem, rows: DueItem[]) {
  * accounts that are archived stay as they are. Pass ids to sync only those items.
  */
 export async function syncDues(ids?: string[], today = todayBerlin()): Promise<number> {
+	const changed = await syncDueItems(ids, today);
+	// Transfers into savings accounts change their interest.
+	await syncInterest(undefined, today);
+	return changed;
+}
+
+async function syncDueItems(ids: string[] | undefined, today: string): Promise<number> {
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`select pg_advisory_xact_lock(hashtext('kontoplaner.due-sync'))`);
 		const items = await tx
