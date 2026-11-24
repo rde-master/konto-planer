@@ -10,6 +10,8 @@
 	import Button from '#lib/components/Button.svelte';
 	import BookingFields from '#lib/components/BookingFields.svelte';
 	import FormField from '#lib/components/FormField.svelte';
+	import SelectField from '#lib/components/SelectField.svelte';
+	import { formatIban } from '#lib/iban.js';
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
 	import Zap from '@lucide/svelte/icons/zap';
@@ -72,6 +74,10 @@
 	}
 
 	let goalUndoOpen = $state(false);
+	let categoryForm: HTMLFormElement | undefined = $state();
+	function submitCategory() {
+		categoryForm?.requestSubmit();
+	}
 	const due = $derived(data.due);
 	let moveOpen = $state(false);
 	let amountOpen = $state(false);
@@ -219,7 +225,32 @@
 		<ListGroup header="Details">
 			<ListRow label="Datum" value={formatDay(booking.bookingDate)} />
 			<ListRow label="Konto" value={booking.account.name} />
-			<ListRow label="Kategorie" value={categoryText} />
+			{#if booking.canCategorize}
+				<form
+					method="POST"
+					action="?/category"
+					use:enhance
+					bind:this={categoryForm}
+					class="contents"
+				>
+					<SelectField
+						label="Kategorie"
+						name="categoryId"
+						options={[{ value: '', label: 'Ohne Kategorie' }]}
+						groups={data.categoryGroups}
+						value={booking.categoryId ?? ''}
+						onchange={submitCategory}
+					/>
+				</form>
+			{:else}
+				<ListRow label="Kategorie" value={categoryText} />
+			{/if}
+			{#if booking.iban}<ListRow label="IBAN" value={formatIban(booking.iban)} />{/if}
+			{#if booking.bookingText}<ListRow label="Buchungstext" value={booking.bookingText} />{/if}
+			{#if booking.bankCategory}<ListRow
+					label="Kategorie der Bank"
+					value={booking.bankCategory}
+				/>{/if}
 			{#if booking.counterparty}<ListRow
 					label="Empfänger/Zahler"
 					value={booking.counterparty}

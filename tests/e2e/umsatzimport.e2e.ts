@@ -5,7 +5,7 @@ test.describe.configure({ mode: 'serial' });
 
 const ADMIN = { username: 'erika', password: 'sehr-geheim-123' };
 const ACCOUNT = 'Musterkonto';
-const IBAN = 'DE09 1234 5678 0001 2345 67';
+const SAVINGS = 'Mustersparbuch';
 const FIXTURE = 'tests/fixtures/volksbank-beispiel.csv';
 
 async function login(page: Page) {
@@ -17,10 +17,35 @@ async function login(page: Page) {
 	await expect(page).toHaveURL('/');
 }
 
-async function openAccount(page: Page) {
+async function openAccount(page: Page, name = ACCOUNT) {
 	await page.goto('/konten');
-	await page.getByRole('link', { name: new RegExp(ACCOUNT) }).click();
-	await expect(page.getByRole('heading', { level: 1, name: ACCOUNT })).toBeVisible();
+	await page.getByRole('link', { name: new RegExp(name) }).click();
+	await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+}
+
+async function createAccount(page: Page, name: string, iban: string, savings = false) {
+	await page.goto('/konten');
+	await page.getByRole('button', { name: 'Konto anlegen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neues Konto' });
+	if (savings) await sheet.getByText('Sparbuch', { exact: true }).click();
+	await sheet.getByLabel('Name').fill(name);
+	await sheet.getByLabel('IBAN (optional)').fill(iban);
+	await sheet.getByLabel('Betrag in €').fill('1.000');
+	await sheet.getByLabel('Stand am').fill('2026-09-30');
+	await sheet.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(sheet).toBeHidden();
+}
+
+async function createItem(page: Page, name: string, amount: string, first: string) {
+	await page.goto('/dauerposten');
+	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
+	const item = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
+	await item.getByLabel('Bezeichnung').fill(name);
+	await item.getByLabel('Betrag in €').fill(amount);
+	await item.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await item.getByLabel('Erste Fälligkeit').fill(first);
+	await item.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(item).toBeHidden();
 }
 
 async function upload(
@@ -33,28 +58,13 @@ async function upload(
 	await page.getByRole('button', { name: 'Vorschau zeigen' }).click();
 }
 
-test('preview: duplicates, replaced provisional bookings, wrong account', async ({ page }) => {
+test('preview: recurring items, transfers, suggestions, missing bookings', async ({ page }) => {
 	await login(page);
-	await page.goto('/konten');
-	await page.getByRole('button', { name: 'Konto anlegen' }).click();
-	const sheet = page.getByRole('dialog', { name: 'Neues Konto' });
-	await sheet.getByLabel('Name').fill(ACCOUNT);
-	await sheet.getByLabel('IBAN (optional)').fill(IBAN);
-	await sheet.getByLabel('Betrag in €').fill('1.000');
-	await sheet.getByLabel('Stand am').fill('2026-09-30');
-	await sheet.getByRole('button', { name: 'Anlegen' }).click();
-	await expect(sheet).toBeHidden();
-
-	// Provisionally booked electricity on 02.10. and 02.11.
-	await page.goto('/dauerposten');
-	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
-	const item = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await item.getByLabel('Bezeichnung').fill('Energie');
-	await item.getByLabel('Betrag in €').fill('64');
-	await item.getByLabel('Konto').selectOption({ label: ACCOUNT });
-	await item.getByLabel('Erste Fälligkeit').fill('2026-10-02');
-	await item.getByRole('button', { name: 'Anlegen' }).click();
-	await expect(item).toBeHidden();
+	await createAccount(page, ACCOUNT, 'DE09 1234 5678 0001 2345 67');
+	await createAccount(page, SAVINGS, 'DE25 1234 5678 0007 6543 21', true);
+	// Electricity as in the file, and an insurance that is missing in the file.
+	await createItem(page, 'Energie', '64', '2026-10-02');
+	await createItem(page, 'Hausrat', '30', '2026-10-12');
 
 	// An adjustment inside the file's period is removed by the import.
 	await openAccount(page);
@@ -79,37 +89,83 @@ test('preview: duplicates, replaced provisional bookings, wrong account', async 
 	const summary = page.getByRole('region', { name: 'Zusammenfassung' });
 	await expect(summary).toContainText('Windows-1252');
 	await expect(summary.getByLabel('Neu')).toHaveText('8 neu');
-	await expect(summary.getByLabel('Ersetzt')).toHaveText('2 ersetzen eine Buchung');
+	await expect(summary.getByLabel('Dauerposten')).toHaveText('2 zu Dauerposten');
 	await expect(summary.getByLabel('Schon vorhanden')).toHaveText('1 schon vorhanden');
 	await expect(summary).toContainText('Eine Anpassung');
-	await expect(page.getByRole('list', { name: 'Buchungen der Datei' })).toContainText(
-		'vorläufige Buchung vom 02.11.2026'
+
+	const list = page.getByRole('list', { name: 'Buchungen der Datei' });
+	await expect(list.getByRole('listitem', { name: 'Zeile 5' })).toContainText(
+		'Dauerposten „Energie“ (Betrag und Datum)'
 	);
+	await expect(list.getByRole('listitem', { name: 'Zeile 4' })).toContainText(
+		`Umbuchung, Gegenbuchung auf ${SAVINGS}`
+	);
+	// The bank's category "Einkommen" is an own category.
+	await expect(list.getByRole('listitem', { name: 'Zeile 7' })).toContainText(
+		'Kategorie: Einkommen'
+	);
+
+	const suggestions = page.getByRole('region', { name: 'Neue Dauerposten' });
+	await expect(suggestions).toContainText('Beispiel Maschinenbau GmbH');
+	await expect(suggestions).toContainText('Hausverwaltung Beispiel');
+	await expect(suggestions).not.toContainText('Stadtwerke');
+
+	const missing = page.getByRole('region', { name: 'Ohne echte Buchung' });
+	await expect(missing.getByRole('link', { name: /Hausrat/ })).toHaveCount(2);
 });
 
-test('taking over stores the bookings and checks the balance', async ({ page }) => {
+test('taking over: bookings, counter bookings, new items, balance check', async ({ page }) => {
 	await login(page);
 	await upload(page, FIXTURE);
-	// Leave out the supermarket (line 8).
+	// Leave out the supermarket (line 8); create the salary as recurring item.
 	await page.getByRole('checkbox', { name: 'Zeile 8 übernehmen' }).uncheck();
+	await page
+		.getByRole('checkbox', { name: 'Beispiel Maschinenbau GmbH als Dauerposten anlegen' })
+		.check();
+	await page
+		.getByRole('region', { name: 'Neue Dauerposten' })
+		.getByRole('checkbox', { name: /Gehalt/ })
+		.check();
 	await page.getByRole('button', { name: 'Übernehmen' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Import übernommen' })).toBeVisible();
 	const result = page.getByRole('region', { name: 'Ergebnis' });
 	await expect(result).toContainText('7 neue Buchungen');
-	await expect(result).toContainText('2 manuelle oder vorläufige Buchungen ersetzt');
+	await expect(result).toContainText('2 Dauerposten oder Buchungen zugeordnet');
 	await expect(result).toContainText('2 übersprungen');
 	await expect(result).toContainText('1 Anpassungen aufgelöst');
+	await expect(page.getByRole('region', { name: 'Ohne echte Buchung' })).toContainText('Hausrat');
 
-	// The bank started with 1.010 € (the app with 1.000 €) and has the supermarket (−45,67 €).
+	// The bank started with 1.010 € (the app with 1.000 €) and has the supermarket (−45,67 €),
+	// but not the missing insurance (2 × 30 €, still provisional).
 	const saldo = page.getByRole('region', { name: 'Saldo' });
-	await expect(saldo.getByLabel('Differenz')).toHaveText(/−35,67\s€/);
+	await expect(saldo.getByLabel('Differenz')).toHaveText(/24,33\s€/);
 	await page.getByRole('button', { name: 'Differenz als Anpassung buchen' }).click();
 	await expect(saldo.getByLabel('Differenz')).toHaveText('stimmt');
 
-	// The provisional due items are booked now.
+	// Counter bookings: 2 × 200 € on the savings account.
+	await openAccount(page, SAVINGS);
+	await expect(page.getByLabel('Kontostand', { exact: true })).toHaveText(/1\.400,00\s€/);
+
+	// The salary is a recurring item now; the electricity's due items are booked.
 	await page.goto('/dauerposten');
+	await expect(page.getByRole('link', { name: /^Beispiel Maschinenbau GmbH/ })).toBeVisible();
 	await page.getByRole('link', { name: /^Energie/ }).click();
 	await expect(page.getByRole('region', { name: 'Letzte Fälligkeiten' })).toContainText('gebucht');
+});
+
+test('the category of an imported booking can be changed', async ({ page }) => {
+	await login(page);
+	await page.goto('/buchungen');
+	await page.getByRole('link', { name: /Café Übersee/ }).click();
+	await expect(page.locator('main')).toContainText('Kategorie der Bank');
+	// Closed sheets stay in the DOM; role queries only see the visible select.
+	const select = page.getByRole('combobox', { name: 'Kategorie', exact: true });
+	await select.selectOption({ label: 'Abos und Streaming' });
+	await page.waitForLoadState('networkidle');
+	await page.reload();
+	await expect(
+		page.getByRole('combobox', { name: 'Kategorie', exact: true }).locator('option:checked')
+	).toHaveText('Abos und Streaming');
 });
 
 test('importing again only offers what is missing', async ({ page }) => {

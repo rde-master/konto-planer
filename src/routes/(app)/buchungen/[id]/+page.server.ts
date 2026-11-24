@@ -4,6 +4,7 @@ import {
 	bookingFormContext,
 	deleteBooking,
 	getBookingFor,
+	setBookingCategory,
 	updateBooking
 } from '#lib/server/bookings.js';
 import { validateBooking } from '#lib/server/booking-rules.js';
@@ -151,6 +152,18 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	/** Category of an imported booking (remembered for the payee). */
+	category: async ({ request, locals, params }) => {
+		const categoryId = formString(await request.formData(), 'categoryId') || null;
+		try {
+			await setBookingCategory(locals.user!, params.id, categoryId);
+		} catch (e) {
+			if (e instanceof BookingError) return fail(400, { action: 'category', message: e.message });
+			throw e;
+		}
+		return { action: 'category', success: true };
 	},
 
 	goalUndo: async ({ locals, params }) => {

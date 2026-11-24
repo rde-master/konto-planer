@@ -19,14 +19,23 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	commit: async ({ request, locals, params }) => {
 		const data = await request.formData();
-		const selected = new Set(
-			data
-				.getAll('line')
-				.map((v) => Number(v))
-				.filter((n) => Number.isInteger(n))
-		);
+		const numbers = (name: string) =>
+			new Set(
+				data
+					.getAll(name)
+					.map((v) => Number(v))
+					.filter((n) => Number.isInteger(n))
+			);
+		const strings = (name: string) =>
+			new Set(data.getAll(name).filter((v): v is string => typeof v === 'string'));
+		const choice = {
+			lines: numbers('line'),
+			amountLines: numbers('newAmount'),
+			suggestions: strings('suggest'),
+			salaries: strings('salary')
+		};
 		try {
-			await commitImport(locals.user!, params.id, params.importId, selected);
+			await commitImport(locals.user!, params.id, params.importId, choice);
 		} catch (e) {
 			if (e instanceof ImportError) return fail(400, { message: e.message });
 			throw e;

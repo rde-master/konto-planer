@@ -2,13 +2,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	ImportFormatError,
-	checksumText,
 	decode,
 	latestBalanceRow,
 	parseAmount,
 	parseCsv,
 	parseExport,
-	previewRows,
 	type ImportRow
 } from './csv-import';
 
@@ -73,32 +71,6 @@ describe('parseExport', () => {
 		);
 		expect(file.dateFormat).toBe('JJJJ-MM-TT');
 		expect(file.rows[0]).toMatchObject({ bookingDate: '2026-01-31', amount: -123450 });
-	});
-});
-
-describe('previewRows', () => {
-	const rows = parseExport(fixture).rows.map((r) => ({ ...r, checksum: checksumText(r) }));
-
-	it('marks duplicates within the file and already stored rows', () => {
-		const preview = previewRows(
-			rows,
-			new Set([checksumText(rows.find((r) => r.amount === 250000)!)]),
-			[]
-		);
-		expect(preview.filter((r) => r.status === 'duplicate')).toHaveLength(2);
-		expect(preview.filter((r) => r.status === 'new')).toHaveLength(9);
-	});
-
-	it('replaces a manual or provisional booking with the same amount up to three days apart', () => {
-		const preview = previewRows(rows, new Set(), [
-			{ id: 'p1', date: '2026-11-02', amount: -6400, source: 'provisional', label: 'Strom' },
-			{ id: 'm1', date: '2026-11-20', amount: -1280, source: 'manual', label: 'Café' }
-		]);
-		const strom = preview.filter((r) => r.amount === -6400);
-		expect(strom.map((r) => r.status)).toEqual(['match', 'new']);
-		expect(strom[0].match?.id).toBe('p1');
-		// 12.11. is 8 days before 20.11.: no match.
-		expect(preview.find((r) => r.amount === -1280 && r.status !== 'duplicate')?.status).toBe('new');
 	});
 });
 

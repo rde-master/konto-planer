@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.26.0] – Import: Zuordnung und Vorschläge
+
+### Neu
+
+- Der Import ordnet Buchungen ihren Dauerposten zu: zuerst über Mandatsreferenz und Gläubiger-ID, dann über IBAN und Name, zuletzt über Betrag und Datum (±3 Tage); die passende Fälligkeit gilt danach als gebucht, die vorläufige Buchung wird ersetzt
+- Weicht der Betrag vom Plan ab, bietet die Vorschau an, den neuen Betrag ab dieser Fälligkeit in den Betragsverlauf zu übernehmen
+- Umbuchungen an ein Konto der App werden erkannt: eine vorhandene Gegenbuchung wird verknüpft, sonst bucht die App den Betrag auf dem anderen Konto gegen (z. B. aufs Sparbuch); ein späterer Import des anderen Kontos ersetzt diese Gegenbuchung
+- Wiederkehrende Zahlungen ohne Dauerposten (mindestens zwei, auch aus früheren Importen) schlägt die Vorschau mit erkanntem Intervall als neue Dauerposten vor; per Haken werden sie angelegt, Einnahmen lassen sich dabei als Gehalt markieren
+- Vorläufige Buchungen im Zeitraum der Datei ohne echte Buchung stehen als Hinweis in Vorschau und Ergebnis, mit Link zur Buchung
+- Kategorie importierter Buchungen: vom Dauerposten, sonst die zuletzt für diesen Empfänger gewählte, sonst eine eigene Kategorie mit dem Namen der Bank-Kategorie
+- Die Kategorie importierter Buchungen lässt sich an der Buchung ändern; die App merkt sich die Wahl je Empfänger. IBAN, Buchungstext und Bank-Kategorie werden angezeigt
+
 ## [0.25.0] – CSV-Import
 
 ### Neu

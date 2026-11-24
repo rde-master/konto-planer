@@ -225,62 +225,6 @@ export function checksumText(
 	].join('|');
 }
 
-export type RowStatus = 'new' | 'duplicate' | 'match';
-
-export type MatchCandidate = {
-	id: string;
-	date: string;
-	amount: number;
-	source: 'manual' | 'provisional';
-	label: string;
-};
-
-export type PreviewRow = ImportRow & {
-	checksum: string;
-	status: RowStatus;
-	/** Booking replaced by this row (status "match"). */
-	match: MatchCandidate | null;
-};
-
-function dayDiff(a: string, b: string): number {
-	return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000;
-}
-
-/**
- * Status of every row: rows whose checksum is already stored (or appeared earlier in the file)
- * are duplicates; a new row with the same amount as a manual or provisional booking up to three
- * days apart replaces it (closest date first, each booking once).
- */
-export function previewRows(
-	rows: (ImportRow & { checksum: string })[],
-	known: Set<string>,
-	candidates: MatchCandidate[]
-): PreviewRow[] {
-	const seen = new Set(known);
-	const free = [...candidates];
-	const ordered = [...rows].sort(
-		(a, b) => a.bookingDate.localeCompare(b.bookingDate) || a.line - b.line
-	);
-	const result = new Map<number, PreviewRow>();
-	for (const r of ordered) {
-		if (seen.has(r.checksum)) {
-			result.set(r.line, { ...r, status: 'duplicate', match: null });
-			continue;
-		}
-		seen.add(r.checksum);
-		const best = free
-			.filter((c) => c.amount === r.amount && dayDiff(c.date, r.bookingDate) <= 3)
-			.sort(
-				(a, b) =>
-					dayDiff(a.date, r.bookingDate) - dayDiff(b.date, r.bookingDate) ||
-					Number(a.source === 'manual') - Number(b.source === 'manual')
-			)[0];
-		if (best) free.splice(free.indexOf(best), 1);
-		result.set(r.line, { ...r, status: best ? 'match' : 'new', match: best ?? null });
-	}
-	return rows.map((r) => result.get(r.line)!);
-}
-
 /**
  * Row whose "Saldo nach Buchung" is the latest balance: the newest booking day; within that day
  * the first row if the file is sorted newest first, otherwise the last.
