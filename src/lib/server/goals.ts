@@ -22,6 +22,7 @@ import { syncInterest } from './interest.js';
 import type { GoalValues, LinkablePayment } from './goal-rules.js';
 import { freeAmount, nextGoalDue, progress, savingRate, transferAmount } from '../goals.js';
 import type { PlanEvent } from '../minimum.js';
+import { isReserveItem, reserveRate } from '../reserves.js';
 import { amountOn, type AmountEntry } from '../recurring.js';
 import { formatDay, todayBerlin } from '../dates.js';
 
@@ -104,6 +105,8 @@ export type GoalSummary = SavingsGoal & {
 	progress: number;
 	/** Per month; null without a date. */
 	rate: number | null;
+	/** Monthly reserve of a linked payment due every three months or less often. */
+	reserve: number | null;
 	canEdit: boolean;
 };
 
@@ -139,6 +142,10 @@ function summarize(
 		done: finished,
 		progress: progress(goal.targetAmount, goal.allocated),
 		rate: finished ? null : savingRate(goal.targetAmount, goal.allocated, today, date),
+		reserve:
+			item && !finished && isReserveItem(item)
+				? reserveRate(next?.amount ?? goal.targetAmount, item)
+				: null,
 		canEdit: canEditAccount(account.level, account.archivedAt !== null)
 	};
 }

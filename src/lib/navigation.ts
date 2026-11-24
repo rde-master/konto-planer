@@ -34,6 +34,7 @@ const MORE_PATHS: Path[] = [
 	'offene-zahlungen',
 	'geplant',
 	'sparziele',
+	'ruecklagen',
 	'kategorien',
 	'auswertungen',
 	'einstellungen'
