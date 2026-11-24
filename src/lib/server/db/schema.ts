@@ -12,6 +12,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	unique,
 	uniqueIndex,
 	uuid,
 	type AnyPgColumn
@@ -350,3 +351,33 @@ export const bookings = pgTable(
 );
 
 export type Booking = typeof bookings.$inferSelect;
+
+/**
+ * Templates of the quick entry: one tap fills kind, amount, account, category and payee.
+ * `ownerId` null = shared with all users; otherwise only the owner sees the template.
+ * Amount and account are optional (positive cents; the kind gives the sign).
+ */
+export const bookingTemplates = pgTable(
+	'booking_templates',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		kind: text('kind').notNull(),
+		amount: bigint('amount', { mode: 'number' }),
+		accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		counterparty: text('counterparty'),
+		position: integer('position').notNull().default(0),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		unique('booking_templates_owner_name').on(t.ownerId, t.name).nullsNotDistinct(),
+		check('booking_templates_kind', sql`${t.kind} in ('expense', 'income')`),
+		check('booking_templates_amount_positive', sql`${t.amount} is null or ${t.amount} > 0`)
+	]
+);
+
+export type BookingTemplate = typeof bookingTemplates.$inferSelect;

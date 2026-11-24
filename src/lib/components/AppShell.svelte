@@ -5,10 +5,12 @@
 	import { SECTIONS, TABS, isActive, isTabActive } from '#lib/navigation.js';
 	import Plus from '@lucide/svelte/icons/plus';
 	import QuickEntry from './QuickEntry.svelte';
+	import type { QuickTemplate } from './QuickEntry.svelte';
 
 	type QuickOptions = {
 		bookingAccounts: { value: string; label: string }[];
 		categoryGroups: { label: string; options: { value: string; label: string }[] }[];
+		templates: QuickTemplate[];
 	};
 
 	/** `quick`: options of the quick entry; without accounts the plus button is hidden. */
@@ -92,6 +94,7 @@
 			bind:this={quickEntry}
 			accounts={quick.bookingAccounts}
 			categories={quick.categoryGroups}
+			templates={quick.templates}
 		/>
 	{/if}
 </div>

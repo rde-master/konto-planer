@@ -11,6 +11,7 @@ export const ENTITY_TYPES = [
 	'category',
 	'recurring',
 	'booking',
+	'template',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -44,6 +45,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	category: 'Kategorie',
 	recurring: 'Dauerposten',
 	booking: 'Buchung',
+	template: 'Vorlage',
 	settings: 'Einstellungen'
 };
 
@@ -122,7 +124,9 @@ const FIELD_LABELS: Record<string, string> = {
 	note: 'Notiz',
 	fileName: 'Datei',
 	size: 'Größe (Bytes)',
-	defaultLeadDays: 'Standard-Vorlauf (Tage)'
+	defaultLeadDays: 'Standard-Vorlauf (Tage)',
+	shared: 'Für alle',
+	position: 'Position'
 };
 
 export function fieldLabel(field: string): string {

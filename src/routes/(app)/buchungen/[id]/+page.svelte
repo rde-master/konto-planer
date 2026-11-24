@@ -8,6 +8,9 @@
 	import Sheet from '#lib/components/Sheet.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import BookingFields from '#lib/components/BookingFields.svelte';
+	import TemplateFields from '#lib/components/TemplateFields.svelte';
+	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
+	import Zap from '@lucide/svelte/icons/zap';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
@@ -36,6 +39,36 @@
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
+	let templateOpen = $state(false);
+	let templatePending = $state(false);
+	let templateKey = $state(0);
+	let templateErrors: Partial<Record<string, string>> | undefined = $state();
+	let templateValues: TemplateFormValues = $state(fromBooking());
+
+	/** Template prefilled from this booking (the account only if the user may book on it). */
+	function fromBooking(): TemplateFormValues {
+		const b = data.booking;
+		return {
+			name: (b.counterparty ?? b.category?.name ?? '').slice(0, 30),
+			kind: b.amount > 0 ? 'income' : 'expense',
+			amount: formatEuroInput(Math.abs(b.amount)),
+			accountId: data.templateAccounts.some((a) => a.value === b.accountId) ? b.accountId : null,
+			categoryId: b.categoryId,
+			counterparty: b.counterparty,
+			shared: false
+		};
+	}
+
+	function openTemplate() {
+		templateValues = fromBooking();
+		templateErrors = undefined;
+		templateKey++;
+		templateOpen = true;
+	}
+
+	const templateSaved = $derived(
+		form?.action === 'saveTemplate' && 'template' in form ? form.template : undefined
+	);
 
 	const updateInput = $derived(
 		form?.action === 'update' && 'input' in form ? form.input : undefined
@@ -70,6 +103,10 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if templateSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Vorlage „{templateSaved}“ gesichert. Sie steht jetzt in der Schnellerfassung.
 		</p>
 	{/if}
 
@@ -116,6 +153,12 @@
 		</form>
 
 		<ListGroup header="Verwaltung">
+			<ListRow
+				label="Als Vorlage sichern"
+				icon={Zap}
+				iconColor="bg-[#5856d6]"
+				onclick={openTemplate}
+			/>
 			<ListRow label="Buchung löschen" destructive onclick={() => (deleteOpen = true)} />
 		</ListGroup>
 	{:else}
@@ -131,6 +174,16 @@
 			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
 		</ListGroup>
 		<p class="mb-8 px-4 text-[13px] text-label-2">Du kannst diese Buchung nur ansehen.</p>
+		{#if data.templateAccounts.length}
+			<ListGroup>
+				<ListRow
+					label="Als Vorlage sichern"
+					icon={Zap}
+					iconColor="bg-[#5856d6]"
+					onclick={openTemplate}
+				/>
+			</ListGroup>
+		{/if}
 	{/if}
 </Page>
 
@@ -144,3 +197,44 @@
 		</form>
 	</Sheet>
 {/if}
+
+<Sheet
+	bind:open={templateOpen}
+	title="Als Vorlage sichern"
+	confirmLabel="Sichern"
+	formId="template-form"
+	confirmDisabled={templatePending}
+>
+	<form
+		id="template-form"
+		method="POST"
+		action="?/saveTemplate"
+		use:enhance={() => {
+			templatePending = true;
+			return async ({ result, update }) => {
+				templatePending = false;
+				if (result.type === 'success') templateOpen = false;
+				else if (result.type === 'failure') {
+					const input = result.data?.input as Record<string, string> | undefined;
+					if (input) templateValues = templateValuesFromInput(input);
+					templateErrors = result.data?.errors as typeof templateErrors;
+					templateKey++;
+				}
+				await update({ reset: false });
+			};
+		}}
+	>
+		{#key templateKey}
+			<TemplateFields
+				values={templateValues}
+				errors={templateErrors}
+				accounts={data.templateAccounts}
+				categories={data.categoryGroups}
+			/>
+		{/key}
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Leere den Betrag, wenn er jedes Mal anders ist. Vorlagen verwaltest du unter Einstellungen ›
+			Vorlagen.
+		</p>
+	</form>
+</Sheet>

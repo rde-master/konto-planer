@@ -3,6 +3,7 @@
 	import KeyRound from '@lucide/svelte/icons/key-round';
 	import Users from '@lucide/svelte/icons/users';
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
+	import Zap from '@lucide/svelte/icons/zap';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -87,6 +88,13 @@
 				passwordOpen = true;
 			}}
 		/>
+	</ListGroup>
+
+	<ListGroup
+		header="Schnellerfassung"
+		footer="Häufige Buchungen mit einem Tipp ausfüllen – eigene und gemeinsame."
+	>
+		<ListRow label="Vorlagen" href="einstellungen/vorlagen" icon={Zap} iconColor="bg-[#5856d6]" />
 	</ListGroup>
 
 	{#if data.user.role === 'admin'}
