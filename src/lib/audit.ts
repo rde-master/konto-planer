@@ -1,6 +1,7 @@
 import { formatEuro } from './money.js';
 import { ACCOUNT_COLORS } from './colors.js';
 import { KIND_LABELS, PAYMENT_METHOD_LABELS } from './recurring.js';
+import { CUTOFF_MODE_LABELS } from './minimum.js';
 
 // Shared (client-safe) vocabulary of the audit log: entity types, actions and German labels.
 
@@ -138,7 +139,10 @@ const FIELD_LABELS: Record<string, string> = {
 	dueDate: 'Fälligkeit',
 	dueCreated: 'Neu gebucht',
 	dueUpdated: 'Angepasst',
-	dueRemoved: 'Entfernt'
+	dueRemoved: 'Entfernt',
+	cutoffMode: 'Stichtag',
+	cutoffItem: 'Stichtag-Eingang',
+	cutoffDate: 'Stichtag-Datum'
 };
 
 export function fieldLabel(field: string): string {
@@ -150,6 +154,7 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
 	type: { giro: 'Girokonto', sparbuch: 'Sparbuch' },
 	kind: KIND_LABELS,
 	paymentMethod: PAYMENT_METHOD_LABELS,
+	cutoffMode: CUTOFF_MODE_LABELS,
 	color: Object.fromEntries(Object.entries(ACCOUNT_COLORS).map(([k, v]) => [k, v.label])),
 	reason: {
 		locked: 'Anmeldung war gesperrt',

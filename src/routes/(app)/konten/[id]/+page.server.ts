@@ -1,6 +1,13 @@
 import { BookingError, adjustBalance, balanceOf, countBookings } from '#lib/server/bookings.js';
 import { validateAdjustment } from '#lib/server/booking-rules.js';
 import { todayBerlin } from '#lib/dates.js';
+import {
+	CutoffError,
+	cutoffCandidates,
+	plansFor,
+	setCutoff,
+	validateCutoff
+} from '#lib/server/minimum.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '#lib/server/guards.js';
 import {
@@ -23,13 +30,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const account = await getAccountFor(user, params.id);
 	if (!account) error(404, 'Konto nicht gefunden.');
 	const isAdmin = user.role === 'admin';
+	const balance = await balanceOf(account);
 	return {
 		account,
 		isAdmin,
 		access: isAdmin ? await listAccess(account.id) : [],
 		hasData: isAdmin ? await accountHasData(account.id) : true,
 		bookingCount: await countBookings(account.id),
-		balance: await balanceOf(account),
+		balance,
+		plan:
+			(await plansFor(user, [account], new Map([[account.id, balance]]))).get(account.id) ?? null,
 		today: todayBerlin()
 	};
 };
@@ -86,6 +96,37 @@ export const actions: Actions = {
 				});
 			throw e;
 		}
+	},
+
+	/** Cut-off day of the minimum balance ("Stichtag"). */
+	cutoff: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const account = await getAccountFor(user, params.id);
+		if (!account) error(404, 'Konto nicht gefunden.');
+		const data = await request.formData();
+		const input = {
+			mode: formString(data, 'mode'),
+			recurringId: formString(data, 'recurringId'),
+			date: formString(data, 'date')
+		};
+		const candidates = await cutoffCandidates(user, account.id);
+		const { values, errors } = validateCutoff(input, {
+			candidateIds: new Set(candidates.map((c) => c.id)),
+			today: todayBerlin()
+		});
+		if (!values) return fail(400, { action: 'cutoff' as const, input, errors });
+		try {
+			await setCutoff(user, account.id, values);
+		} catch (e) {
+			if (e instanceof CutoffError)
+				return fail(400, {
+					action: 'cutoff' as const,
+					input,
+					errors: fieldError('mode', e.message)
+				});
+			throw e;
+		}
+		return { action: 'cutoff' as const, success: true };
 	},
 
 	access: async ({ request, locals, params }) => {

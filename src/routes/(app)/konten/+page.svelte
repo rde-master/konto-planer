@@ -108,6 +108,9 @@
 									<span class="block truncate text-[17px]">{account.name}</span>
 									<span class="block truncate text-[13px] text-label-2">
 										{[
+											account.available !== null
+												? `verfügbar ${formatEuro(account.available)}`
+												: null,
 											account.iban ? shortIban(account.iban) : null,
 											account.level === 'view' ? 'Nur ansehen' : null
 										]

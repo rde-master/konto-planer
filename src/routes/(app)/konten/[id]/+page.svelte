@@ -12,6 +12,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import AccountFields from '#lib/components/AccountFields.svelte';
 	import FormField from '#lib/components/FormField.svelte';
+	import { CUTOFF_MODE_LABELS, CUTOFF_MODES } from '#lib/minimum.js';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { formatIban } from '#lib/iban.js';
@@ -32,6 +33,31 @@
 	let adjustKey = $state(0);
 	let adjustValues = $state({ actual: '', date: '' });
 	let adjustErrors: Partial<Record<string, string>> | undefined = $state();
+
+	let cutoffOpen = $state(false);
+	let cutoffPending = $state(false);
+	let cutoffMode = $state('salary');
+	let cutoffKey = $state(0);
+	const cutoffErrors = $derived(
+		form?.action === 'cutoff' && 'errors' in form ? form.errors : undefined
+	);
+
+	function chooseMode(value: string) {
+		cutoffMode = value;
+	}
+
+	function openCutoff() {
+		cutoffMode = account.cutoffMode;
+		cutoffKey++;
+		cutoffOpen = true;
+	}
+
+	const cutoffText = $derived.by(() => {
+		const cut = data.plan?.cutoff;
+		if (!cut) return '';
+		if (cut.mode === 'salary') return `${cut.itemName ?? 'Gehalt'} · ${formatDay(cut.date)}`;
+		return `${CUTOFF_MODE_LABELS[cut.mode]} · ${formatDay(cut.date)}`;
+	});
 
 	function openAdjust() {
 		adjustValues = { actual: '', date: data.today };
@@ -55,7 +81,8 @@
 			update: 'Änderungen gesichert.',
 			access: 'Zugriffe gesichert.',
 			archive: 'Konto archiviert. Es ist jetzt schreibgeschützt.',
-			restore: 'Konto wiederhergestellt.'
+			restore: 'Konto wiederhergestellt.',
+			cutoff: 'Stichtag gesichert.'
 		}[form.action];
 	});
 
@@ -107,6 +134,114 @@
 			</p>
 		</div>
 	</section>
+
+	{#if data.plan}
+		{@const p = data.plan.plan}
+		{@const cut = data.plan.cutoff}
+		{#if p.exceedsOverdraft}
+			<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
+				<p class="text-[17px] font-semibold">
+					{account.overdraftLimit ? 'Der Dispo reicht nicht' : 'Das Konto rutscht ins Minus'}
+				</p>
+				<p class="mt-1 text-[15px]">
+					Am {formatDay(p.lowest!.date)} fällt der Stand auf {formatEuro(
+						p.lowest!.balance
+					)}{account.overdraftLimit
+						? `, ${formatEuro(-p.lowest!.balance - account.overdraftLimit)} über dem Dispo von ${formatEuro(account.overdraftLimit)}`
+						: ''}. Zahle vorher {formatEuro(-p.lowest!.balance - account.overdraftLimit)} ein.
+				</p>
+			</div>
+		{:else if p.goesNegative}
+			<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+				Bis zum Stichtag rutscht das Konto ins Minus: am {formatDay(p.lowest!.date)} auf {formatEuro(
+					p.lowest!.balance
+				)}. Der Dispo reicht dafür.
+			</p>
+		{/if}
+		{#if p.overdraftInUse}
+			<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+				Du nutzt den Dispo: {formatEuro(-data.balance)}{account.overdraftLimit
+					? ` von ${formatEuro(account.overdraftLimit)}`
+					: ' – für das Konto ist kein Dispo eingetragen'}.
+			</p>
+		{/if}
+
+		<section class="mb-8" aria-label="Bis zum Stichtag">
+			<div class="rounded-t-[var(--radius-row)] bg-card px-4 pt-4 pb-3">
+				<p class="text-[13px] text-label-2">Verfügbar bis {formatDay(cut.date)}</p>
+				<p
+					class={['text-[28px] font-bold tabular', p.available < 0 ? 'text-danger' : 'text-income']}
+					aria-label="Verfügbar"
+				>
+					{formatEuro(p.available)}
+				</p>
+			</div>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-b-[var(--radius-row)] border-t-[0.5px] border-separator bg-card"
+			>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1 text-[17px]">Mindestbestand</span>
+					<span class="text-label-2 tabular" aria-label="Mindestbestand">
+						{formatEuro(p.minimum)}
+					</span>
+				</li>
+				<li>
+					<svelte:element
+						this={canEdit ? 'button' : 'div'}
+						type={canEdit ? 'button' : undefined}
+						onclick={canEdit ? openCutoff : undefined}
+						role={canEdit ? undefined : 'group'}
+						class="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left active:bg-fill"
+					>
+						<span class="flex-1 text-[17px]">Stichtag</span>
+						<span class="min-w-0 truncate text-right text-label-2">{cutoffText}</span>
+						{#if canEdit}<ChevronRight
+								class="size-5 shrink-0 text-label-3"
+								strokeWidth={2.5}
+							/>{/if}
+					</svelte:element>
+				</li>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				{#if cut.fallback === 'no_salary'}
+					Kein Gehaltseingang gefunden – gerechnet wird bis Monatsende. Markiere eine Einnahme als
+					Gehalt oder wähle einen Eingang als Stichtag.
+				{:else if cut.fallback === 'date_passed'}
+					Das feste Datum ist vorbei – gerechnet wird bis Monatsende.
+				{:else}
+					So viel muss heute auf dem Konto sein, damit es bis zum Stichtag nicht ins Minus geht. Der
+					Dispo zählt nie dazu.
+				{/if}
+			</p>
+		</section>
+
+		{#if p.steps.length}
+			<section class="mb-8" aria-label="Bis zum Stichtag fällig">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Bis zum Stichtag</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each p.steps as step, i (i)}
+						{@const low =
+							p.lowest && step.date === p.lowest.date && step.balance === p.lowest.balance}
+						<li class="flex min-h-14 items-center gap-3 px-4 py-2">
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[17px]">{step.label}</span>
+								<span class="block text-[13px] text-label-2">
+									{formatDay(step.date)} · danach {formatEuro(step.balance)}{low
+										? ' · tiefster Stand'
+										: ''}
+								</span>
+							</span>
+							<span class={['shrink-0 text-[17px] tabular', step.amount > 0 && 'text-income']}>
+								{step.amount > 0 ? '+' : ''}{formatEuro(step.amount)}
+							</span>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+	{/if}
 
 	<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
 		<li>
@@ -305,6 +440,68 @@
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">
 				Berechnet sind heute {formatEuro(data.balance)}. Die Differenz zum tatsächlichen Stand am
 				gewählten Tag wird als Anpassung gebucht; der nächste Import gleicht sie ab.
+			</p>
+		</form>
+	</Sheet>
+{/if}
+
+{#if canEdit && data.plan}
+	<Sheet
+		bind:open={cutoffOpen}
+		title="Stichtag"
+		confirmLabel="Sichern"
+		formId="cutoff-form"
+		confirmDisabled={cutoffPending}
+	>
+		<form
+			id="cutoff-form"
+			method="POST"
+			action="?/cutoff"
+			use:enhance={() => {
+				cutoffPending = true;
+				return async ({ result, update }) => {
+					cutoffPending = false;
+					if (result.type === 'success') cutoffOpen = false;
+					await update({ reset: false });
+				};
+			}}
+		>
+			{#key cutoffKey}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<SelectField
+						label="Rechnen bis"
+						name="mode"
+						options={CUTOFF_MODES.map((m) => ({ value: m, label: CUTOFF_MODE_LABELS[m] }))}
+						value={cutoffMode}
+						error={cutoffErrors?.mode}
+						onchange={chooseMode}
+					/>
+					{#if cutoffMode === 'salary'}
+						<SelectField
+							label="Eingang"
+							name="recurringId"
+							options={[{ value: '', label: 'Nächstes Gehalt' }, ...data.plan.candidates]}
+							value={account.cutoffRecurringId ?? ''}
+							error={cutoffErrors?.recurringId}
+						/>
+					{:else if cutoffMode === 'date'}
+						<FormField
+							label="Datum"
+							name="date"
+							type="date"
+							value={account.cutoffDate ?? ''}
+							required
+							error={cutoffErrors?.date}
+						/>
+					{/if}
+				</ul>
+			{/key}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Bis zu diesem Tag (einschließlich) muss das Geld reichen. „Nächstes Gehalt“ nimmt die
+				nächste als Gehalt markierte Einnahme; auch eine Umbuchung auf dieses Konto kann Stichtag
+				sein.
 			</p>
 		</form>
 	</Sheet>
