@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.12.0] – Geplante Betragsänderung
+
+### Neu
+
+- „Änderung planen“ auf der Detailseite: Das Blatt zeigt bisherigen und neuen Betrag, die Differenz in Euro und Prozent und bei nicht monatlichen Posten die Wirkung pro Monat
+- In der Dauerposten-Liste steht an jedem Eintrag mit geplanter Änderung der neue Betrag ab dem Datum
+- Neuer Abschnitt „Geplante Änderungen“ mit allen künftigen Betragsänderungen, nach Datum sortiert
+- Die Monatssummen je Konto zeigen zusätzlich, wie sie sich ab jeder geplanten Änderung verändern
+
 ## [0.11.0] – Vertragsdetails
 
 ### Neu

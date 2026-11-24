@@ -17,8 +17,11 @@ async function login(page: Page, username: string, password: string) {
 	await expect(page).toHaveURL('/');
 }
 
+/** The item in its account group (not in the "Geplante Änderungen" overview). */
 function itemLink(page: Page, name: string) {
-	return page.getByRole('link', { name: new RegExp(name) });
+	return page
+		.locator('section:not([aria-label="Geplante Änderungen"])')
+		.getByRole('link', { name: new RegExp(name) });
 }
 
 async function openCreateSheet(page: Page) {
@@ -113,8 +116,8 @@ test('due dates clamp to month end; amount history with a future change', async 
 	await expect(upcoming.getByRole('listitem').nth(1)).toContainText('28.02.2030');
 	await expect(upcoming.getByRole('listitem').nth(3)).toContainText('30.04.2030');
 
-	await page.getByRole('button', { name: 'Betrag ändern' }).click();
-	const sheet = page.getByRole('dialog', { name: 'Betrag ändern' });
+	await page.getByRole('button', { name: 'Änderung planen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Änderung planen' });
 	await sheet.getByLabel('Betrag in €').fill('14,99');
 	await sheet.getByLabel('Gültig ab').fill('2030-03-01');
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
@@ -130,7 +133,7 @@ test('due dates clamp to month end; amount history with a future change', async 
 	await expect(page.getByTestId('current-amount')).toHaveText(/−12,99\s€/);
 
 	// The same date twice is refused.
-	await page.getByRole('button', { name: 'Betrag ändern' }).click();
+	await page.getByRole('button', { name: 'Änderung planen' }).click();
 	await sheet.getByLabel('Betrag in €').fill('15');
 	await sheet.getByLabel('Gültig ab').fill('2030-03-01');
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
@@ -150,7 +153,7 @@ test('lena can only view; edits are refused on the server', async ({ page }) => 
 	await expect(page.getByRole('button', { name: 'Dauerposten anlegen' })).toHaveCount(0);
 	await itemLink(page, 'Streaming').click();
 	await expect(page.getByText('Du kannst diesen Dauerposten nur ansehen.')).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Betrag ändern' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Änderung planen' })).toHaveCount(0);
 	await expect(page.getByText('Archivieren')).toHaveCount(0);
 	const res = await page.request.post(`${page.url()}?/amountAdd`, {
 		form: { amount: '1', validFrom: '2031-01-01' },
