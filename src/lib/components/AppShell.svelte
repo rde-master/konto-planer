@@ -1,7 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import { SECTIONS, TABS, isActive, isTabActive, resolvePath } from '#lib/navigation.js';
+	import {
+		APP_VERSION,
+		SECTIONS,
+		TABS,
+		isActive,
+		isTabActive,
+		resolvePath
+	} from '#lib/navigation.js';
 	import Plus from '@lucide/svelte/icons/plus';
 	import QuickEntry from './QuickEntry.svelte';
 	import type { QuickTemplate } from './QuickEntry.svelte';
@@ -28,7 +35,7 @@
 			<img src="/favicon.svg" alt="" class="size-8 rounded-[0.55rem]" />
 			<span class="text-[17px] font-semibold">Konto Planer</span>
 		</div>
-		<ul class="flex flex-col gap-0.5">
+		<ul class="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
 			{#each SECTIONS as item (item.path)}
 				{@const active = isActive(item.path, page.url.pathname)}
 				<li>
@@ -47,8 +54,9 @@
 				</li>
 			{/each}
 		</ul>
+		<div class="mt-auto"></div>
 		{#if quick?.bookingAccounts.length}
-			<div class="mt-auto px-1 pb-1">
+			<div class="px-1 pb-1">
 				<button
 					type="button"
 					onclick={() => quickEntry?.start()}
@@ -59,6 +67,7 @@
 				</button>
 			</div>
 		{/if}
+		<p class="px-3 pt-2 text-[12px] text-label-2" aria-label="Version">Version {APP_VERSION}</p>
 	</nav>
 
 	<main class="min-w-0 flex-1 pb-48 md:pb-10">

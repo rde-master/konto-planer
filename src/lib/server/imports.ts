@@ -35,6 +35,8 @@ import {
 	type Suggestion
 } from '../import-match.js';
 import { syncDues } from './due.js';
+import { activeRules } from './rules.js';
+import { categoryByRules } from '../rules.js';
 import { formatIban } from '../iban.js';
 import { addDays } from '../recurring.js';
 
@@ -125,7 +127,7 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 	const dates = rows.map((r) => r.bookingDate).sort();
 	const from = addDays(dates[0] ?? '2000-01-01', -CONTEXT_DAYS);
 	const to = addDays(dates.at(-1) ?? '2000-01-01', CONTEXT_DAYS);
-	const [stored, items, ownAccounts, near, others, mapping, cats] = await Promise.all([
+	const [stored, items, ownAccounts, near, others, mapping, cats, rules] = await Promise.all([
 		rows.length
 			? executor
 					.select({ checksum: bookings.checksum })
@@ -185,7 +187,8 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 				)
 			),
 		executor.select().from(counterpartyCategories),
-		executor.select({ id: categories.id, name: categories.name }).from(categories)
+		executor.select({ id: categories.id, name: categories.name }).from(categories),
+		activeRules(executor)
 	]);
 	const itemIds = items.map((i) => i.id);
 	const [amounts, dues] = itemIds.length
@@ -254,13 +257,19 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 	};
 	const byName = new Map(cats.map((c) => [c.name.toLowerCase(), c.id]));
 	const remembered = new Map(mapping.map((m) => [m.key, m.categoryId]));
-	/** Category of a row: recurring item, then remembered for the payee, then the bank's name. */
+	/** Category of a row: recurring item, rules, remembered for the payee, the bank's name. */
 	const categoryOf = (r: AnalyzedRow): string | null => {
 		if (r.recurring) {
 			const own = itemById.get(r.recurring.id)?.categoryId;
 			if (own) return own;
 		}
 		const key = payeeKey(r);
+		const byRule = categoryByRules(rules, {
+			counterparty: r.counterparty,
+			purpose: r.purpose,
+			iban: r.counterpartyIban
+		});
+		if (byRule) return byRule;
 		const rememberedId = key ? remembered.get(key) : undefined;
 		if (rememberedId) return rememberedId;
 		return r.bankCategory ? (byName.get(r.bankCategory.toLowerCase()) ?? null) : null;

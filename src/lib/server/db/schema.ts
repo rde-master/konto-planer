@@ -667,3 +667,28 @@ export const counterpartyCategories = pgTable('counterparty_categories', {
 	categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+export const ruleField = pgEnum('rule_field', ['counterparty', 'purpose', 'iban']);
+export const ruleOperator = pgEnum('rule_operator', ['contains', 'equals', 'starts_with']);
+
+/**
+ * Category rules (global): "Verwendungszweck enthält X → Kategorie Y". The first matching rule
+ * by `position` sets the category of imported bookings without a recurring item.
+ */
+export const categoryRules = pgTable(
+	'category_rules',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		field: ruleField('field').notNull(),
+		operator: ruleOperator('operator').notNull(),
+		value: text('value').notNull(),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		position: integer('position').notNull().default(0),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('category_rules_position_idx').on(t.position)]
+);
+
+export type CategoryRule = typeof categoryRules.$inferSelect;

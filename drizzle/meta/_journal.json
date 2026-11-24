@@ -148,6 +148,13 @@
       "when": 1795554953317,
       "tag": "0020_import_undo",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795555785445,
+      "tag": "0021_category_rules",
+      "breakpoints": true
     }
   ]
 }
