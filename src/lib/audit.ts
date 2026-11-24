@@ -15,6 +15,7 @@ export const ENTITY_TYPES = [
 	'booking',
 	'template',
 	'goal',
+	'import',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -58,6 +59,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	booking: 'Buchung',
 	template: 'Vorlage',
 	goal: 'Sparziel',
+	import: 'Import',
 	settings: 'Einstellungen'
 };
 
@@ -170,7 +172,13 @@ const FIELD_LABELS: Record<string, string> = {
 	loanRate: 'Darlehenszins',
 	loanStart: 'Darlehensbeginn',
 	loanTermEnd: 'Laufzeitende',
-	date: 'Datum'
+	date: 'Datum',
+	importNew: 'Neue Buchungen',
+	importMatched: 'Ersetzte Buchungen',
+	importSkipped: 'Übersprungen',
+	adjustmentsRemoved: 'Aufgelöste Anpassungen',
+	bankBalance: 'Saldo laut Bank',
+	appBalanceAfter: 'Stand laut App'
 };
 
 export function fieldLabel(field: string): string {
@@ -208,7 +216,9 @@ const CENT_FIELDS = new Set([
 	'balanceAfter',
 	'targetAmount',
 	'allocated',
-	'loanPrincipal'
+	'loanPrincipal',
+	'bankBalance',
+	'appBalanceAfter'
 ]);
 /** Values that mean the same in every field (access levels). */
 const COMMON_VALUES: Record<string, string> = { view: 'Sehen', edit: 'Bearbeiten' };

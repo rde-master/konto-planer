@@ -9,6 +9,14 @@ import ChartPie from '@lucide/svelte/icons/chart-pie';
 import Settings from '@lucide/svelte/icons/settings';
 import Ellipsis from '@lucide/svelte/icons/ellipsis';
 
+/**
+ * `resolve()` for a value of the whole `Path` union. TypeScript cannot check a union of more
+ * than 25 paths against the overloads of `resolve()`, so the check happens on `Path` instead.
+ */
+export function resolvePath(path: Path): string {
+	return resolve(path as 'konten');
+}
+
 /** `path` is a typed app path without leading slash ('' = start page); use `resolve(path)` for links. */
 export type NavItem = { path: Path; label: string; icon: Component };
 
@@ -41,7 +49,7 @@ const MORE_PATHS: Path[] = [
 ];
 
 export function isActive(path: Path, pathname: string): boolean {
-	const href = resolve(path);
+	const href = resolvePath(path);
 	if (path === '') return pathname === href;
 	return pathname === href || pathname.startsWith(href + '/');
 }

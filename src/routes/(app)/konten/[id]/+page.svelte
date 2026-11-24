@@ -475,6 +475,17 @@
 					Kontostand korrigieren
 				</button>
 			</li>
+			{#if account.type === 'giro'}
+				<li class="border-t-[0.5px] border-separator">
+					<a
+						href={resolve(`konten/${account.id}/import`)}
+						class="flex min-h-11 items-center gap-3 px-4 py-2.5 text-[17px] text-accent active:bg-fill"
+					>
+						<span class="flex-1">CSV importieren</span>
+						<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+					</a>
+				</li>
+			{/if}
 		{/if}
 	</ul>
 

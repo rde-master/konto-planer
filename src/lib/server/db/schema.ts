@@ -360,6 +360,14 @@ export const bookings = pgTable(
 		recurringId: uuid('recurring_id').references(() => recurringItems.id, {
 			onDelete: 'restrict'
 		}),
+		/** Import that brought the booking (bank export). */
+		importId: uuid('import_id').references((): AnyPgColumn => imports.id, {
+			onDelete: 'set null'
+		}),
+		/** Category of the bank export (a hint only). */
+		bankCategory: text('bank_category'),
+		creditorId: text('creditor_id'),
+		mandateReference: text('mandate_reference'),
 		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -368,6 +376,8 @@ export const bookings = pgTable(
 		index('bookings_account_date_idx').on(t.accountId, t.bookingDate),
 		index('bookings_category_idx').on(t.categoryId),
 		index('bookings_recurring_idx').on(t.recurringId),
+		index('bookings_import_idx').on(t.importId),
+		index('bookings_checksum_idx').on(t.accountId, t.checksum),
 		check('bookings_amount_not_zero', sql`${t.amount} <> 0`)
 	]
 );
@@ -600,3 +610,40 @@ export const loanExtraPayments = pgTable(
 );
 
 export type LoanExtraPayment = typeof loanExtraPayments.$inferSelect;
+
+export const importStatus = pgEnum('import_status', ['draft', 'done']);
+
+/**
+ * Import of a bank export (CSV) into a giro account. A draft holds the parsed rows for the
+ * preview; once taken over, `rows` is cleared and the counts stay.
+ */
+export const imports = pgTable(
+	'imports',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+		fileName: text('file_name').notNull(),
+		status: importStatus('status').notNull().default('draft'),
+		/** Detected encoding, date and number format (shown in the preview). */
+		encoding: text('encoding').notNull(),
+		dateFormat: text('date_format').notNull(),
+		numberFormat: text('number_format').notNull(),
+		rows: jsonb('rows'),
+		newCount: integer('new_count').notNull().default(0),
+		matchedCount: integer('matched_count').notNull().default(0),
+		skippedCount: integer('skipped_count').notNull().default(0),
+		adjustmentsRemoved: integer('adjustments_removed').notNull().default(0),
+		/** Balance check: "Saldo nach Buchung" of the latest row and the computed balance. */
+		checkDate: date('check_date', { mode: 'string' }),
+		bankBalance: bigint('bank_balance', { mode: 'number' }),
+		appBalance: bigint('app_balance', { mode: 'number' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		completedAt: timestamp('completed_at', { withTimezone: true })
+	},
+	(t) => [index('imports_account_idx').on(t.accountId)]
+);
+
+export type Import = typeof imports.$inferSelect;

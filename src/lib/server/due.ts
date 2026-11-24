@@ -84,7 +84,8 @@ async function refreshBookings(tx: Tx, item: RecurringItem, rows: DueItem[]) {
 			[row.targetBookingId, item.targetAccountId, row.amount]
 		] as const) {
 			const b = id ? current.get(id) : undefined;
-			if (!b || !accountId) continue;
+			// A side already confirmed by an import is left alone.
+			if (!b || !accountId || b.source !== 'provisional') continue;
 			const wanted = { ...fields, accountId, amount, bookingDate: row.bookingDate };
 			const differs = (Object.keys(wanted) as (keyof typeof wanted)[]).some(
 				(k) => b[k] !== wanted[k]

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { Path } from '$app/types';
-	import { resolve } from '$app/paths';
+	import { resolvePath } from '#lib/navigation.js';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 
 	let {
@@ -44,8 +44,9 @@
 	<div class="mx-auto grid h-13 max-w-3xl grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8">
 		<span class="min-w-0">
 			{#if back}
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
 				<a
-					href={resolve(back.path)}
+					href={resolvePath(back.path)}
 					class="-ml-2 flex items-center py-2 text-[17px] text-accent active:opacity-60"
 				>
 					<ChevronLeft class="size-7 shrink-0" strokeWidth={2.2} />
