@@ -19,6 +19,7 @@
 	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
 	import { formatIban } from '#lib/iban.js';
 	import { formatDay } from '#lib/dates.js';
+	import { DUE_STATUS_LABELS } from '#lib/due.js';
 	import {
 		cancelSoon,
 		contractStatus,
@@ -29,7 +30,6 @@
 	import {
 		KIND_LABELS,
 		PAYMENT_METHOD_LABELS,
-		amountOn,
 		intervalLabel,
 		monthlyEquivalent,
 		pauseLabel,
@@ -116,7 +116,8 @@
 			attachmentAdd: 'PDF hinzugefügt.',
 			attachmentDelete: 'PDF gelöscht.',
 			archive: 'Dauerposten archiviert.',
-			restore: 'Dauerposten wiederhergestellt.'
+			restore: 'Dauerposten wiederhergestellt.',
+			restoreDue: 'Fälligkeit wieder vorläufig gebucht.'
 		}[form.action];
 	});
 
@@ -191,11 +192,16 @@
 	</section>
 
 	{#if data.upcoming.length}
-		<ListGroup header="Nächste Fälligkeiten" footer="Noch ohne Verschiebung auf Bankarbeitstage.">
-			{#each data.upcoming as day (day)}
+		<ListGroup
+			header="Nächste Fälligkeiten"
+			footer="Fällt ein Termin auf ein Wochenende oder einen Bankfeiertag, gilt der nächste Bankarbeitstag."
+		>
+			{#each data.upcoming as due (due.dueDate)}
 				<ListRow
-					label={formatDay(day)}
-					value={`${sign}${formatEuro(amountOn(item.amounts, day) ?? 0)}`}
+					label={due.bookingDate === due.dueDate
+						? formatDay(due.bookingDate)
+						: `${formatDay(due.bookingDate)} (statt ${formatDay(due.dueDate)})`}
+					value={`${sign}${formatEuro(due.amount)}`}
 				/>
 			{/each}
 		</ListGroup>
@@ -205,6 +211,51 @@
 				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if data.recent.length}
+		<section class="mb-8" aria-label="Letzte Fälligkeiten">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Letzte Fälligkeiten</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.recent as due (due.id)}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2">
+						<span class="min-w-0 flex-1">
+							{#if due.bookingId}
+								<a
+									href={resolve(`buchungen/${due.bookingId}`)}
+									class="block text-[17px] text-accent"
+								>
+									{formatDay(due.bookingDate)}
+								</a>
+							{:else}
+								<span class="block text-[17px]">{formatDay(due.bookingDate)}</span>
+							{/if}
+							<span class="block text-[13px] text-label-2">{DUE_STATUS_LABELS[due.status]}</span>
+						</span>
+						{#if due.status === 'skipped' && item.canManage}
+							<form method="POST" action="?/restoreDue" use:enhance>
+								<input type="hidden" name="dueId" value={due.id} />
+								<button type="submit" class="text-[15px] text-accent">Wiederherstellen</button>
+							</form>
+						{:else}
+							<span
+								class={[
+									'shrink-0 text-[17px] tabular',
+									due.status === 'skipped' && 'text-label-3 line-through'
+								]}
+							>
+								{sign}{formatEuro(due.amount)}
+							</span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Am Fälligkeitstag vorläufig gebucht; der Import bestätigt sie später.
+			</p>
+		</section>
 	{/if}
 
 	{#if paused || item.canEdit}

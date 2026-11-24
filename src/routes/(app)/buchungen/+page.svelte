@@ -48,7 +48,13 @@
 				? `${b.category.parentName} › ${b.category.name}`
 				: b.category.name
 			: 'Ohne Kategorie';
-		return [category, data.accountId ? null : b.account.name].filter(Boolean).join(' · ');
+		return [
+			b.source === 'provisional' ? 'vorläufig' : null,
+			category,
+			data.accountId ? null : b.account.name
+		]
+			.filter(Boolean)
+			.join(' · ');
 	}
 
 	const emptyValues = () => ({

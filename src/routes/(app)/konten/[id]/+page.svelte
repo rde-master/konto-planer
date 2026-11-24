@@ -119,6 +119,15 @@
 				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 			</a>
 		</li>
+		<li class="border-t-[0.5px] border-separator">
+			<a
+				href={resolve(`offene-zahlungen?konto=${account.id}`)}
+				class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+			>
+				<span class="flex-1 text-[17px]">Offene Zahlungen</span>
+				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+			</a>
+		</li>
 		{#if canEdit}
 			<li class="border-t-[0.5px] border-separator">
 				<button

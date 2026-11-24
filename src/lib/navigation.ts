@@ -29,7 +29,13 @@ export const TABS: NavItem[] = [
 ];
 
 /** Sections reachable through "Mehr" on phones. */
-const MORE_PATHS: Path[] = ['mehr', 'auswertungen', 'einstellungen'];
+const MORE_PATHS: Path[] = [
+	'mehr',
+	'offene-zahlungen',
+	'kategorien',
+	'auswertungen',
+	'einstellungen'
+];
 
 export function isActive(path: Path, pathname: string): boolean {
 	const href = resolve(path);

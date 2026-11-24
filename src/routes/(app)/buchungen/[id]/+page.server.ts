@@ -11,7 +11,9 @@ import { readBookingForm } from '#lib/server/booking-form.js';
 import { TemplateError, createTemplate } from '#lib/server/templates.js';
 import { validateTemplate } from '#lib/server/template-rules.js';
 import { readTemplateForm, templateFormContext } from '#lib/server/template-form.js';
-import { fieldError } from '#lib/server/validation.js';
+import { fieldError, formString } from '#lib/server/validation.js';
+import { DueError, changeDue, dueForBooking, skipDue } from '#lib/server/due.js';
+import { parseEuro } from '#lib/money.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -22,8 +24,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const accounts = options.bookingAccounts.some((a) => a.value === booking.accountId)
 		? options.bookingAccounts
 		: [{ value: booking.accountId, label: booking.account.name }, ...options.bookingAccounts];
+	const due =
+		booking.source === 'provisional' ? await dueForBooking(locals.user!, booking.id) : null;
 	return {
 		booking,
+		due,
 		accounts,
 		categoryGroups: options.categoryGroups,
 		/** Accounts a template may name: only those the user can book on. */
@@ -70,6 +75,49 @@ export const actions: Actions = {
 			throw e;
 		}
 		return { action: 'saveTemplate', template: values.name };
+	},
+
+	/** Provisional booking: "Verschieben" and "Betrag anpassen" change the due item. */
+	changeDue: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const due = await dueForBooking(user, params.id);
+		if (!due) error(404, 'Buchung nicht gefunden.');
+		const data = await request.formData();
+		const change: { bookingDate?: string; amount?: number } = {};
+		if (data.has('bookingDate')) change.bookingDate = formString(data, 'bookingDate');
+		if (data.has('amount')) {
+			const cents = parseEuro(formString(data, 'amount'));
+			if (cents === null || cents <= 0)
+				return fail(400, {
+					action: 'changeDue',
+					errors: fieldError('amount', 'Bitte einen Betrag größer 0 eingeben, z. B. 87,40.')
+				});
+			change.amount = cents;
+		}
+		try {
+			await changeDue(user, due.id, change);
+		} catch (e) {
+			if (e instanceof DueError)
+				return fail(400, {
+					action: 'changeDue',
+					errors: fieldError(change.amount ? 'amount' : 'bookingDate', e.message)
+				});
+			throw e;
+		}
+		return { action: 'changeDue', success: true };
+	},
+
+	skipDue: async ({ locals, params }) => {
+		const user = locals.user!;
+		const due = await dueForBooking(user, params.id);
+		if (!due) error(404, 'Buchung nicht gefunden.');
+		try {
+			await skipDue(user, due.id);
+		} catch (e) {
+			if (e instanceof DueError) return fail(400, { action: 'skipDue', message: e.message });
+			throw e;
+		}
+		redirect(303, `/dauerposten/${due.recurringId}`);
 	},
 
 	delete: async ({ locals, params }) => {

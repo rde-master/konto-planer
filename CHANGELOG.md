@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.17.0] – Fälligkeiten mit vorläufigem Buchen und Bankkalender
+
+### Neu
+
+- Am Fälligkeitstag bucht die App jeden Dauerposten automatisch vorläufig, damit der Kontostand stimmt – Ausgaben, Einnahmen wie das Gehalt und Umbuchungen (auf beiden Konten)
+- Fälligkeiten am Wochenende oder an einem Bankfeiertag (TARGET-Kalender) rutschen auf den nächsten Bankarbeitstag
+- Nach dem Update werden alle Fälligkeiten seit dem Startsaldo-Datum des Kontos nachgebucht
+- Vorläufige Buchungen stehen in „Buchungen“ mit dem Hinweis „vorläufig“ und lassen sich verschieben, im Betrag anpassen oder zurücknehmen
+- Am Dauerposten: letzte Fälligkeiten mit Status (zurückgenommene lassen sich wiederherstellen) und nächste Fälligkeiten mit Bankarbeitstag
+- Neue Seite „Offene Zahlungen“ (unter „Mehr“ und auf jeder Kontoseite): alle kommenden Fälligkeiten der nächsten 30 Tage, 3 Monate oder des nächsten Jahres, filterbar nach Konto
+- Ändert man einen Dauerposten (Betrag, Termin, Pause, Ende), passen sich seine vorläufigen Buchungen an; von Hand geänderte bleiben, wie sie sind
+- Ein Dauerposten mit nur vorläufigen Buchungen lässt sich weiterhin löschen; die vorläufigen Buchungen verschwinden mit
+- Das Protokoll zeigt das automatische Buchen sowie jedes Zurücknehmen, Wiederherstellen und Ändern
+
 ## [0.16.0] – Kontostand und Anpassungsbuchung
 
 ### Neu

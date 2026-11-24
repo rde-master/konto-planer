@@ -55,10 +55,10 @@ test('quick entry from any page books for today', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await page.goto('/buchungen');
+	// Besides due items of recurring items, booked provisionally today.
 	const todayGroup = page.getByRole('region', { name: 'Heute' });
-	await expect(todayGroup.getByRole('link')).toHaveCount(2);
-	await expect(todayGroup).toContainText(/−12,50\s€/);
-	await expect(todayGroup).toContainText(/\+20,00\s€/);
+	await expect(todayGroup.getByRole('link').filter({ hasText: /−12,50\s€/ })).toHaveCount(1);
+	await expect(todayGroup.getByRole('link').filter({ hasText: /\+20,00\s€/ })).toHaveCount(1);
 });
 
 test('the full form takes date, payee and note', async ({ page }) => {

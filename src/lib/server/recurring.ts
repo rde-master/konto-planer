@@ -17,6 +17,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor, type AccountWithLevel } from './accounts.js';
 import { categoryInfo } from './categories.js';
+import { deleteDuesOf, syncDues } from './due.js';
 import type { RecurringValues } from './recurring-rules.js';
 import { addDays, amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
@@ -250,14 +251,14 @@ export async function transferTargets(): Promise<{ id: string; name: string }[]>
 }
 
 /**
- * Whether bookings reference the item. Items with bookings are archived instead of deleted.
- * Extend when bookings arrive (0.14).
+ * Whether real bookings reference the item; such items are archived instead of deleted.
+ * Provisional bookings are derived and deleted with the item.
  */
 export async function recurringHasData(recurringId: string): Promise<boolean> {
 	const [row] = await db
 		.select({ id: bookings.id })
 		.from(bookings)
-		.where(eq(bookings.recurringId, recurringId))
+		.where(and(eq(bookings.recurringId, recurringId), ne(bookings.source, 'provisional')))
 		.limit(1);
 	return row !== undefined;
 }
@@ -407,7 +408,7 @@ export async function createRecurring(
 	const values = { ...input, endDate: endDateAfterSave(input.endDate, contract, null) };
 	await requireEditableAccount(actor, values);
 	await requireTarget(db, values);
-	return db.transaction(async (tx) => {
+	const id = await db.transaction(async (tx) => {
 		const [created] = await tx
 			.insert(recurringItems)
 			.values({ ...values, createdBy: actor.id })
@@ -426,6 +427,8 @@ export async function createRecurring(
 		});
 		return created.id;
 	});
+	await syncDues([id]);
+	return id;
 }
 
 export async function updateRecurring(
@@ -466,6 +469,7 @@ export async function updateRecurring(
 			});
 		}
 	});
+	await syncDues([id]);
 }
 
 export async function setRecurringArchived(
@@ -489,6 +493,7 @@ export async function setRecurringArchived(
 			entityLabel: item.name
 		});
 	});
+	await syncDues([id]);
 }
 
 export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: string) {
@@ -499,6 +504,7 @@ export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: st
 		throw new RecurringError('Der Dauerposten hat Buchungen und kann nur archiviert werden.');
 	await db.transaction(async (tx) => {
 		const before = await auditFields(tx, valuesOf(item), item.contract);
+		await deleteDuesOf(tx, id);
 		await tx.delete(recurringItems).where(eq(recurringItems.id, id));
 		await audit(tx, {
 			actor,
@@ -536,6 +542,7 @@ export async function setPause(
 			after: pause
 		});
 	});
+	await syncDues([id]);
 }
 
 /**
@@ -565,6 +572,7 @@ export async function endPause(actor: NonNullable<Actor> & Viewer, id: string) {
 			after: next.pauseFrom ? next : null
 		});
 	});
+	await syncDues([id]);
 }
 
 export async function addAmount(
@@ -590,6 +598,7 @@ export async function addAmount(
 		if (isUniqueViolation(e)) throw new RecurringError(DATE_TAKEN);
 		throw e;
 	}
+	await syncDues([id]);
 }
 
 export async function updateAmount(
@@ -620,6 +629,7 @@ export async function updateAmount(
 		if (isUniqueViolation(e)) throw new RecurringError(DATE_TAKEN);
 		throw e;
 	}
+	await syncDues([id]);
 }
 
 export async function deleteAmount(
@@ -647,4 +657,5 @@ export async function deleteAmount(
 			after: null
 		});
 	});
+	await syncDues([id]);
 }

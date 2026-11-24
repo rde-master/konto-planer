@@ -35,7 +35,9 @@ export const ACTIONS = [
 	'attachment_delete',
 	'pause',
 	'resume',
-	'adjust'
+	'adjust',
+	'due_sync',
+	'skip'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -69,7 +71,9 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	attachment_delete: 'Anhang gelöscht',
 	pause: 'Pausiert',
 	resume: 'Pause beendet',
-	adjust: 'Kontostand korrigiert'
+	adjust: 'Kontostand korrigiert',
+	due_sync: 'Fälligkeiten vorläufig gebucht',
+	skip: 'Vorläufige Buchung zurückgenommen'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -130,7 +134,11 @@ const FIELD_LABELS: Record<string, string> = {
 	shared: 'Für alle',
 	position: 'Position',
 	balanceBefore: 'Stand vorher',
-	balanceAfter: 'Stand nachher'
+	balanceAfter: 'Stand nachher',
+	dueDate: 'Fälligkeit',
+	dueCreated: 'Neu gebucht',
+	dueUpdated: 'Angepasst',
+	dueRemoved: 'Entfernt'
 };
 
 export function fieldLabel(field: string): string {
