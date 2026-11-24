@@ -409,6 +409,17 @@
 			</ul>
 		</section>
 	{/if}
+	<a
+		href={resolve('geplant')}
+		class="mb-8 flex min-h-11 items-center gap-3 rounded-[var(--radius-row)] bg-card px-4 py-2.5 active:bg-fill"
+	>
+		<span class="flex-1 text-[17px]">Geplante Zahlungen</span>
+		<span class="text-label-2 tabular">{data.plannedCount || ''}</span>
+		<span class="text-label-3" aria-hidden="true">›</span>
+	</a>
+	<p class="-mt-6 mb-8 px-4 text-[13px] text-label-2">
+		Einmalige Ausgaben und Einnahmen wie Urlaub, Anschaffungen oder eine Steuererstattung.
+	</p>
 </Page>
 
 {#if data.accountOptions.length}
@@ -441,6 +452,7 @@
 					categories={data.categoryGroups}
 					contract={formContract}
 					defaultLeadDays={data.defaultLeadDays}
+					withOnce={false}
 					kinds={hasGiro ? ['expense', 'income', 'transfer'] : ['transfer']}
 					withAmount
 				/>

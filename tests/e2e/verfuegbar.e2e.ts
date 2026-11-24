@@ -46,6 +46,22 @@ async function createItem(
 	await expect(sheet).toBeHidden();
 }
 
+async function planPayment(
+	page: Page,
+	item: { name: string; amount: string; date: string; income?: boolean }
+) {
+	await page.goto('/geplant');
+	await page.getByRole('button', { name: 'Zahlung planen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Zahlung planen' });
+	if (item.income) await sheet.getByText('Einnahme', { exact: true }).click();
+	await sheet.getByLabel('Bezeichnung').fill(item.name);
+	await sheet.getByLabel('Betrag in €').fill(item.amount);
+	await sheet.getByLabel('Datum').fill(item.date);
+	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await sheet.getByRole('button', { name: 'Planen' }).click();
+	return sheet;
+}
+
 const available = (page: Page) => page.getByLabel('Verfügbar', { exact: true });
 const minimum = (page: Page) => page.getByLabel('Mindestbestand', { exact: true });
 
@@ -62,12 +78,7 @@ test('minimum balance up to the next salary; warning without overdraft', async (
 
 	await createItem(page, { name: 'Lohn', amount: '2.000', date: addDays(today, 20), income: true });
 	await createItem(page, { name: 'Miete', amount: '700', date: addDays(today, 5) });
-	await createItem(page, {
-		name: 'Versicherung',
-		amount: '500',
-		date: addDays(today, 10),
-		once: true
-	});
+	await planPayment(page, { name: 'Versicherung', amount: '500', date: addDays(today, 10) });
 
 	await openAccount(page);
 	await expect(page.getByText(`Verfügbar bis ${formatDay(salaryDay)}`)).toBeVisible();
@@ -138,4 +149,50 @@ test('the buffer always adds to the minimum balance', async ({ page }) => {
 	await page.goto('/einstellungen/protokoll?bereich=account');
 	await page.getByRole('button').filter({ hasText: ACCOUNT }).first().click();
 	await expect(page.getByRole('dialog', { name: 'Eintrag' })).toContainText('Puffer');
+});
+
+test('one-off payments after the cut-off day are only a hint', async ({ page }) => {
+	await login(page);
+	let sheet = await planPayment(page, {
+		name: 'Urlaub',
+		amount: '1.500',
+		date: addDays(today, -1)
+	});
+	await expect(sheet.getByText('Das Datum darf nicht in der Vergangenheit liegen.')).toBeVisible();
+	await sheet.getByLabel('Datum').fill(addDays(today, 60));
+	await sheet.getByRole('button', { name: 'Planen' }).click();
+	await expect(sheet).toBeHidden();
+	await expect(page.getByRole('status')).toHaveText('„Urlaub“ ist geplant.');
+	sheet = await planPayment(page, {
+		name: 'Steuererstattung',
+		amount: '300',
+		date: addDays(today, 70),
+		income: true
+	});
+	await expect(sheet).toBeHidden();
+	const upcoming = page.getByRole('region', { name: 'Anstehend' });
+	await expect(upcoming.getByRole('link', { name: /Versicherung/ })).toBeVisible();
+	await expect(upcoming.getByRole('link', { name: /Urlaub/ })).toContainText(/−1\.500,00\s€/);
+	await expect(upcoming.getByRole('link', { name: /Steuererstattung/ })).toContainText(
+		/\+300,00\s€/
+	);
+
+	// One-off payments are not listed among the recurring items.
+	await page.goto('/dauerposten');
+	await expect(page.getByRole('link', { name: /^Urlaub / })).toHaveCount(0);
+
+	await openAccount(page);
+	const later = page.getByRole('region', { name: 'Danach geplant' });
+	await expect(later).toContainText('Urlaub');
+	await expect(later).toContainText('Steuererstattung');
+	await expect(minimum(page)).toHaveText(/1\.350,00\s€/);
+
+	await later.getByRole('link', { name: /Urlaub/ }).click();
+	await expect(page.getByRole('link', { name: 'Geplant' })).toBeVisible();
+	await page.getByRole('button', { name: 'Dauerposten löschen' }).click();
+	await page
+		.getByRole('dialog', { name: 'Dauerposten löschen' })
+		.getByRole('button', { name: 'Löschen' })
+		.click();
+	await expect(page).toHaveURL('/geplant');
 });

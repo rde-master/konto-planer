@@ -32,6 +32,7 @@ export const TABS: NavItem[] = [
 const MORE_PATHS: Path[] = [
 	'mehr',
 	'offene-zahlungen',
+	'geplant',
 	'kategorien',
 	'auswertungen',
 	'einstellungen'

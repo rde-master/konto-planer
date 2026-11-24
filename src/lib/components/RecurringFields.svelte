@@ -70,6 +70,7 @@
 		categories,
 		kinds = ['expense', 'income', 'transfer'],
 		withAmount = false,
+		withOnce = true,
 		contract = null,
 		defaultLeadDays
 	}: {
@@ -80,6 +81,8 @@
 		categories: { label: string; options: { value: string; label: string }[] }[];
 		kinds?: RecurringKind[];
 		withAmount?: boolean;
+		/** Offer the interval "einmalig" (new one-off payments are created under „Geplant“). */
+		withOnce?: boolean;
 		/** Contract data; null = not a cancellable contract. */
 		contract?: ContractFormValues | null;
 		defaultLeadDays: number;
@@ -109,7 +112,7 @@
 	const sourceOptions = $derived(transfer ? accounts : accounts.filter((a) => a.giro));
 	const targetOptions = $derived(targets.filter((t) => t.value !== sourceId));
 
-	const intervalOptions = INTERVALS.map((i) => ({
+	const intervalOptions = INTERVALS.filter((i) => withOnce || i !== 'once').map((i) => ({
 		value: i,
 		label:
 			i === 'custom'

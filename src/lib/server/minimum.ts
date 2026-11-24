@@ -25,6 +25,8 @@ export class CutoffError extends Error {}
 
 export type AccountPlan = {
 	cutoff: Cutoff & { itemName: string | null };
+	/** One-off payments in the year after the cut-off day (shown as a hint only). */
+	later: { id: string; name: string; date: string; amount: number }[];
 	plan: MinimumPlan;
 	/** Incomes and transfers into the account that may set the cut-off day. */
 	candidates: { value: string; label: string }[];
@@ -108,7 +110,14 @@ export async function plansFor(
 					label: b.purpose ?? b.counterparty ?? 'Buchung'
 				}))
 		];
+		const plannedLater = openPayments(
+			items.filter((i) => i.interval === 'once'),
+			new Set([account.id]),
+			addDays(cutoff.date, 1),
+			addMonths(today, 12)
+		).map((p) => ({ id: p.recurringId, name: p.name, date: p.bookingDate, amount: p.amount }));
 		result.set(account.id, {
+			later: plannedLater,
 			cutoff: {
 				...cutoff,
 				itemName: cutoff.mode === 'salary' ? (next?.item.name ?? null) : null

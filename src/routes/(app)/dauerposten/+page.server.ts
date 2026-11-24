@@ -21,7 +21,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		recurringFormContext(user),
 		getSettings()
 	]);
-	return { items, ...form.options, defaultLeadDays: settings.defaultLeadDays };
+	// One-off payments live under „Geplant“.
+	return {
+		items: items.filter((i) => i.interval !== 'once'),
+		plannedCount: items.filter((i) => i.interval === 'once' && !i.archivedAt).length,
+		...form.options,
+		defaultLeadDays: settings.defaultLeadDays
+	};
 };
 
 export const actions: Actions = {
