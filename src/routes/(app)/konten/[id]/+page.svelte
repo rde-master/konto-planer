@@ -301,12 +301,21 @@
 
 	{#if data.goals && (data.goals.length || (canEdit && !data.account.archivedAt))}
 		{@const allocated = data.goals.reduce((sum, g) => sum + g.allocated, 0)}
+		{@const reserves = data.goals.reduce((sum, g) => sum + (g.reserve ?? 0), 0)}
 		<section class="mb-8" aria-label="Sparziele">
 			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
 			<ul
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 			>
 				{#each data.goals as goal (goal.id)}<GoalRow {goal} />{/each}
+				{#if reserves > 0}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Rücklagen im Monat</span>
+						<span class="text-label-2 tabular" aria-label="Rücklagen im Monat">
+							{formatEuro(reserves)}
+						</span>
+					</li>
+				{/if}
 				{#if data.goals.length}
 					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
 						<span class="flex-1 text-[17px]">Frei</span>

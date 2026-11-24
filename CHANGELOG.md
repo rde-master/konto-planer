@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.23.0] – Rücklagen für Jahreszahlungen
+
+### Neu
+
+- Neue Seite „Rücklagen“ (unter „Mehr“): alle Ausgaben, die vierteljährlich, halbjährlich, jährlich oder noch seltener fällig sind, mit Monatsrate und der Summe, die du jeden Monat zurücklegen solltest
+- Die Seite eines solchen Dauerpostens zeigt seine Rücklage im Monat
+- „Als Sparziel anlegen“ macht aus einer Jahreszahlung ein Sparziel auf einem Sparbuch; als schon zurückgelegt schlägt die App vor, was bei gleichmäßigem Sparen seit der letzten Zahlung da sein sollte
+- Auf Wunsch legt sie dazu eine monatliche Umbuchung (Dauerauftrag) vom Girokonto aufs Sparbuch über die Monatsrate an
+- Die Sparbuch-Seite zeigt die Summe der Rücklagen im Monat für die verknüpften Sparziele
+
 ## [0.22.0] – Sparziele
 
 ### Neu

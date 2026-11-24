@@ -36,11 +36,19 @@
 		pauseLabel,
 		pauseRelevant
 	} from '#lib/recurring.js';
+	import { isReserveItem, reserveRate } from '#lib/reserves.js';
+	import type { Path } from '$app/types';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const item = $derived(data.item);
+	/** Monthly reserve of an expense paid every three months or less often. */
+	const reserve = $derived(
+		!item.archivedAt && isReserveItem(item) && data.upcoming.length
+			? reserveRate(data.upcoming[0].amount, item)
+			: null
+	);
 	const transfer = $derived(item.kind === 'transfer');
 	const Icon = $derived(
 		transfer ? ArrowLeftRight : item.kind === 'income' ? ArrowDownLeft : ArrowUpRight
@@ -217,6 +225,18 @@
 				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if reserve !== null}
+		<ListGroup
+			header="Rücklage"
+			footer="Für Zahlungen alle drei Monate oder seltener: so viel solltest du jeden Monat zurücklegen."
+		>
+			<ListRow label="Rücklage im Monat" value={formatEuro(reserve)} />
+			{#if !data.goals.length}
+				<ListRow label="Als Sparziel anlegen" href={`ruecklagen?posten=${item.id}` as Path} />
+			{/if}
+		</ListGroup>
 	{/if}
 
 	{#if data.goals.length}
