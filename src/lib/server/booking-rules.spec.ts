@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateBooking, type BookingInput } from './booking-rules';
+import { validateAdjustment, validateBooking, type BookingInput } from './booking-rules';
 
 const ctx = {
 	accountIds: new Set(['giro']),
@@ -59,6 +59,28 @@ describe('validateBooking', () => {
 	it('no bookings in the future', () => {
 		expect(validateBooking(input({ bookingDate: '2026-11-25' }), ctx).errors?.bookingDate).toBe(
 			'Das Datum darf nicht in der Zukunft liegen.'
+		);
+	});
+});
+
+describe('validateAdjustment', () => {
+	const c = { today: '2026-11-24', openingDate: '2026-11-01' };
+	it('accepts negative balances', () => {
+		expect(validateAdjustment({ actual: '-12,50', date: '2026-11-24' }, c).values).toEqual({
+			actual: -1250,
+			date: '2026-11-24'
+		});
+	});
+	it('rejects bad amounts and dates outside opening date..today', () => {
+		expect(Object.keys(validateAdjustment({ actual: 'x', date: '' }, c).errors ?? {})).toEqual([
+			'actual',
+			'date'
+		]);
+		expect(validateAdjustment({ actual: '1', date: '2026-11-25' }, c).errors?.date).toBe(
+			'Das Datum darf nicht in der Zukunft liegen.'
+		);
+		expect(validateAdjustment({ actual: '1', date: '2026-10-31' }, c).errors?.date).toBe(
+			'Das Datum darf nicht vor dem Startsaldo liegen.'
 		);
 	});
 });

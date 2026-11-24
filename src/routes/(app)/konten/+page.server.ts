@@ -4,11 +4,17 @@ import { AccountError, createAccount, listAccountsFor } from '#lib/server/accoun
 import { validateAccount } from '#lib/server/account-rules.js';
 import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError } from '#lib/server/validation.js';
+import { balancesOf } from '#lib/server/bookings.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
-	return { accounts: await listAccountsFor(user), isAdmin: user.role === 'admin' };
+	const list = await listAccountsFor(user);
+	const balances = await balancesOf(list);
+	return {
+		accounts: list.map((a) => ({ ...a, balance: balances.get(a.id) ?? a.openingBalance })),
+		isAdmin: user.role === 'admin'
+	};
 };
 
 export const actions: Actions = {

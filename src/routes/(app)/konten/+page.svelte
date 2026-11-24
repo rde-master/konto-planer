@@ -116,12 +116,9 @@
 									</span>
 								</span>
 								<span
-									class={[
-										'shrink-0 text-[17px] tabular',
-										account.openingBalance < 0 && 'text-danger'
-									]}
+									class={['shrink-0 text-[17px] tabular', account.balance < 0 && 'text-danger']}
 								>
-									{formatEuro(account.openingBalance)}
+									{formatEuro(account.balance)}
 								</span>
 								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 							</a>

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { accounts, bookings, categories, type Booking } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -8,7 +8,8 @@ import { getAccountFor, listAccountsFor } from './accounts.js';
 import { categoryInfo, listCategories } from './categories.js';
 import { buildTree } from './category-rules.js';
 import { categoryGroups } from './recurring-form.js';
-import type { BookingContext, BookingValues } from './booking-rules.js';
+import type { AdjustmentValues, BookingContext, BookingValues } from './booking-rules.js';
+import { adjustmentAmount, countsToBalance } from '../balance.js';
 import { todayBerlin } from '../dates.js';
 
 export class BookingError extends Error {}
@@ -19,6 +20,10 @@ export type BookingSummary = Booking & {
 	account: { id: string; name: string; color: string; level: AccessLevel };
 	category: { name: string; color: string | null; parentName: string | null } | null;
 	canEdit: boolean;
+	/** Manual entries and adjustments can be deleted by editors. */
+	canDelete: boolean;
+	/** False for bookings before the account's opening date. */
+	counts: boolean;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,6 +34,17 @@ function editable(
 	booking: Pick<Booking, 'source'>
 ) {
 	return canEditAccount(account.level, account.archivedAt !== null) && booking.source === 'manual';
+}
+
+/** Adjustments cannot be changed, but deleted (e.g. a mistyped correction). */
+function deletable(
+	account: { level: AccessLevel; archivedAt: Date | null },
+	booking: Pick<Booking, 'source'>
+) {
+	return (
+		canEditAccount(account.level, account.archivedAt !== null) &&
+		(booking.source === 'manual' || booking.source === 'adjustment')
+	);
 }
 
 /**
@@ -76,7 +92,9 @@ export async function listBookingsFor(
 				...b,
 				account: { id: account.id, name: account.name, color: account.color, level: account.level },
 				category: category(b.categoryId),
-				canEdit: editable(account, b)
+				canEdit: editable(account, b),
+				canDelete: deletable(account, b),
+				counts: countsToBalance(account.openingDate, b.bookingDate)
 			};
 		}),
 		more: rows.length > limit
@@ -95,7 +113,9 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 		...b,
 		account: { id: account.id, name: account.name, color: account.color, level: account.level },
 		category: category(b.categoryId),
-		canEdit: editable(account, b)
+		canEdit: editable(account, b),
+		canDelete: deletable(account, b),
+		counts: countsToBalance(account.openingDate, b.bookingDate)
 	};
 }
 
@@ -211,7 +231,9 @@ export async function updateBooking(
 }
 
 export async function deleteBooking(actor: NonNullable<Actor> & Viewer, id: string) {
-	const current = await requireEditable(actor, id);
+	const current = await getBookingFor(actor, id);
+	if (!current) throw new BookingError('Buchung nicht gefunden.');
+	if (!current.canDelete) throw new BookingError('Du darfst diese Buchung nicht löschen.');
 	await db.transaction(async (tx) => {
 		const before = await auditFields(tx, valuesOf(current));
 		await tx.delete(bookings).where(eq(bookings.id, id));
@@ -233,4 +255,103 @@ export async function countBookings(accountId: string): Promise<number> {
 		.from(bookings)
 		.where(and(eq(bookings.accountId, accountId)));
 	return row?.n ?? 0;
+}
+
+/** Sum of the counting bookings of an account up to the end of `date` (without opening balance). */
+async function bookingSum(
+	executor: Executor,
+	account: { id: string; openingDate: string },
+	date: string
+): Promise<number> {
+	const [row] = await executor
+		.select({ sum: sql<string | null>`sum(${bookings.amount})` })
+		.from(bookings)
+		.where(
+			and(
+				eq(bookings.accountId, account.id),
+				gte(bookings.bookingDate, account.openingDate),
+				lte(bookings.bookingDate, date)
+			)
+		);
+	return Number(row?.sum ?? 0);
+}
+
+/** Current balance (end of today) of each given account: opening balance + counting bookings. */
+export async function balancesOf(
+	list: { id: string; openingBalance: number; openingDate: string }[]
+): Promise<Map<string, number>> {
+	if (!list.length) return new Map();
+	const today = todayBerlin();
+	const rows = await db
+		.select({ accountId: bookings.accountId, sum: sql<string>`sum(${bookings.amount})` })
+		.from(bookings)
+		.innerJoin(accounts, eq(accounts.id, bookings.accountId))
+		.where(
+			and(
+				inArray(
+					bookings.accountId,
+					list.map((a) => a.id)
+				),
+				sql`${bookings.bookingDate} >= ${accounts.openingDate}`,
+				lte(bookings.bookingDate, today)
+			)
+		)
+		.groupBy(bookings.accountId);
+	const sums = new Map(rows.map((r) => [r.accountId, Number(r.sum)]));
+	return new Map(list.map((a) => [a.id, a.openingBalance + (sums.get(a.id) ?? 0)]));
+}
+
+/** Balance of one account at the end of `date`. */
+export async function balanceOf(
+	account: { id: string; openingBalance: number; openingDate: string },
+	date = todayBerlin()
+): Promise<number> {
+	return account.openingBalance + (await bookingSum(db, account, date));
+}
+
+/**
+ * "Kontostand korrigieren": books the difference between the computed and the actual balance
+ * at the end of `date` as an adjustment. Returns the adjustment in cents.
+ */
+export async function adjustBalance(
+	actor: NonNullable<Actor> & Viewer,
+	accountId: string,
+	values: AdjustmentValues
+): Promise<number> {
+	const account = await getAccountFor(actor, accountId);
+	if (!account || !canEditAccount(account.level, account.archivedAt !== null))
+		throw new BookingError('Diesen Kontostand darfst du nicht korrigieren.');
+	return db.transaction(async (tx) => {
+		// Serialise corrections of the same account so two at once cannot both book the difference.
+		await tx.execute(sql`select id from accounts where id = ${accountId} for update`);
+		const before = account.openingBalance + (await bookingSum(tx, account, values.date));
+		const amount = adjustmentAmount(before, values.actual);
+		if (amount === 0) throw new BookingError('Der Kontostand stimmt bereits.');
+		const [created] = await tx
+			.insert(bookings)
+			.values({
+				accountId,
+				bookingDate: values.date,
+				amount,
+				source: 'adjustment',
+				purpose: 'Anpassung des Kontostands',
+				createdBy: actor.id
+			})
+			.returning({ id: bookings.id });
+		await audit(tx, {
+			actor,
+			entityType: 'booking',
+			action: 'adjust',
+			entityId: created.id,
+			entityLabel: account.name,
+			after: {
+				account: account.name,
+				bookingDate: values.date,
+				balanceBefore: before,
+				balanceAfter: values.actual,
+				amount
+			}
+		});
+		return amount;
+	});
 }

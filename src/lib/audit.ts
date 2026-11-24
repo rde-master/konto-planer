@@ -34,7 +34,8 @@ export const ACTIONS = [
 	'attachment_add',
 	'attachment_delete',
 	'pause',
-	'resume'
+	'resume',
+	'adjust'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -67,7 +68,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	attachment_add: 'Anhang hinzugefügt',
 	attachment_delete: 'Anhang gelöscht',
 	pause: 'Pausiert',
-	resume: 'Pause beendet'
+	resume: 'Pause beendet',
+	adjust: 'Kontostand korrigiert'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -126,7 +128,9 @@ const FIELD_LABELS: Record<string, string> = {
 	size: 'Größe (Bytes)',
 	defaultLeadDays: 'Standard-Vorlauf (Tage)',
 	shared: 'Für alle',
-	position: 'Position'
+	position: 'Position',
+	balanceBefore: 'Stand vorher',
+	balanceAfter: 'Stand nachher'
 };
 
 export function fieldLabel(field: string): string {
@@ -153,7 +157,13 @@ const dateTime = new Intl.DateTimeFormat('de-DE', {
 });
 
 /** Fields stored in cents. */
-const CENT_FIELDS = new Set(['openingBalance', 'overdraftLimit', 'amount']);
+const CENT_FIELDS = new Set([
+	'openingBalance',
+	'overdraftLimit',
+	'amount',
+	'balanceBefore',
+	'balanceAfter'
+]);
 /** Values that mean the same in every field (access levels). */
 const COMMON_VALUES: Record<string, string> = { view: 'Sehen', edit: 'Bearbeiten' };
 

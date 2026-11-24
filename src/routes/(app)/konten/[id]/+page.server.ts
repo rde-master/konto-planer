@@ -1,4 +1,6 @@
-import { countBookings } from '#lib/server/bookings.js';
+import { BookingError, adjustBalance, balanceOf, countBookings } from '#lib/server/bookings.js';
+import { validateAdjustment } from '#lib/server/booking-rules.js';
+import { todayBerlin } from '#lib/dates.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '#lib/server/guards.js';
 import {
@@ -13,7 +15,7 @@ import {
 } from '#lib/server/accounts.js';
 import { ACCESS_LEVELS, validateAccount, type AccessLevel } from '#lib/server/account-rules.js';
 import { readAccountForm } from '#lib/server/account-form.js';
-import { fieldError } from '#lib/server/validation.js';
+import { fieldError, formString } from '#lib/server/validation.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -26,7 +28,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		isAdmin,
 		access: isAdmin ? await listAccess(account.id) : [],
 		hasData: isAdmin ? await accountHasData(account.id) : true,
-		bookingCount: await countBookings(account.id)
+		bookingCount: await countBookings(account.id),
+		balance: await balanceOf(account),
+		today: todayBerlin()
 	};
 };
 
@@ -56,6 +60,32 @@ export const actions: Actions = {
 			return accountError('update', e);
 		}
 		return { action: 'update' as const, success: true };
+	},
+
+	/** "Kontostand korrigieren": the difference is booked as an adjustment. */
+	adjust: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const account = await getAccountFor(user, params.id);
+		if (!account) error(404, 'Konto nicht gefunden.');
+		const data = await request.formData();
+		const input = { actual: formString(data, 'actual'), date: formString(data, 'date') };
+		const { values, errors } = validateAdjustment(input, {
+			today: todayBerlin(),
+			openingDate: account.openingDate
+		});
+		if (!values) return fail(400, { action: 'adjust' as const, input, errors });
+		try {
+			const amount = await adjustBalance(user, account.id, values);
+			return { action: 'adjust' as const, success: true, amount };
+		} catch (e) {
+			if (e instanceof BookingError)
+				return fail(400, {
+					action: 'adjust' as const,
+					input,
+					errors: fieldError('actual', e.message)
+				});
+			throw e;
+		}
 	},
 
 	access: async ({ request, locals, params }) => {

@@ -11,6 +11,7 @@
 	import Button from '#lib/components/Button.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
 	import AccountFields from '#lib/components/AccountFields.svelte';
+	import FormField from '#lib/components/FormField.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { formatIban } from '#lib/iban.js';
@@ -26,6 +27,18 @@
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
+	let adjustOpen = $state(false);
+	let adjustPending = $state(false);
+	let adjustKey = $state(0);
+	let adjustValues = $state({ actual: '', date: '' });
+	let adjustErrors: Partial<Record<string, string>> | undefined = $state();
+
+	function openAdjust() {
+		adjustValues = { actual: '', date: data.today };
+		adjustErrors = undefined;
+		adjustKey++;
+		adjustOpen = true;
+	}
 
 	const updateInput = $derived(
 		form?.action === 'update' && 'input' in form ? form.input : undefined
@@ -36,6 +49,8 @@
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 	const status = $derived.by(() => {
 		if (!form || !('success' in form)) return undefined;
+		if (form.action === 'adjust' && 'amount' in form && typeof form.amount === 'number')
+			return `Kontostand korrigiert. Die Differenz von ${form.amount > 0 ? '+' : ''}${formatEuro(form.amount)} ist als Anpassung gebucht.`;
 		return {
 			update: 'Änderungen gesichert.',
 			access: 'Zugriffe gesichert.',
@@ -81,10 +96,15 @@
 			<p class="text-[13px] text-label-2">
 				{account.type === 'giro' ? 'Girokonto' : 'Sparbuch'}{archived ? ' · archiviert' : ''}
 			</p>
-			<p class={['text-[28px] font-bold tabular', account.openingBalance < 0 && 'text-danger']}>
-				{formatEuro(account.openingBalance)}
+			<p
+				class={['text-[28px] font-bold tabular', data.balance < 0 && 'text-danger']}
+				aria-label="Kontostand"
+			>
+				{formatEuro(data.balance)}
 			</p>
-			<p class="text-[13px] text-label-2">Startsaldo am {formatDay(account.openingDate)}</p>
+			<p class="text-[13px] text-label-2">
+				Startsaldo {formatEuro(account.openingBalance)} am {formatDay(account.openingDate)}
+			</p>
 		</div>
 	</section>
 
@@ -99,6 +119,17 @@
 				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 			</a>
 		</li>
+		{#if canEdit}
+			<li class="border-t-[0.5px] border-separator">
+				<button
+					type="button"
+					onclick={openAdjust}
+					class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+				>
+					Kontostand korrigieren
+				</button>
+			</li>
+		{/if}
 	</ul>
 
 	{#if canEdit}
@@ -208,6 +239,64 @@
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
 			<Button type="submit" variant="destructive">Löschen</Button>
+		</form>
+	</Sheet>
+{/if}
+
+{#if canEdit}
+	<Sheet
+		bind:open={adjustOpen}
+		title="Kontostand korrigieren"
+		confirmLabel="Korrigieren"
+		formId="adjust-form"
+		confirmDisabled={adjustPending}
+	>
+		<form
+			id="adjust-form"
+			method="POST"
+			action="?/adjust"
+			use:enhance={() => {
+				adjustPending = true;
+				return async ({ result, update }) => {
+					adjustPending = false;
+					if (result.type === 'success') adjustOpen = false;
+					else if (result.type === 'failure') {
+						const input = result.data?.input as typeof adjustValues | undefined;
+						if (input) adjustValues = input;
+						adjustErrors = result.data?.errors as typeof adjustErrors;
+						adjustKey++;
+					}
+					await update({ reset: false });
+				};
+			}}
+		>
+			{#key adjustKey}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<FormField
+						label="Tatsächlicher Stand in €"
+						name="actual"
+						value={adjustValues.actual}
+						autocomplete="off"
+						placeholder="z. B. 1.234,56 oder -50,00"
+						required
+						error={adjustErrors?.actual}
+					/>
+					<FormField
+						label="Stand am"
+						name="date"
+						type="date"
+						value={adjustValues.date}
+						required
+						error={adjustErrors?.date}
+					/>
+				</ul>
+			{/key}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Berechnet sind heute {formatEuro(data.balance)}. Die Differenz zum tatsächlichen Stand am
+				gewählten Tag wird als Anpassung gebucht; der nächste Import gleicht sie ab.
+			</p>
 		</form>
 	</Sheet>
 {/if}
