@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '$app/forms';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import Page from '#lib/components/Page.svelte';
@@ -8,6 +9,7 @@
 	import Sheet from '#lib/components/Sheet.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import BookingFields from '#lib/components/BookingFields.svelte';
+	import FormField from '#lib/components/FormField.svelte';
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
 	import Zap from '@lucide/svelte/icons/zap';
@@ -34,7 +36,8 @@
 	const SOURCE_LABELS: Record<string, string> = {
 		manual: 'Manuell erfasst',
 		import: 'Import',
-		adjustment: 'Anpassung'
+		adjustment: 'Anpassung',
+		provisional: 'Vorläufig aus Dauerposten'
 	};
 
 	let savePending = $state(false);
@@ -65,6 +68,28 @@
 		templateKey++;
 		templateOpen = true;
 	}
+
+	const due = $derived(data.due);
+	let moveOpen = $state(false);
+	let amountOpen = $state(false);
+	let skipOpen = $state(false);
+	let duePending = $state(false);
+	const dueErrors = $derived(
+		form?.action === 'changeDue' && 'errors' in form ? form.errors : undefined
+	);
+	const dueSaved = $derived(form?.action === 'changeDue' && 'success' in form);
+
+	const dueEnhance: SubmitFunction = () => {
+		duePending = true;
+		return async ({ result, update }) => {
+			duePending = false;
+			if (result.type === 'success') {
+				moveOpen = false;
+				amountOpen = false;
+			}
+			await update({ reset: false });
+		};
+	};
 
 	const templateSaved = $derived(
 		form?.action === 'saveTemplate' && 'template' in form ? form.template : undefined
@@ -103,6 +128,10 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if dueSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Vorläufige Buchung geändert.
 		</p>
 	{:else if templateSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -176,13 +205,40 @@
 					label="Empfänger/Zahler"
 					value={booking.counterparty}
 				/>{/if}
-			{#if booking.purpose}<ListRow label="Notiz" value={booking.purpose} />{/if}
+			{#if booking.purpose && booking.source !== 'provisional'}<ListRow
+					label="Notiz"
+					value={booking.purpose}
+				/>{/if}
 			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
 		</ListGroup>
+		{#if due}
+			<ListGroup
+				header="Vorläufige Buchung"
+				footer="Am Fälligkeitstag gebucht, damit der Kontostand stimmt. Der Import bestätigt sie später mit der echten Buchung."
+			>
+				<ListRow
+					label="Dauerposten"
+					value={due.recurringName}
+					href={`dauerposten/${due.recurringId}`}
+				/>
+				<ListRow label="Fällig laut Plan" value={formatDay(due.dueDate)} />
+				{#if due.moved}<ListRow label="Verschoben auf" value={formatDay(due.bookingDate)} />{/if}
+				{#if due.amountSet}<ListRow label="Betrag" value="von Hand angepasst" />{/if}
+			</ListGroup>
+			{#if due.canManage}
+				<ListGroup>
+					<ListRow label="Verschieben" onclick={() => (moveOpen = true)} />
+					<ListRow label="Betrag anpassen" onclick={() => (amountOpen = true)} />
+					<ListRow label="Zurücknehmen" destructive onclick={() => (skipOpen = true)} />
+				</ListGroup>
+			{/if}
+		{/if}
 		<p class="mb-8 px-4 text-[13px] text-label-2">
-			{booking.source === 'adjustment'
-				? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
-				: 'Du kannst diese Buchung nur ansehen.'}
+			{booking.source === 'provisional'
+				? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
+				: booking.source === 'adjustment'
+					? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
+					: 'Du kannst diese Buchung nur ansehen.'}
 		</p>
 		{#if booking.canDelete}
 			<ListGroup header="Verwaltung">
@@ -258,3 +314,69 @@
 		</p>
 	</form>
 </Sheet>
+
+{#if due?.canManage}
+	<Sheet
+		bind:open={moveOpen}
+		title="Verschieben"
+		confirmLabel="Sichern"
+		formId="due-move"
+		confirmDisabled={duePending}
+	>
+		<form id="due-move" method="POST" action="?/changeDue" use:enhance={dueEnhance}>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<FormField
+					label="Gebucht am"
+					name="bookingDate"
+					type="date"
+					value={due.bookingDate}
+					required
+					error={dueErrors?.bookingDate}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Z. B. wenn die Abbuchung später kam. Der Dauerposten selbst bleibt unverändert.
+			</p>
+		</form>
+	</Sheet>
+
+	<Sheet
+		bind:open={amountOpen}
+		title="Betrag anpassen"
+		confirmLabel="Sichern"
+		formId="due-amount"
+		confirmDisabled={duePending}
+	>
+		<form id="due-amount" method="POST" action="?/changeDue" use:enhance={dueEnhance}>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<FormField
+					label="Betrag in €"
+					name="amount"
+					value={formatEuroInput(due.amount)}
+					inputmode="decimal"
+					autocomplete="off"
+					required
+					error={dueErrors?.amount}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Nur für diese Fälligkeit, z. B. bei schwankenden Beträgen. Künftige Beträge änderst du am
+				Dauerposten.
+			</p>
+		</form>
+	</Sheet>
+
+	<Sheet bind:open={skipOpen} title="Zurücknehmen">
+		<p class="mb-6 px-4 text-center text-[15px]">
+			Die vorläufige Buchung über {formatEuro(booking.amount)} wird entfernt; die Fälligkeit gilt als
+			nicht gebucht. Am Dauerposten lässt sie sich wiederherstellen.
+		</p>
+		<form method="POST" action="?/skipDue" use:enhance>
+			<Button type="submit" variant="destructive">Zurücknehmen</Button>
+		</form>
+	</Sheet>
+{/if}

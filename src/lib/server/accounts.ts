@@ -10,6 +10,7 @@ import {
 } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
+import { syncDues } from './due.js';
 import {
 	canEditAccount,
 	effectiveLevel,
@@ -155,6 +156,8 @@ export async function updateAccount(
 		if (isUniqueViolation(e)) throw new AccountError(IBAN_TAKEN);
 		throw e;
 	}
+	// Opening date or archive state decide which due items are booked.
+	await syncDues();
 }
 
 export async function setArchived(actor: NonNullable<Actor>, id: string, archived: boolean) {
@@ -173,6 +176,8 @@ export async function setArchived(actor: NonNullable<Actor>, id: string, archive
 			entityLabel: updated.name
 		});
 	});
+	// Opening date or archive state decide which due items are booked.
+	await syncDues();
 }
 
 export async function deleteAccount(actor: NonNullable<Actor>, id: string) {

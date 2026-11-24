@@ -305,7 +305,12 @@ export const recurringAttachments = pgTable(
 
 export type RecurringAttachment = typeof recurringAttachments.$inferSelect;
 
-export const bookingSource = pgEnum('booking_source', ['manual', 'import', 'adjustment']);
+export const bookingSource = pgEnum('booking_source', [
+	'manual',
+	'import',
+	'adjustment',
+	'provisional'
+]);
 
 /**
  * Real money movement on an account (positive = in, negative = out, euro cents). Manual entries
@@ -381,3 +386,43 @@ export const bookingTemplates = pgTable(
 );
 
 export type BookingTemplate = typeof bookingTemplates.$inferSelect;
+
+export const dueStatus = pgEnum('due_status', ['provisional', 'skipped', 'booked']);
+
+/**
+ * Due items of recurring items that reached their bank day. A provisional due item has a
+ * booking (`source = 'provisional'`) on the paying account and, for transfers, one on the
+ * receiving account. Future due dates are computed, not stored.
+ */
+export const dueItems = pgTable(
+	'due_items',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		/** Date of the schedule (before bank-day shifting). */
+		dueDate: date('due_date', { mode: 'string' }).notNull(),
+		/** Bank day, or the date set by hand. */
+		bookingDate: date('booking_date', { mode: 'string' }).notNull(),
+		/** Positive cents; the item's kind gives the sign. */
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		status: dueStatus('status').notNull().default('provisional'),
+		moved: boolean('moved').notNull().default(false),
+		amountSet: boolean('amount_set').notNull().default(false),
+		bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+		targetBookingId: uuid('target_booking_id').references(() => bookings.id, {
+			onDelete: 'set null'
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		uniqueIndex('due_items_recurring_date_idx').on(t.recurringId, t.dueDate),
+		index('due_items_booking_idx').on(t.bookingId),
+		index('due_items_target_booking_idx').on(t.targetBookingId),
+		check('due_items_amount_positive', sql`${t.amount} > 0`)
+	]
+);
+
+export type DueItem = typeof dueItems.$inferSelect;

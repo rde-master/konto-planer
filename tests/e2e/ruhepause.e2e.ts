@@ -39,34 +39,35 @@ test('a pause skips the due dates in between', async ({ page }) => {
 	await create.getByLabel('Bezeichnung').fill('Zeitung');
 	await create.getByLabel('Betrag in €').fill('20');
 	await create.getByLabel('Konto').selectOption({ label: 'Alltagskonto' });
-	await create.getByLabel('Erste Fälligkeit').fill(today);
+	// Starts next month: today's due items are already booked provisionally.
+	await create.getByLabel('Erste Fälligkeit').fill(month(1));
 	await create.getByRole('button', { name: 'Anlegen' }).click();
 	await expect(create).toBeHidden();
 
 	await openItem(page);
 	await page.getByRole('button', { name: 'Pausieren' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Pausieren' });
-	await sheet.getByLabel('Pause ab').fill(month(3));
-	await sheet.getByLabel('Pause bis (optional)').fill(month(1));
+	await sheet.getByLabel('Pause ab').fill(month(4));
+	await sheet.getByLabel('Pause bis (optional)').fill(month(2));
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet.getByText('Die Pause kann nicht vor ihrem Beginn enden.')).toBeVisible();
 
-	await sheet.getByLabel('Pause ab').fill(month(1));
-	await sheet.getByLabel('Pause bis (optional)').fill(month(3));
+	await sheet.getByLabel('Pause ab').fill(month(2));
+	await sheet.getByLabel('Pause bis (optional)').fill(month(4));
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText('Pause gesichert.');
 
-	await expect(upcoming(page).nth(0)).toContainText(formatDay(today));
-	await expect(upcoming(page).nth(1)).toContainText(formatDay(month(4)));
+	await expect(upcoming(page).nth(0)).toContainText(formatDay(month(1)));
+	await expect(upcoming(page).nth(1)).toContainText(formatDay(month(5)));
 	const pause = page.getByRole('region', { name: 'Pause' });
-	await expect(pause).toContainText(formatDay(month(1)));
-	await expect(pause).toContainText(formatDay(month(3)));
+	await expect(pause).toContainText(formatDay(month(2)));
+	await expect(pause).toContainText(formatDay(month(4)));
 
 	await page.goto('/dauerposten');
 	await expect(
 		page.getByRole('region', { name: 'Alltagskonto' }).getByRole('link', { name: /Zeitung/ })
-	).toContainText(`Pause ${formatDay(month(1))} – ${formatDay(month(3))}`);
+	).toContainText(`Pause ${formatDay(month(2))} – ${formatDay(month(4))}`);
 });
 
 test('ending a future pause removes it; an open pause stops all due dates', async ({ page }) => {
@@ -74,11 +75,11 @@ test('ending a future pause removes it; an open pause stops all due dates', asyn
 	await openItem(page);
 	await page.getByRole('button', { name: 'Pause beenden' }).click();
 	await expect(page.getByRole('status')).toHaveText('Pause beendet.');
-	await expect(upcoming(page).nth(1)).toContainText(formatDay(month(1)));
+	await expect(upcoming(page).nth(1)).toContainText(formatDay(month(2)));
 
 	await page.getByRole('button', { name: 'Pausieren' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Pausieren' });
-	await sheet.getByLabel('Pause ab').fill(month(1));
+	await sheet.getByLabel('Pause ab').fill(month(2));
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet).toBeHidden();
 	await expect(upcoming(page)).toHaveCount(1);

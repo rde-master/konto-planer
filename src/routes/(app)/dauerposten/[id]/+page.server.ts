@@ -32,7 +32,9 @@ import {
 	removeAttachmentFiles
 } from '#lib/server/attachments.js';
 import { fieldError, formString } from '#lib/server/validation.js';
-import { dueDates } from '#lib/recurring.js';
+import { addDays, addMonths } from '#lib/recurring.js';
+import { duesBetween } from '#lib/due.js';
+import { DueError, recentDues, restoreDue } from '#lib/server/due.js';
 import { todayBerlin } from '#lib/dates.js';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -40,18 +42,33 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = locals.user!;
 	const item = await getRecurringFor(user, params.id);
 	if (!item) error(404, 'Dauerposten nicht gefunden.');
-	const [{ options }, settings, attachments] = await Promise.all([
+	const [{ options }, settings, attachments, recent] = await Promise.all([
 		recurringFormContext(user, item),
 		getSettings(),
-		listAttachments(item.id)
+		listAttachments(item.id),
+		recentDues(item.id)
 	]);
 	const today = todayBerlin();
+	// Due items after today (today's are booked provisionally), shifted to bank days.
+	const upcoming = item.archivedAt
+		? []
+		: duesBetween(item, item.amounts, addDays(today, 1), addMonths(today, 60)).slice(0, 6);
+	// Viewers of the receiving account only see its side of a transfer.
+	const ownSide = item.account.level !== null;
 	return {
 		item,
 		defaultLeadDays: settings.defaultLeadDays,
 		attachments,
 		...options,
-		upcoming: item.archivedAt ? [] : dueDates(item, today, '9999-12-31', 6),
+		upcoming,
+		recent: recent.map((d) => ({
+			id: d.id,
+			dueDate: d.dueDate,
+			bookingDate: d.bookingDate,
+			amount: d.amount,
+			status: d.status,
+			bookingId: ownSide ? d.bookingId : d.targetBookingId
+		})),
 		today,
 		hasData: await recurringHasData(item.id)
 	};
@@ -63,6 +80,17 @@ function recurringError(action: string, e: unknown) {
 }
 
 export const actions: Actions = {
+	/** Books a skipped ("zurückgenommen") due item provisionally again. */
+	restoreDue: async ({ request, locals }) => {
+		try {
+			await restoreDue(locals.user!, formString(await request.formData(), 'dueId'));
+		} catch (e) {
+			if (e instanceof DueError) return fail(400, { action: 'restoreDue', message: e.message });
+			throw e;
+		}
+		return { action: 'restoreDue', success: true };
+	},
+
 	update: async ({ request, locals, params }) => {
 		const user = locals.user!;
 		const data = await request.formData();

@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { prepareDatabase } from '#lib/server/db/migrate.js';
+import { startDueScheduler } from '#lib/server/due.js';
 import {
 	clearSessionCookie,
 	hasAnyUser,
@@ -14,6 +15,8 @@ import { THEME_COOKIE, parseTheme } from '#lib/theme.js';
 export const init: ServerInit = async () => {
 	if (building) return;
 	await prepareDatabase();
+	// Background job: provisionally book due items (at start and hourly).
+	startDueScheduler();
 };
 
 /** Routes reachable without a session. */

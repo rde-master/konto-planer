@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { nextBankDay } from '#lib/bank-calendar.js';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Plus from '@lucide/svelte/icons/plus';
@@ -240,7 +241,7 @@
 					{item.archivedAt
 						? 'archiviert'
 						: item.nextDue
-							? formatDay(item.nextDue)
+							? formatDay(nextBankDay(item.nextDue))
 							: isPausedOn(item, today) || (item.pauseFrom && !item.pauseUntil)
 								? 'pausiert'
 								: 'beendet'}
