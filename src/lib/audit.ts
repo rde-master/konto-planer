@@ -177,6 +177,7 @@ const FIELD_LABELS: Record<string, string> = {
 	importMatched: 'Ersetzte Buchungen',
 	importSkipped: 'Übersprungen',
 	adjustmentsRemoved: 'Aufgelöste Anpassungen',
+	itemsCreated: 'Neue Dauerposten',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
 };

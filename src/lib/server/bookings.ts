@@ -1,6 +1,13 @@
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from './db/index.js';
-import { accounts, bookings, categories, type Booking } from './db/schema.js';
+import {
+	accounts,
+	bookings,
+	categories,
+	counterpartyCategories,
+	type Booking
+} from './db/schema.js';
+import { payeeKey } from '../import-match.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
@@ -23,6 +30,8 @@ export type BookingSummary = Booking & {
 	canEdit: boolean;
 	/** Manual entries and adjustments can be deleted by editors. */
 	canDelete: boolean;
+	/** Imported bookings: only the category can be changed. */
+	canCategorize: boolean;
 	/** False for bookings before the account's opening date. */
 	counts: boolean;
 };
@@ -46,6 +55,14 @@ function deletable(
 		canEditAccount(account.level, account.archivedAt !== null) &&
 		(booking.source === 'manual' || booking.source === 'adjustment')
 	);
+}
+
+/** The category of an imported booking may be changed by editors (the rest comes from the bank). */
+function categorizable(
+	account: { level: AccessLevel; archivedAt: Date | null },
+	booking: Pick<Booking, 'source'>
+) {
+	return canEditAccount(account.level, account.archivedAt !== null) && booking.source === 'import';
 }
 
 /**
@@ -95,6 +112,7 @@ export async function listBookingsFor(
 				category: category(b.categoryId),
 				canEdit: editable(account, b),
 				canDelete: deletable(account, b),
+				canCategorize: categorizable(account, b),
 				counts: countsToBalance(account.openingDate, b.bookingDate)
 			};
 		}),
@@ -116,6 +134,7 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 		category: category(b.categoryId),
 		canEdit: editable(account, b),
 		canDelete: deletable(account, b),
+		canCategorize: categorizable(account, b),
 		counts: countsToBalance(account.openingDate, b.bookingDate)
 	};
 }
@@ -226,6 +245,53 @@ export async function updateBooking(
 				action: 'update',
 				entityId: id,
 				entityLabel: label(values, after.category),
+				...changes
+			});
+	});
+}
+
+/**
+ * Sets the category of an imported booking; the payee keeps it for later imports
+ * (`counterparty_categories`).
+ */
+export async function setBookingCategory(
+	actor: NonNullable<Actor> & Viewer,
+	id: string,
+	categoryId: string | null
+) {
+	const current = await getBookingFor(actor, id);
+	if (!current) throw new BookingError('Buchung nicht gefunden.');
+	if (!current.canCategorize)
+		throw new BookingError('Die Kategorie dieser Buchung darfst du nicht ändern.');
+	if (categoryId) {
+		const [cat] = await db
+			.select({ id: categories.id })
+			.from(categories)
+			.where(eq(categories.id, categoryId));
+		if (!cat) throw new BookingError('Diese Kategorie gibt es nicht.');
+	}
+	if (categoryId === current.categoryId) return;
+	const key = payeeKey({ counterpartyIban: current.iban, counterparty: current.counterparty });
+	await db.transaction(async (tx) => {
+		await tx.update(bookings).set({ categoryId, updatedAt: new Date() }).where(eq(bookings.id, id));
+		if (key)
+			await tx
+				.insert(counterpartyCategories)
+				.values({ key, categoryId })
+				.onConflictDoUpdate({
+					target: counterpartyCategories.key,
+					set: { categoryId, updatedAt: new Date() }
+				});
+		const before = await auditFields(tx, valuesOf(current));
+		const after = await auditFields(tx, { ...valuesOf(current), categoryId });
+		const changes = diff(before, after);
+		if (changes)
+			await audit(tx, {
+				actor,
+				entityType: 'booking',
+				action: 'update',
+				entityId: id,
+				entityLabel: label(valuesOf(current), after.category),
 				...changes
 			});
 	});

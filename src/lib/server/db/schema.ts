@@ -364,6 +364,10 @@ export const bookings = pgTable(
 		importId: uuid('import_id').references((): AnyPgColumn => imports.id, {
 			onDelete: 'set null'
 		}),
+		/** Other side of a transfer between two accounts of the app. */
+		counterBookingId: uuid('counter_booking_id').references((): AnyPgColumn => bookings.id, {
+			onDelete: 'set null'
+		}),
 		/** Category of the bank export (a hint only). */
 		bankCategory: text('bank_category'),
 		creditorId: text('creditor_id'),
@@ -638,6 +642,9 @@ export const imports = pgTable(
 		adjustmentsRemoved: integer('adjustments_removed').notNull().default(0),
 		/** Balance check: "Saldo nach Buchung" of the latest row and the computed balance. */
 		checkDate: date('check_date', { mode: 'string' }),
+		/** Period of the file. */
+		periodFrom: date('period_from', { mode: 'string' }),
+		periodTo: date('period_to', { mode: 'string' }),
 		bankBalance: bigint('bank_balance', { mode: 'number' }),
 		appBalance: bigint('app_balance', { mode: 'number' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -647,3 +654,13 @@ export const imports = pgTable(
 );
 
 export type Import = typeof imports.$inferSelect;
+
+/**
+ * Category chosen last for a payee (key: IBAN, otherwise the lower-case name); imports use it
+ * for bookings without a recurring item.
+ */
+export const counterpartyCategories = pgTable('counterparty_categories', {
+	key: text('key').primaryKey(),
+	categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
