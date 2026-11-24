@@ -106,7 +106,9 @@
 		endDate: null,
 		variable: false,
 		isSalary: false,
-		paymentMethod: null
+		paymentMethod: null,
+		customerNumber: null,
+		note: null
 	});
 	const formValues = $derived(form && 'input' in form && form.input ? form.input : emptyValues());
 	const formErrors = $derived(form && 'errors' in form ? form.errors : undefined);

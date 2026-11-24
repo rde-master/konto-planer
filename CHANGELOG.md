@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.11.0] – Vertragsdetails
+
+### Neu
+
+- Kundennummer und Notiz an jedem Dauerposten
+- Kündigungsadresse bei kündbaren Verträgen: Firma, Straße, PLZ, Ort und E-Mail
+- PDF-Dokumente an Dauerposten, z. B. Vertrag oder Preiserhöhung: beliebig viele, je bis 10 MB; die App prüft, dass es wirklich PDFs sind
+- Dokumente öffnen sich mit einem Tipp; wer den Dauerposten nur sehen darf, kann sie öffnen, aber nicht ändern
+- Hochladen und Löschen von Dokumenten stehen im Protokoll
+
+### Hinweis für den Betrieb
+
+- Dokumente liegen im Volume `app-data` unter `attachments/` und sind nicht Teil der automatischen Datenbanksicherung
+
 ## [0.10.0] – Vertragsdaten
 
 ### Neu

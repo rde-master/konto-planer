@@ -4,6 +4,7 @@
 	import SelectField from './SelectField.svelte';
 	import SegmentedField from './SegmentedField.svelte';
 	import ToggleField from './ToggleField.svelte';
+	import TextAreaField from './TextAreaField.svelte';
 	import { formatIban } from '#lib/iban.js';
 	import {
 		INTERVALS,
@@ -34,6 +35,8 @@
 		variable: boolean;
 		isSalary: boolean;
 		paymentMethod: string | null;
+		customerNumber: string | null;
+		note: string | null;
 		amount?: string;
 	};
 
@@ -46,6 +49,11 @@
 		renewalMonths: string | number | null;
 		leadDays: string | number | null;
 		cancelledOn: string | null;
+		cancelName: string | null;
+		cancelStreet: string | null;
+		cancelPostalCode: string | null;
+		cancelCity: string | null;
+		cancelEmail: string | null;
 	};
 
 	/**
@@ -332,6 +340,54 @@
 			{/if}
 		</ul>
 		{#if contractOn}
+			<h4 class="mt-6 mb-1.5 px-4 text-[13px] text-label-2 uppercase">Kündigungsadresse</h4>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<FormField
+					label="Firma (optional)"
+					name="cancelName"
+					value={contract?.cancelName ?? ''}
+					autocomplete="off"
+					maxlength={70}
+					error={errors?.cancelName}
+				/>
+				<FormField
+					label="Straße und Hausnummer (optional)"
+					name="cancelStreet"
+					value={contract?.cancelStreet ?? ''}
+					autocomplete="off"
+					maxlength={70}
+					error={errors?.cancelStreet}
+				/>
+				<FormField
+					label="PLZ (optional)"
+					name="cancelPostalCode"
+					value={contract?.cancelPostalCode ?? ''}
+					inputmode="numeric"
+					autocomplete="off"
+					maxlength={10}
+					error={errors?.cancelPostalCode}
+				/>
+				<FormField
+					label="Ort (optional)"
+					name="cancelCity"
+					value={contract?.cancelCity ?? ''}
+					autocomplete="off"
+					maxlength={50}
+					error={errors?.cancelCity}
+				/>
+				<FormField
+					label="E-Mail für Kündigungen (optional)"
+					name="cancelEmail"
+					inputmode="email"
+					autocapitalize="none"
+					spellcheck={false}
+					value={contract?.cancelEmail ?? ''}
+					autocomplete="off"
+					error={errors?.cancelEmail}
+				/>
+			</ul>
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">
 				Verlängerung „Unbefristet“: nach der Mindestlaufzeit jederzeit mit Frist kündbar. „Keine“:
 				endet ohne Kündigung zum Laufzeitende. Der Vorlauf bestimmt, wann der Vertrag als „bald
@@ -426,3 +482,25 @@
 		</p>
 	</section>
 {/if}
+
+<section class="mb-6">
+	<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Details</h3>
+	<ul class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<FormField
+			label="Kundennummer (optional)"
+			name="customerNumber"
+			value={values.customerNumber ?? ''}
+			autocomplete="off"
+			spellcheck={false}
+			maxlength={50}
+			error={errors?.customerNumber}
+		/>
+		<TextAreaField
+			label="Notiz (optional)"
+			name="note"
+			value={values.note ?? ''}
+			maxlength={2000}
+			error={errors?.note}
+		/>
+	</ul>
+</section>

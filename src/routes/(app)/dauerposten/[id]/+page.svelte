@@ -8,6 +8,10 @@
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import Button from '#lib/components/Button.svelte';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import Trash from '@lucide/svelte/icons/trash-2';
+	import { resolve } from '$app/paths';
+	import { formatSize } from '#lib/files.js';
 	import FormField from '#lib/components/FormField.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
@@ -43,6 +47,13 @@
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
+	let uploading = $state(false);
+	let attachmentDeleteOpen = $state(false);
+	let attachmentToDelete: { id: string; fileName: string } | null = $state(null);
+	function askDeleteAttachment(file: { id: string; fileName: string }) {
+		attachmentToDelete = file;
+		attachmentDeleteOpen = true;
+	}
 	let amountOpen = $state(false);
 	let amountKey = $state(0);
 	/** Entry being edited in the amount sheet; null when adding. */
@@ -64,6 +75,8 @@
 			update: 'Änderungen gesichert.',
 			amount: 'Betragsverlauf gesichert.',
 			amountDelete: 'Betrag gelöscht.',
+			attachmentAdd: 'PDF hinzugefügt.',
+			attachmentDelete: 'PDF gelöscht.',
 			archive: 'Dauerposten archiviert.',
 			restore: 'Dauerposten wiederhergestellt.'
 		}[form.action];
@@ -221,6 +234,86 @@
 		</p>
 	</section>
 
+	{#if data.attachments.length || item.canEdit}
+		<section class="mb-8" aria-labelledby="documents-heading">
+			<h2 id="documents-heading" class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
+				Dokumente
+			</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.attachments as file (file.id)}
+					<li class="flex min-h-14 items-center gap-3 pr-2 pl-4">
+						<a
+							href={resolve(`dauerposten/${item.id}/anhang/${file.id}`)}
+							target="_blank"
+							rel="noopener"
+							class="flex min-w-0 flex-1 items-center gap-3 py-2 active:opacity-60"
+						>
+							<FileText class="size-6 shrink-0 text-danger" strokeWidth={1.8} />
+							<span class="min-w-0">
+								<span class="block truncate text-[17px]">{file.fileName}</span>
+								<span class="block text-[13px] text-label-2">
+									{formatSize(file.size)} · {file.createdAt.toLocaleDateString('de-DE')}
+								</span>
+							</span>
+						</a>
+						{#if item.canEdit}
+							<button
+								type="button"
+								aria-label={`${file.fileName} löschen`}
+								onclick={() => askDeleteAttachment(file)}
+								class="grid size-11 shrink-0 place-items-center text-danger active:opacity-60"
+							>
+								<Trash class="size-5" />
+							</button>
+						{/if}
+					</li>
+				{/each}
+				{#if item.canEdit}
+					<li>
+						<form
+							method="POST"
+							action="?/attachmentAdd"
+							enctype="multipart/form-data"
+							use:enhance={() => {
+								uploading = true;
+								return async ({ update }) => {
+									await update();
+									uploading = false;
+								};
+							}}
+						>
+							<label
+								class={[
+									'flex min-h-11 w-full cursor-pointer items-center px-4 py-2.5 text-accent active:bg-fill',
+									uploading && 'opacity-50'
+								]}
+							>
+								{uploading ? 'Wird hochgeladen …' : 'PDF hinzufügen'}
+								<input
+									type="file"
+									name="file"
+									accept="application/pdf,.pdf"
+									class="sr-only"
+									disabled={uploading}
+									onchange={(e) => e.currentTarget.form?.requestSubmit()}
+								/>
+							</label>
+						</form>
+					</li>
+				{/if}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				{item.canEdit
+					? 'Z. B. Vertrag oder Preiserhöhung, nur PDF bis 10 MB.'
+					: data.attachments.length
+						? 'Tippen zum Öffnen.'
+						: ''}
+			</p>
+		</section>
+	{/if}
+
 	{#if item.canEdit}
 		<form
 			method="POST"
@@ -276,6 +369,33 @@
 				/>{/if}
 			{#if item.creditorId}<ListRow label="Gläubiger-ID" value={item.creditorId} />{/if}
 			{#if item.isSalary}<ListRow label="Gehalt" value="Ja" />{/if}
+		</ListGroup>
+	{/if}
+
+	{#if !item.canEdit && (item.customerNumber || item.note || contract?.cancelName || contract?.cancelStreet || contract?.cancelCity || contract?.cancelEmail)}
+		<ListGroup header="Details">
+			{#if item.customerNumber}<ListRow label="Kundennummer" value={item.customerNumber} />{/if}
+			{#if contract && (contract.cancelName || contract.cancelStreet || contract.cancelCity || contract.cancelEmail)}
+				<li class="px-4 py-2.5">
+					<p class="text-[13px] text-label-2">Kündigungsadresse</p>
+					<p class="text-[17px] whitespace-pre-line">
+						{[
+							contract.cancelName,
+							contract.cancelStreet,
+							[contract.cancelPostalCode, contract.cancelCity].filter(Boolean).join(' '),
+							contract.cancelEmail
+						]
+							.filter(Boolean)
+							.join('\n')}
+					</p>
+				</li>
+			{/if}
+			{#if item.note}
+				<li class="px-4 py-2.5">
+					<p class="text-[13px] text-label-2">Notiz</p>
+					<p class="text-[17px] whitespace-pre-line">{item.note}</p>
+				</li>
+			{/if}
 		</ListGroup>
 	{/if}
 
@@ -372,10 +492,30 @@
 {#if canManage}
 	<Sheet bind:open={deleteOpen} title="Dauerposten löschen">
 		<p class="mb-6 px-4 text-center text-[15px]">
-			„{item.name}“ wird mit seinem Betragsverlauf endgültig gelöscht. Hat er schon Buchungen, kann
-			er nur archiviert werden.
+			„{item.name}“ wird mit Betragsverlauf und Dokumenten endgültig gelöscht. Hat er schon
+			Buchungen, kann er nur archiviert werden.
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
+			<Button type="submit" variant="destructive">Löschen</Button>
+		</form>
+	</Sheet>
+{/if}
+
+{#if item.canEdit}
+	<Sheet bind:open={attachmentDeleteOpen} title="PDF löschen">
+		<p class="mb-6 px-4 text-center text-[15px]">
+			„{attachmentToDelete?.fileName}“ wird endgültig gelöscht.
+		</p>
+		<form
+			method="POST"
+			action="?/attachmentDelete"
+			use:enhance={() =>
+				async ({ update }) => {
+					attachmentDeleteOpen = false;
+					await update();
+				}}
+		>
+			<input type="hidden" name="attachmentId" value={attachmentToDelete?.id ?? ''} />
 			<Button type="submit" variant="destructive">Löschen</Button>
 		</form>
 	</Sheet>

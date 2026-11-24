@@ -25,6 +25,12 @@ export type Contract = {
 	/** Reminder lead in days; null = default from the settings. */
 	leadDays: number | null;
 	cancelledOn: string | null;
+	/** Address for the cancellation (all optional). */
+	cancelName: string | null;
+	cancelStreet: string | null;
+	cancelPostalCode: string | null;
+	cancelCity: string | null;
+	cancelEmail: string | null;
 };
 
 const UNIT_LABELS: Record<CustomUnit, [string, string]> = {

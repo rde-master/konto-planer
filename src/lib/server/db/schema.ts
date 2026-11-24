@@ -202,6 +202,8 @@ export const recurringItems = pgTable(
 		variable: boolean('variable').notNull().default(false),
 		isSalary: boolean('is_salary').notNull().default(false),
 		paymentMethod: paymentMethod('payment_method'),
+		customerNumber: text('customer_number'),
+		note: text('note'),
 		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -250,6 +252,12 @@ export const contracts = pgTable(
 		/** Reminder lead in days; null = default from the settings. */
 		leadDays: integer('lead_days'),
 		cancelledOn: date('cancelled_on', { mode: 'string' }),
+		/** Address for the cancellation letter. */
+		cancelName: text('cancel_name'),
+		cancelStreet: text('cancel_street'),
+		cancelPostalCode: text('cancel_postal_code'),
+		cancelCity: text('cancel_city'),
+		cancelEmail: text('cancel_email'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
@@ -270,3 +278,21 @@ export const appSettings = pgTable(
 );
 
 export type ContractRow = typeof contracts.$inferSelect;
+
+/** PDF attachments of a recurring item. The file lives in the data volume as `<id>.pdf`. */
+export const recurringAttachments = pgTable(
+	'recurring_attachments',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		fileName: text('file_name').notNull(),
+		size: integer('size').notNull(),
+		uploadedBy: uuid('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('recurring_attachments_item_idx').on(t.recurringId)]
+);
+
+export type RecurringAttachment = typeof recurringAttachments.$inferSelect;
