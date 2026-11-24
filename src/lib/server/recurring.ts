@@ -16,7 +16,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor, type AccountWithLevel } from './accounts.js';
 import type { RecurringValues } from './recurring-rules.js';
-import { amountOn, intervalLabel, nextDue } from '../recurring.js';
+import { amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
 import { endDateAfterSave, periodLabel, renewalLabel, type Contract } from '../contracts.js';
 
@@ -37,12 +37,14 @@ export type RecurringSummary = RecurringItem & {
 	/** Contract data of a cancellable expense. */
 	contract: Contract | null;
 	amount: number | null;
+	/** Amount history, oldest first (for planned changes). */
+	amounts: AmountEntry[];
 	nextDue: string | null;
 	canEdit: boolean;
 	canManage: boolean;
 };
 
-export type RecurringDetail = RecurringSummary & {
+export type RecurringDetail = Omit<RecurringSummary, 'amounts'> & {
 	amounts: RecurringAmount[];
 	createdByName: string | null;
 };
@@ -174,16 +176,18 @@ export async function listRecurringFor(viewer: Viewer): Promise<RecurringSummary
 	const today = todayBerlin();
 	return items.map((item) => {
 		const account = accountById.get(item.accountId)!;
+		const history = amounts
+			.filter((a) => a.recurringId === item.id)
+			.map(({ amount, validFrom }) => ({ amount, validFrom }))
+			.sort((a, b) => a.validFrom.localeCompare(b.validFrom));
 		return {
 			...item,
 			account,
 			targetAccount: item.targetAccountId ? accountById.get(item.targetAccountId)! : null,
 			category: category(item.categoryId),
 			contract: contractById.get(item.id) ?? null,
-			amount: amountOn(
-				amounts.filter((a) => a.recurringId === item.id),
-				today
-			),
+			amount: amountOn(history, today),
+			amounts: history,
 			nextDue: item.archivedAt ? null : nextDue(item, today),
 			canEdit: itemEditable(viewer, account, item),
 			canManage: itemManageable(viewer, account, item)

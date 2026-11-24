@@ -15,6 +15,13 @@
 	import { formatDay, todayBerlin } from '#lib/dates.js';
 	import { effectOn, intervalLabel, monthlyEquivalent } from '#lib/recurring.js';
 	import { cancelSoon, contractStatus } from '#lib/contracts.js';
+	import {
+		formatDiff,
+		formatPercent,
+		monthlySteps,
+		plannedChanges,
+		type AmountChange
+	} from '#lib/planned.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -23,6 +30,8 @@
 	type Account = Item['account'];
 	/** An item seen from one account: a transfer is listed at its source and its target. */
 	type Entry = { item: Item; accountId: string; effect: number };
+
+	const today = todayBerlin();
 
 	let createOpen = $state(false);
 	let pending = $state(false);
@@ -53,16 +62,56 @@
 		}
 		return Object.values(byAccount)
 			.sort((a, b) => a.account.name.localeCompare(b.account.name, 'de'))
-			.map((g) => ({
-				...g,
-				// Running items first by next due date, ended ones last.
-				entries: g.entries.sort((a, b) =>
-					(a.item.nextDue ?? '9999').localeCompare(b.item.nextDue ?? '9999')
-				),
-				expense: -total(g.entries.filter((e) => e.effect < 0)),
-				income: total(g.entries.filter((e) => e.effect > 0))
-			}));
+			.map((g) => {
+				const expense = -total(g.entries.filter((e) => e.effect < 0));
+				const income = total(g.entries.filter((e) => e.effect > 0));
+				const running = g.entries.filter((e) => e.item.nextDue !== null);
+				return {
+					...g,
+					// Running items first by next due date, ended ones last.
+					entries: g.entries.sort((a, b) =>
+						(a.item.nextDue ?? '9999').localeCompare(b.item.nextDue ?? '9999')
+					),
+					expense,
+					income,
+					steps: monthlySteps(
+						running.map((e) => ({
+							amounts: e.item.amounts,
+							endDate: e.item.endDate,
+							schedule: e.item,
+							sign: effectOn(e.item, e.accountId, 1) < 0 ? -1 : 1
+						})),
+						today,
+						{ expense, income }
+					)
+				};
+			});
 	});
+
+	/** Next planned change of a running item. */
+	function nextChange(item: Item): AmountChange | null {
+		if (item.archivedAt || !item.nextDue) return null;
+		return plannedChanges(item.amounts, today, item.endDate)[0] ?? null;
+	}
+
+	/** All planned changes of running items, earliest first (transfers once). */
+	const changes = $derived(
+		active
+			.filter((i) => i.nextDue !== null)
+			.flatMap((item) =>
+				plannedChanges(item.amounts, today, item.endDate).map((change) => ({ item, change }))
+			)
+			.sort(
+				(a, b) =>
+					a.change.validFrom.localeCompare(b.change.validFrom) ||
+					a.item.name.localeCompare(b.item.name, 'de')
+			)
+	);
+
+	/** "870,00 € (+60,00 €)" – the difference only when there is one. */
+	function withDiff(total: number, diff: number) {
+		return diff ? `${formatEuro(total)} (${formatDiff(diff)})` : formatEuro(total);
+	}
 
 	/** Monthly equivalent of running entries, signed. */
 	function total(entries: Entry[]) {
@@ -116,7 +165,6 @@
 		form && 'input' in form && form.input?.contract ? form.input : null
 	);
 
-	const today = todayBerlin();
 	/** Running contracts whose notice deadline is within the lead time, earliest first. */
 	const cancelSoonEntries = $derived(
 		active
@@ -141,6 +189,7 @@
 				? ArrowDownLeft
 				: ArrowUpRight}
 	{@const color = item.kind === 'transfer' ? 'indigo' : (item.category?.color ?? 'gray')}
+	{@const change = nextChange(item)}
 	<li>
 		<a
 			href={resolve(`dauerposten/${item.id}`)}
@@ -160,6 +209,11 @@
 				<span class="block truncate text-[13px] text-label-2">
 					{subtitle({ item, accountId, effect })}
 				</span>
+				{#if change}
+					<span class="block truncate text-[13px] text-accent tabular">
+						ab {formatDay(change.validFrom)}: {formatEuro(change.amount)}
+					</span>
+				{/if}
 			</span>
 			<span class="shrink-0 text-right">
 				<span class={['block text-[17px] tabular', effect > 0 && 'text-income']}>
@@ -241,6 +295,46 @@
 		</section>
 	{/if}
 
+	{#if changes.length}
+		<section class="mb-8" aria-label="Geplante Änderungen">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Geplante Änderungen</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each changes as { item, change } (`${item.id}-${change.validFrom}`)}
+					<li>
+						<a
+							href={resolve(`dauerposten/${item.id}`)}
+							class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+						>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-[17px]">{item.name}</span>
+								<span class="block truncate text-[13px] text-label-2 tabular">
+									ab {formatDay(change.validFrom)}
+								</span>
+								<span class="block truncate text-[13px] text-label-2 tabular">
+									{formatEuro(change.previous)} → {formatEuro(change.amount)}
+								</span>
+							</span>
+							<span class="shrink-0 text-right tabular">
+								<span class="block text-[15px] font-semibold">{formatDiff(change.diff)}</span>
+								{#if change.percent !== null}
+									<span class="block text-[13px] text-label-2">
+										{formatPercent(change.percent)}
+									</span>
+								{/if}
+							</span>
+							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+						</a>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Ab dem Datum rechnen Fälligkeiten und Monatssummen mit dem neuen Betrag.
+			</p>
+		</section>
+	{/if}
+
 	{#each groups as group (group.account.id)}
 		<section class="mb-8" aria-label={group.account.name}>
 			<h2 class="mb-1.5 flex items-center gap-2 px-4 text-[13px] text-label-2 uppercase">
@@ -261,6 +355,14 @@
 			<p class="mt-1.5 px-4 text-[13px] text-label-2 tabular">
 				Pro Monat: Ausgaben {formatEuro(group.expense)} · Einnahmen {formatEuro(group.income)}
 			</p>
+			{#each group.steps as step (step.from)}
+				<p class="px-4 text-[13px] text-label-2 tabular">
+					Ab {formatDay(step.from)}: Ausgaben {withDiff(step.expense, step.expenseDiff)} · Einnahmen {withDiff(
+						step.income,
+						step.incomeDiff
+					)}
+				</p>
+			{/each}
 		</section>
 	{/each}
 

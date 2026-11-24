@@ -15,7 +15,8 @@
 	import FormField from '#lib/components/FormField.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
-	import { formatEuro, formatEuroInput } from '#lib/money.js';
+	import { formatEuro, formatEuroInput, parseEuro } from '#lib/money.js';
+	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
 	import { formatIban } from '#lib/iban.js';
 	import { formatDay } from '#lib/dates.js';
 	import {
@@ -25,7 +26,13 @@
 		reminderDay,
 		renewalLabel
 	} from '#lib/contracts.js';
-	import { KIND_LABELS, PAYMENT_METHOD_LABELS, amountOn, intervalLabel } from '#lib/recurring.js';
+	import {
+		KIND_LABELS,
+		PAYMENT_METHOD_LABELS,
+		amountOn,
+		intervalLabel,
+		monthlyEquivalent
+	} from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -58,6 +65,22 @@
 	let amountKey = $state(0);
 	/** Entry being edited in the amount sheet; null when adding. */
 	let amountEntry: { id: string; amount: number; validFrom: string } | null = $state(null);
+	let amountInput = $state('');
+	let validFromInput = $state('');
+	/** Old and new amount for the entered change, or null while the input is incomplete. */
+	const preview = $derived.by(() => {
+		const next = parseEuro(amountInput);
+		if (next === null || next <= 0 || !validFromInput) return null;
+		const others = item.amounts.filter((a) => a.id !== amountEntry?.id);
+		const previous = amountBefore(others, validFromInput);
+		if (previous === null) return null;
+		return {
+			previous,
+			next,
+			...changeDelta(previous, next),
+			monthly: monthlyEquivalent(next, item) - monthlyEquivalent(previous, item)
+		};
+	});
 
 	const updateInput = $derived(
 		form?.action === 'update' && 'input' in form ? form.input : undefined
@@ -97,6 +120,8 @@
 
 	function openAmount(entry: { id: string; amount: number; validFrom: string } | null) {
 		amountEntry = entry;
+		amountInput = entry ? formatEuroInput(entry.amount) : '';
+		validFromInput = entry?.validFrom ?? data.today;
 		amountKey++;
 		amountOpen = true;
 	}
@@ -224,13 +249,14 @@
 						onclick={() => openAmount(null)}
 						class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
 					>
-						Betrag ändern
+						Änderung planen
 					</button>
 				</li>
 			{/if}
 		</ul>
 		<p class="mt-1.5 px-4 text-[13px] text-label-2">
-			Jede Preisänderung bleibt erhalten. „Gültig ab“ darf auch in der Zukunft liegen.
+			Jede Preisänderung bleibt erhalten. Eine Änderung mit künftigem „Gültig ab“ gilt erst ab dem
+			Tag; bis dahin rechnet die App mit dem bisherigen Betrag.
 		</p>
 	</section>
 
@@ -428,7 +454,7 @@
 {#if item.canEdit}
 	<Sheet
 		bind:open={amountOpen}
-		title={amountEntry ? 'Betrag bearbeiten' : 'Betrag ändern'}
+		title={amountEntry ? 'Betrag bearbeiten' : 'Änderung planen'}
 		confirmLabel="Sichern"
 		formId="amount-form"
 	>
@@ -450,7 +476,7 @@
 					<FormField
 						label="Betrag in €"
 						name="amount"
-						value={amountEntry ? formatEuroInput(amountEntry.amount) : ''}
+						bind:value={amountInput}
 						inputmode="decimal"
 						autocomplete="off"
 						placeholder="0,00"
@@ -461,14 +487,29 @@
 						label="Gültig ab"
 						name="validFrom"
 						type="date"
-						value={amountEntry?.validFrom ?? data.today}
+						bind:value={validFromInput}
 						required
 						error={amountErrors?.validFrom}
 					/>
 				</ul>
-				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				<p class="mt-1.5 mb-8 px-4 text-[13px] text-label-2">
 					Ab diesem Tag gilt der neue Betrag; frühere Fälligkeiten behalten den alten.
 				</p>
+				{#if preview}
+					<ListGroup header="Vorschau">
+						<ListRow label="Bisher" value={formatEuro(preview.previous)} />
+						<ListRow label="Neu" value={formatEuro(preview.next)} />
+						<ListRow
+							label="Differenz"
+							value={preview.percent === null
+								? formatDiff(preview.diff)
+								: `${formatDiff(preview.diff)} · ${formatPercent(preview.percent)}`}
+						/>
+						{#if item.interval !== 'once' && item.interval !== 'monthly'}
+							<ListRow label="Pro Monat" value={formatDiff(preview.monthly)} />
+						{/if}
+					</ListGroup>
+				{/if}
 			{/key}
 		</form>
 		{#if amountEntry && item.amounts.length > 1}
