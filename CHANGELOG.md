@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.22.0] – Sparziele
+
+### Neu
+
+- Neue Seite „Sparziele“ (unter „Mehr“ und auf jeder Sparbuch-Seite): mehrere Ziele je Sparbuch mit Name, Zielbetrag und optionalem Zieldatum
+- Mit „Zurücklegen“ reservierst du einen Teil des Sparbuch-Stands für ein Ziel; die Sparbuch-Seite zeigt, was noch frei ist
+- Jedes Ziel zeigt Fortschritt, was noch fehlt, und die nötige Sparrate im Monat bis zum Zieldatum
+- Ein Ziel lässt sich mit einer Ausgabe verknüpfen, einmalig (z. B. Urlaub) oder regelmäßig (z. B. Jahresversicherung); Datum und Betrag kommen dann von der Zahlung
+- Am Tag der Zahlung bucht die App das Zurückgelegte (höchstens den Zielbetrag) vorläufig vom Sparbuch auf das Girokonto der Zahlung; im Mindestbestand zählt diese Umbuchung schon vorher, die Zahlung belastet ihn also nur mit dem Rest
+- Bei regelmäßigen Zahlungen spart das Ziel danach für die nächste Fälligkeit weiter
+- Eine Sparziel-Umbuchung lässt sich an der Buchung zurücknehmen; der Betrag gilt dann wieder als zurückgelegt
+- Anlegen, Ändern, Zurücklegen, Löschen und die Umbuchungen stehen im Protokoll
+
 ## [0.21.0] – Sparbuch-Zinsen
 
 ### Neu

@@ -12,6 +12,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import AccountFields from '#lib/components/AccountFields.svelte';
 	import FormField from '#lib/components/FormField.svelte';
+	import GoalRow from '#lib/components/GoalRow.svelte';
 	import BalanceChart from '#lib/components/BalanceChart.svelte';
 	import { INTEREST_RHYTHMS, INTEREST_RHYTHM_LABELS, formatRate } from '#lib/interest.js';
 	import { CUTOFF_MODE_LABELS, CUTOFF_MODES } from '#lib/minimum.js';
@@ -296,6 +297,44 @@
 				</ul>
 			</section>
 		{/if}
+	{/if}
+
+	{#if data.goals && (data.goals.length || (canEdit && !data.account.archivedAt))}
+		{@const allocated = data.goals.reduce((sum, g) => sum + g.allocated, 0)}
+		<section class="mb-8" aria-label="Sparziele">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.goals as goal (goal.id)}<GoalRow {goal} />{/each}
+				{#if data.goals.length}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Frei</span>
+						<span
+							class={['tabular', data.balance - allocated < 0 ? 'text-danger' : 'text-label-2']}
+							aria-label="Frei für Sparziele"
+						>
+							{formatEuro(data.balance - allocated)}
+						</span>
+					</li>
+				{/if}
+				{#if canEdit}
+					<li>
+						<a
+							href="{resolve('sparziele')}?konto={data.account.id}"
+							class="flex min-h-11 w-full items-center px-4 py-2.5 text-[17px] text-accent active:bg-fill"
+						>
+							Sparziel anlegen
+						</a>
+					</li>
+				{/if}
+			</ul>
+			{#if data.balance - allocated < 0}
+				<p class="mt-1.5 px-4 text-[13px] text-danger">
+					Für die Sparziele ist mehr zurückgelegt, als auf dem Sparbuch ist.
+				</p>
+			{/if}
+		</section>
 	{/if}
 
 	{#if data.interest}

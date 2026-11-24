@@ -6,6 +6,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type Viewer } from './account-rules.js';
 import { getAccountFor, type AccountWithLevel } from './accounts.js';
 import { listRecurringFor, type RecurringSummary } from './recurring.js';
+import { goalEvents } from './goals.js';
 import { isValidDate } from './recurring-rules.js';
 import { duesBetween, openPayments } from '../due.js';
 import {
@@ -82,6 +83,10 @@ export async function plansFor(
 				gt(bookings.bookingDate, today)
 			)
 		);
+	const goals = await goalEvents(
+		giro.map((a) => a.id),
+		today
+	);
 	for (const account of giro) {
 		const candidates = candidatesOf(items, account.id);
 		const chosen = candidates.find((i) => i.id === account.cutoffRecurringId);
@@ -108,7 +113,8 @@ export async function plansFor(
 					date: b.bookingDate,
 					amount: b.amount,
 					label: b.purpose ?? b.counterparty ?? 'Buchung'
-				}))
+				})),
+			...(goals.get(account.id) ?? [])
 		];
 		const plannedLater = openPayments(
 			items.filter((i) => i.interval === 'once'),

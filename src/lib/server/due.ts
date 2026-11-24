@@ -16,6 +16,7 @@ import { duesUntil, reconcileDues, type ExpectedDue } from '../due.js';
 import { todayBerlin } from '../dates.js';
 import { isValidDate } from './recurring-rules.js';
 import { syncInterest } from './interest.js';
+import { syncGoals } from './goals.js';
 
 export class DueError extends Error {}
 
@@ -104,7 +105,9 @@ async function refreshBookings(tx: Tx, item: RecurringItem, rows: DueItem[]) {
  */
 export async function syncDues(ids?: string[], today = todayBerlin()): Promise<number> {
 	const changed = await syncDueItems(ids, today);
-	// Transfers into savings accounts change their interest.
+	// Savings goals transfer on the due days of their payments.
+	await syncGoals(today);
+	// Transfers into and out of savings accounts change their interest.
 	await syncInterest(undefined, today);
 	return changed;
 }

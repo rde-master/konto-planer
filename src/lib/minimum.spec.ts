@@ -52,6 +52,20 @@ describe('minimumPlan', () => {
 		expect(plan.exceedsOverdraft).toBe(true);
 		expect(plan.steps.map((s) => s.label)).toEqual(['Miete', 'Umbuchung', 'Versicherung', 'Handy']);
 	});
+	it('a savings goal transfer counts before the payment it is meant for', () => {
+		const plan = minimumPlan(
+			100_00,
+			0,
+			[
+				ev('2026-11-30', -800_00, 'Versicherung'),
+				{ ...ev('2026-11-30', 800_00, 'Sparziel „Versicherung“'), first: true }
+			],
+			'2026-12-01',
+			today
+		);
+		expect(plan.minimum).toBe(0);
+		expect(plan.steps.map((s) => s.label)).toEqual(['Sparziel „Versicherung“', 'Versicherung']);
+	});
 	it('on the same day outgoing payments count before incoming ones', () => {
 		const plan = minimumPlan(
 			100_00,

@@ -12,6 +12,7 @@ import {
 	updateAmount,
 	updateRecurring
 } from '#lib/server/recurring.js';
+import { listGoalsFor } from '#lib/server/goals.js';
 import {
 	validateAmount,
 	validateContract,
@@ -55,8 +56,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		: duesBetween(item, item.amounts, addDays(today, 1), addMonths(today, 60)).slice(0, 6);
 	// Viewers of the receiving account only see its side of a transfer.
 	const ownSide = item.account.level !== null;
+	const goals =
+		item.kind === 'expense' ? await listGoalsFor(locals.user!, { recurringId: item.id }) : [];
 	return {
 		item,
+		goals,
 		defaultLeadDays: settings.defaultLeadDays,
 		attachments,
 		...options,

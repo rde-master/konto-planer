@@ -45,7 +45,13 @@ export function resolveCutoff(
 	return { date: end, mode, fallback: null };
 }
 
-export type PlanEvent = { date: string; amount: number; label: string };
+export type PlanEvent = {
+	date: string;
+	amount: number;
+	label: string;
+	/** Counted before the payments of its day (transfers of savings goals for that payment). */
+	first?: boolean;
+};
 
 export type MinimumPlan = {
 	/** Amount that must be on the account today (>= 0): deepest drop plus buffer. */
@@ -66,7 +72,7 @@ export type MinimumPlan = {
 
 /**
  * Walks the events after today up to and including the cut-off day; on each day outgoing
- * payments first, then incoming ones (cautious). The minimum is the deepest drop below today
+ * payments first, then incoming ones (cautious), except events marked `first`. The minimum is the deepest drop below today
  * plus the account's buffer.
  */
 export function minimumPlan(
@@ -82,6 +88,7 @@ export function minimumPlan(
 		.sort(
 			(a, b) =>
 				a.date.localeCompare(b.date) ||
+				Number(!a.first) - Number(!b.first) ||
 				Number(a.amount > 0) - Number(b.amount > 0) ||
 				a.label.localeCompare(b.label, 'de')
 		);
