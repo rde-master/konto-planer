@@ -5,6 +5,7 @@ import {
 	deleteBooking,
 	getBookingFor,
 	setBookingCategory,
+	setSplit,
 	updateBooking
 } from '#lib/server/bookings.js';
 import { validateBooking } from '#lib/server/booking-rules.js';
@@ -17,6 +18,7 @@ import { DueError, changeDue, dueForBooking, skipDue } from '#lib/server/due.js'
 import { parseEuro } from '#lib/money.js';
 import { InterestError, creditForBooking, setCreditAmount } from '#lib/server/interest.js';
 import { GoalError, goalTransferForBooking, undoGoalTransfer } from '#lib/server/goals.js';
+import { validateSplit } from '#lib/splits.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -152,6 +154,28 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	/** Split into categories; no rows = remove the split. */
+	split: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const booking = await getBookingFor(user, params.id);
+		if (!booking) error(404, 'Buchung nicht gefunden.');
+		const data = await request.formData();
+		const amounts = data.getAll('partAmount').map((v) => (typeof v === 'string' ? v : ''));
+		const cats = data.getAll('partCategory').map((v) => (typeof v === 'string' ? v : ''));
+		const inputs = amounts.map((amount, i) => ({ amount, categoryId: cats[i] ?? '' }));
+		const { ctx } = await bookingFormContext(user);
+		const result = validateSplit(booking.amount, inputs, ctx.categoryIds);
+		if (!result.parts) return fail(400, { action: 'split', splitErrors: result.errors });
+		try {
+			await setSplit(user, params.id, result.parts);
+		} catch (e) {
+			if (e instanceof BookingError)
+				return fail(400, { action: 'split', splitErrors: [e.message] });
+			throw e;
+		}
+		return { action: 'split', success: true };
 	},
 
 	/** Category of an imported booking (remembered for the payee). */

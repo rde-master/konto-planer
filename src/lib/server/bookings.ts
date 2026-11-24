@@ -1,13 +1,16 @@
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from './db/index.js';
 import {
 	accounts,
+	bookingParts,
 	bookings,
 	categories,
 	counterpartyCategories,
 	type Booking
 } from './db/schema.js';
 import { payeeKey } from '../import-match.js';
+import type { Part } from '../splits.js';
+import { formatEuro } from '../money.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
@@ -24,6 +27,13 @@ export class BookingError extends Error {}
 
 type Executor = Pick<typeof db, 'select'>;
 
+export type PartSummary = {
+	id: string;
+	amount: number;
+	categoryId: string | null;
+	category: { name: string; color: string | null; parentName: string | null } | null;
+};
+
 export type BookingSummary = Booking & {
 	account: { id: string; name: string; color: string; level: AccessLevel };
 	category: { name: string; color: string | null; parentName: string | null } | null;
@@ -32,6 +42,10 @@ export type BookingSummary = Booking & {
 	canDelete: boolean;
 	/** Imported bookings: only the category can be changed. */
 	canCategorize: boolean;
+	/** Manual and imported bookings can be split into categories. */
+	canSplit: boolean;
+	/** Parts of a split booking (empty if not split). */
+	parts: PartSummary[];
 	/** False for bookings before the account's opening date. */
 	counts: boolean;
 };
@@ -55,6 +69,26 @@ function deletable(
 		canEditAccount(account.level, account.archivedAt !== null) &&
 		(booking.source === 'manual' || booking.source === 'adjustment')
 	);
+}
+
+/** Real money (manual or imported) may be split by editors. */
+function splittable(
+	account: { level: AccessLevel; archivedAt: Date | null },
+	booking: Pick<Booking, 'source'>
+) {
+	return (
+		canEditAccount(account.level, account.archivedAt !== null) &&
+		(booking.source === 'manual' || booking.source === 'import')
+	);
+}
+
+async function partsOf(executor: Executor, ids: string[]) {
+	if (!ids.length) return [];
+	return executor
+		.select()
+		.from(bookingParts)
+		.where(inArray(bookingParts.bookingId, ids))
+		.orderBy(asc(bookingParts.position));
 }
 
 /** The category of an imported booking may be changed by editors (the rest comes from the bank). */
@@ -103,10 +137,23 @@ export async function listBookingsFor(
 		.limit(limit + 1);
 	const byId = new Map(visible.map((a) => [a.id, a]));
 	const category = await categoryInfo(db);
+	const parts = await partsOf(
+		db,
+		rows.slice(0, limit).map((b) => b.id)
+	);
 	return {
 		bookings: rows.slice(0, limit).map((b) => {
 			const account = byId.get(b.accountId)!;
 			return {
+				canSplit: splittable(account, b),
+				parts: parts
+					.filter((p) => p.bookingId === b.id)
+					.map((p) => ({
+						id: p.id,
+						amount: p.amount,
+						categoryId: p.categoryId,
+						category: category(p.categoryId)
+					})),
 				...b,
 				account: { id: account.id, name: account.name, color: account.color, level: account.level },
 				category: category(b.categoryId),
@@ -128,8 +175,16 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 	const account = await getAccountFor(viewer, b.accountId);
 	if (!account) return null;
 	const category = await categoryInfo(db);
+	const parts = await partsOf(db, [b.id]);
 	return {
 		...b,
+		canSplit: splittable(account, b),
+		parts: parts.map((p) => ({
+			id: p.id,
+			amount: p.amount,
+			categoryId: p.categoryId,
+			category: category(p.categoryId)
+		})),
 		account: { id: account.id, name: account.name, color: account.color, level: account.level },
 		category: category(b.categoryId),
 		canEdit: editable(account, b),
@@ -222,6 +277,16 @@ export async function updateBooking(
 	values: BookingValues
 ) {
 	const current = await requireEditable(actor, id);
+	if (current.parts.length) {
+		const covered = current.parts.reduce((sum, p) => sum + p.amount, 0);
+		if (
+			Math.sign(covered) !== Math.sign(values.amount) ||
+			Math.abs(covered) > Math.abs(values.amount)
+		)
+			throw new BookingError(
+				'Der Betrag passt nicht mehr zur Aufteilung. Bitte erst die Aufteilung ändern.'
+			);
+	}
 	if (values.accountId !== current.accountId) {
 		const account = await getAccountFor(actor, values.accountId);
 		if (
@@ -292,6 +357,42 @@ export async function setBookingCategory(
 				action: 'update',
 				entityId: id,
 				entityLabel: label(valuesOf(current), after.category),
+				...changes
+			});
+	});
+}
+
+/** Text of a split for the audit log: "Lebensmittel −12,50 €; Drogerie −7,00 €". */
+async function splitText(executor: Executor, parts: Part[]): Promise<string | null> {
+	if (!parts.length) return null;
+	const category = await categoryInfo(executor);
+	return parts
+		.map((p) => `${category(p.categoryId)?.name ?? 'Ohne Kategorie'} ${formatEuro(p.amount)}`)
+		.join('; ');
+}
+
+/** Replaces the parts of a booking (empty = no longer split). */
+export async function setSplit(actor: NonNullable<Actor> & Viewer, id: string, parts: Part[]) {
+	const current = await getBookingFor(actor, id);
+	if (!current) throw new BookingError('Buchung nicht gefunden.');
+	if (!current.canSplit) throw new BookingError('Diese Buchung darfst du nicht aufteilen.');
+	await db.transaction(async (tx) => {
+		await tx.delete(bookingParts).where(eq(bookingParts.bookingId, id));
+		if (parts.length)
+			await tx
+				.insert(bookingParts)
+				.values(parts.map((p, i) => ({ ...p, bookingId: id, position: i })));
+		const changes = diff(
+			{ split: await splitText(tx, current.parts) },
+			{ split: await splitText(tx, parts) }
+		);
+		if (changes)
+			await audit(tx, {
+				actor,
+				entityType: 'booking',
+				action: 'update',
+				entityId: id,
+				entityLabel: label(valuesOf(current), current.category?.name ?? null),
 				...changes
 			});
 	});

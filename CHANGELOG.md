@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.29.0] – Splitbuchung
+
+### Neu
+
+- Manuelle und importierte Buchungen lassen sich auf mehrere Kategorien aufteilen („Aufteilen“ an der Buchung), z. B. ein Einkauf mit Lebensmitteln und Drogerie
+- Bis zu zehn Teile mit Betrag und Kategorie; was nicht verteilt ist, bleibt als Rest bei der Kategorie der Buchung und wird beim Eingeben laufend angezeigt
+- Die Buchungsliste zeigt aufgeteilte Buchungen mit der Zahl der Kategorien
+- Ändert sich der Betrag einer manuellen Buchung, prüft die App, ob die Aufteilung noch passt
+- Ersetzt ein Import eine aufgeteilte manuelle Buchung, übernimmt die importierte Buchung die Aufteilung; „Import rückgängig“ stellt sie wieder her
+- Aufteilungen stehen im Protokoll
+
 ## [0.28.0] – Regel-Editor für Kategorien
 
 ### Neu
