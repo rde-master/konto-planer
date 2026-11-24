@@ -303,3 +303,50 @@ export const recurringAttachments = pgTable(
 );
 
 export type RecurringAttachment = typeof recurringAttachments.$inferSelect;
+
+export const bookingSource = pgEnum('booking_source', ['manual', 'import', 'adjustment']);
+
+/**
+ * Real money movement on an account (positive = in, negative = out, euro cents). Manual entries
+ * come from the quick entry; imports and adjustments follow in later versions.
+ */
+export const bookings = pgTable(
+	'bookings',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'restrict' }),
+		bookingDate: date('booking_date', { mode: 'string' }).notNull(),
+		valueDate: date('value_date', { mode: 'string' }),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		/** Payee or payer. */
+		counterparty: text('counterparty'),
+		iban: text('iban'),
+		/** "Verwendungszweck" (for manual entries: a free note). */
+		purpose: text('purpose'),
+		/** "Buchungstext" of the bank, e.g. "Lastschrift". */
+		bookingText: text('booking_text'),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		source: bookingSource('source').notNull(),
+		/** Balance after the booking as reported by the bank export. */
+		balanceAfter: bigint('balance_after', { mode: 'number' }),
+		/** Duplicate check for imports. */
+		checksum: text('checksum'),
+		/** Recurring item this booking fulfils. */
+		recurringId: uuid('recurring_id').references(() => recurringItems.id, {
+			onDelete: 'restrict'
+		}),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('bookings_account_date_idx').on(t.accountId, t.bookingDate),
+		index('bookings_category_idx').on(t.categoryId),
+		index('bookings_recurring_idx').on(t.recurringId),
+		check('bookings_amount_not_zero', sql`${t.amount} <> 0`)
+	]
+);
+
+export type Booking = typeof bookings.$inferSelect;

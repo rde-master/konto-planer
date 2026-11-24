@@ -29,6 +29,22 @@ async function auditFields(executor: Executor, c: Pick<Category, 'name' | 'paren
 	return { name: c.name, parent, color: c.color };
 }
 
+/** Looks up category name, inherited color and parent name by id. */
+export async function categoryInfo(executor: Executor) {
+	const rows = await executor.select().from(categories);
+	const byId = new Map(rows.map((c) => [c.id, c]));
+	return (id: string | null) => {
+		const c = id ? byId.get(id) : undefined;
+		if (!c) return null;
+		const parent = c.parentId ? byId.get(c.parentId) : undefined;
+		return {
+			name: c.name,
+			color: parent ? parent.color : c.color,
+			parentName: parent?.name ?? null
+		};
+	};
+}
+
 export function listCategories(): Promise<Category[]> {
 	return db.select().from(categories).orderBy(asc(categories.name));
 }

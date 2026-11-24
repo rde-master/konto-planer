@@ -3,8 +3,18 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { SECTIONS, TABS, isActive, isTabActive } from '#lib/navigation.js';
+	import Plus from '@lucide/svelte/icons/plus';
+	import QuickEntry from './QuickEntry.svelte';
 
-	let { children }: { children: Snippet } = $props();
+	type QuickOptions = {
+		bookingAccounts: { value: string; label: string }[];
+		categoryGroups: { label: string; options: { value: string; label: string }[] }[];
+	};
+
+	/** `quick`: options of the quick entry; without accounts the plus button is hidden. */
+	let { children, quick }: { children: Snippet; quick?: QuickOptions } = $props();
+
+	let quickEntry: { start: () => void } | undefined = $state();
 </script>
 
 <div class="min-h-dvh md:flex">
@@ -35,9 +45,21 @@
 				</li>
 			{/each}
 		</ul>
+		{#if quick?.bookingAccounts.length}
+			<div class="mt-auto px-1 pb-1">
+				<button
+					type="button"
+					onclick={() => quickEntry?.start()}
+					class="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold text-accent-contrast active:opacity-80"
+				>
+					<Plus class="size-5" strokeWidth={2.4} />
+					Schnellerfassung
+				</button>
+			</div>
+		{/if}
 	</nav>
 
-	<main class="min-w-0 flex-1 pb-32 md:pb-10">
+	<main class="min-w-0 flex-1 pb-48 md:pb-10">
 		{@render children()}
 	</main>
 
@@ -65,4 +87,11 @@
 			{/each}
 		</ul>
 	</nav>
+	{#if quick?.bookingAccounts.length}
+		<QuickEntry
+			bind:this={quickEntry}
+			accounts={quick.bookingAccounts}
+			categories={quick.categoryGroups}
+		/>
+	{/if}
 </div>

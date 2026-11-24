@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import Landmark from '@lucide/svelte/icons/landmark';
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -85,6 +87,19 @@
 			<p class="text-[13px] text-label-2">Startsaldo am {formatDay(account.openingDate)}</p>
 		</div>
 	</section>
+
+	<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<li>
+			<a
+				href={resolve(`buchungen?konto=${account.id}`)}
+				class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+			>
+				<span class="flex-1 text-[17px]">Buchungen</span>
+				<span class="text-label-2 tabular">{data.bookingCount}</span>
+				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+			</a>
+		</li>
+	</ul>
 
 	{#if canEdit}
 		<form

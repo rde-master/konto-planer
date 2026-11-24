@@ -1,3 +1,4 @@
+import { countBookings } from '#lib/server/bookings.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { requireAdmin } from '#lib/server/guards.js';
 import {
@@ -24,7 +25,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		account,
 		isAdmin,
 		access: isAdmin ? await listAccess(account.id) : [],
-		hasData: isAdmin ? await accountHasData(account.id) : true
+		hasData: isAdmin ? await accountHasData(account.id) : true,
+		bookingCount: await countBookings(account.id)
 	};
 };
 

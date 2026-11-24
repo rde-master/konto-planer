@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.14.0] – Buchungen und Schnellerfassung
+
+### Neu
+
+- Runder Plus-Knopf auf jeder Seite (am Handy über der Tab-Leiste, am Desktop in der Seitenleiste): Ausgabe oder Einnahme mit Betrag, Konto und Kategorie erfassen, gebucht wird mit dem heutigen Datum
+- Die Schnellerfassung merkt sich auf jedem Gerät das zuletzt benutzte Konto
+- Neue Seite „Buchungen“: alle Buchungen nach Tagen gruppiert, filterbar nach Konto
+- Buchung mit Datum, Empfänger/Zahler und Notiz erfassen; Buchungen ändern und löschen
+- Konten zeigen die Anzahl ihrer Buchungen und führen direkt zur gefilterten Liste
+- Buchungen dürfen nur auf Girokonten mit Recht „Bearbeiten“ erfasst werden; wer ein Konto nur sehen darf, sieht die Buchungen schreibgeschützt
+- Konten mit Buchungen lassen sich nur noch archivieren, nicht löschen
+- Anlegen, Ändern und Löschen von Buchungen stehen im Protokoll
+
 ## [0.13.0] – Dauerposten pausieren
 
 ### Neu
