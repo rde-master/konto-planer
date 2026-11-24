@@ -4,6 +4,9 @@
 	import Tag from '@lucide/svelte/icons/tag';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Page from '#lib/components/Page.svelte';
+	import ListGroup from '#lib/components/ListGroup.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Wand from '@lucide/svelte/icons/wand-sparkles';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import FormField from '#lib/components/FormField.svelte';
@@ -165,6 +168,16 @@
 			</ul>
 		</section>
 	{/each}
+	<ListGroup
+		footer="Regeln setzen beim Import die Kategorie, z. B. „Verwendungszweck enthält Miete → Wohnen“."
+	>
+		<ListRow
+			label="Regeln für den Import"
+			href="kategorien/regeln"
+			icon={Wand}
+			iconColor="bg-[#5856d6]"
+		/>
+	</ListGroup>
 </Page>
 
 <Sheet

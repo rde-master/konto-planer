@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.28.0] – Regel-Editor für Kategorien
+
+### Neu
+
+- Unter „Kategorien › Regeln für den Import“ legst du Regeln an wie „Verwendungszweck enthält Miete → Wohnen“: Feld (Empfänger/Zahler, Verwendungszweck, IBAN), Bedingung (enthält, ist gleich, beginnt mit), Text und Kategorie; Groß- und Kleinschreibung zählen nicht
+- Die Regeln gelten für alle Benutzer und lassen sich sortieren; die erste passende gilt
+- Beim Import bestimmt zuerst ein zugeordneter Dauerposten die Kategorie, dann die Regeln, dann die zuletzt für den Empfänger gewählte Kategorie, zuletzt die Kategorie der Bank
+- „Auf bisherige Buchungen anwenden“ gibt importierten Buchungen ohne Kategorie die Kategorie der passenden Regel; die Seite zeigt vorher, wie viele es sind
+- Anlegen, ändern und sortieren darf jeder, löschen nur der Admin; alles steht im Protokoll
+
+### Verbessert
+
+- Am Desktop zeigt die Seitenleiste jetzt alle Bereiche, auch die, die am Handy unter „Mehr“ liegen (Offene und geplante Zahlungen, Sparziele, Rücklagen, Kategorien)
+- Die aktuelle Version steht unten in der Seitenleiste und am Handy auf der Seite „Mehr“
+
 ## [0.27.0] – Import rückgängig
 
 ### Neu

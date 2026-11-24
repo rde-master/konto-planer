@@ -8,6 +8,11 @@ import ReceiptText from '@lucide/svelte/icons/receipt-text';
 import ChartPie from '@lucide/svelte/icons/chart-pie';
 import Settings from '@lucide/svelte/icons/settings';
 import Ellipsis from '@lucide/svelte/icons/ellipsis';
+import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
+import PiggyBank from '@lucide/svelte/icons/piggy-bank';
+import Vault from '@lucide/svelte/icons/vault';
+import Tags from '@lucide/svelte/icons/tags';
 
 /**
  * `resolve()` for a value of the whole `Path` union. TypeScript cannot check a union of more
@@ -20,33 +25,41 @@ export function resolvePath(path: Path): string {
 /** `path` is a typed app path without leading slash ('' = start page); use `resolve(path)` for links. */
 export type NavItem = { path: Path; label: string; icon: Component };
 
-/** Main sections shown in the sidebar (desktop). */
-export const SECTIONS: NavItem[] = [
+/** Tab bar sections (phone) and top of the sidebar (desktop). */
+const MAIN: NavItem[] = [
 	{ path: '', label: 'Übersicht', icon: House },
 	{ path: 'konten', label: 'Konten', icon: Landmark },
 	{ path: 'dauerposten', label: 'Dauerposten', icon: Repeat },
-	{ path: 'buchungen', label: 'Buchungen', icon: ReceiptText },
-	{ path: 'auswertungen', label: 'Auswertungen', icon: ChartPie },
-	{ path: 'einstellungen', label: 'Einstellungen', icon: Settings }
+	{ path: 'buchungen', label: 'Buchungen', icon: ReceiptText }
 ];
+
+/** Sections reached through "Mehr" on phones; on the desktop they are in the sidebar. */
+export const MORE: (NavItem & { color: string })[] = [
+	{
+		path: 'offene-zahlungen',
+		label: 'Offene Zahlungen',
+		icon: CalendarClock,
+		color: 'bg-[#ff3b30]'
+	},
+	{ path: 'geplant', label: 'Geplante Zahlungen', icon: CalendarPlus, color: 'bg-[#34c759]' },
+	{ path: 'sparziele', label: 'Sparziele', icon: PiggyBank, color: 'bg-[#ff2d55]' },
+	{ path: 'ruecklagen', label: 'Rücklagen', icon: Vault, color: 'bg-[#5856d6]' },
+	{ path: 'kategorien', label: 'Kategorien', icon: Tags, color: 'bg-[#ff9500]' },
+	{ path: 'auswertungen', label: 'Auswertungen', icon: ChartPie, color: 'bg-[#af52de]' },
+	{ path: 'einstellungen', label: 'Einstellungen', icon: Settings, color: 'bg-[#8e8e93]' }
+];
+
+/** All sections in the sidebar (desktop). */
+export const SECTIONS: NavItem[] = [...MAIN, ...MORE];
 
 /** Tab bar on phones: four sections plus "Mehr". */
-export const TABS: NavItem[] = [
-	...SECTIONS.slice(0, 4),
-	{ path: 'mehr', label: 'Mehr', icon: Ellipsis }
-];
+export const TABS: NavItem[] = [...MAIN, { path: 'mehr', label: 'Mehr', icon: Ellipsis }];
 
 /** Sections reachable through "Mehr" on phones. */
-const MORE_PATHS: Path[] = [
-	'mehr',
-	'offene-zahlungen',
-	'geplant',
-	'sparziele',
-	'ruecklagen',
-	'kategorien',
-	'auswertungen',
-	'einstellungen'
-];
+const MORE_PATHS: Path[] = ['mehr', ...MORE.map((m) => m.path)];
+
+/** Version of the app (package.json), e.g. "0.28.0". */
+export const APP_VERSION = __APP_VERSION__;
 
 export function isActive(path: Path, pathname: string): boolean {
 	const href = resolvePath(path);

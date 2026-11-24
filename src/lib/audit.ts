@@ -16,6 +16,7 @@ export const ENTITY_TYPES = [
 	'template',
 	'goal',
 	'import',
+	'rule',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -47,7 +48,8 @@ export const ACTIONS = [
 	'allocate',
 	'goal_transfer',
 	'loan_extra',
-	'undo'
+	'undo',
+	'apply'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -61,6 +63,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	template: 'Vorlage',
 	goal: 'Sparziel',
 	import: 'Import',
+	rule: 'Kategorie-Regel',
 	settings: 'Einstellungen'
 };
 
@@ -91,7 +94,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	allocate: 'Sparziel-Betrag zugeteilt',
 	goal_transfer: 'Sparziel umgebucht',
 	loan_extra: 'Sondertilgung geändert',
-	undo: 'Import rückgängig gemacht'
+	undo: 'Import rückgängig gemacht',
+	apply: 'Regeln angewendet'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -183,6 +187,8 @@ const FIELD_LABELS: Record<string, string> = {
 	bookingsRemoved: 'Entfernte Buchungen',
 	bookingsRestored: 'Wiederhergestellte Buchungen',
 	itemsRemoved: 'Entfernte Dauerposten',
+	rule: 'Regel',
+	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
 };

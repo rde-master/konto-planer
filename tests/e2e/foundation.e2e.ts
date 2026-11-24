@@ -96,3 +96,24 @@ test('PWA manifest, icons and health endpoint are served', async ({ request }) =
 	const health = await request.get('/api/health');
 	expect(await health.json()).toMatchObject({ status: 'ok' });
 });
+
+test('desktop sidebar has every section and shows the version', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto('/login');
+	await page.getByLabel('Benutzername').fill(ADMIN.username);
+	await page.getByLabel('Passwort', { exact: true }).fill(ADMIN.password);
+	await page.getByRole('button', { name: 'Anmelden' }).click();
+	await expect(page).toHaveURL('/');
+
+	const sidebar = page.getByRole('navigation', { name: 'Hauptnavigation' }).first();
+	await expect(sidebar).toBeVisible();
+	for (const label of ['Geplante Zahlungen', 'Sparziele', 'Rücklagen', 'Kategorien'])
+		await expect(sidebar.getByRole('link', { name: label })).toBeVisible();
+	await expect(sidebar.getByLabel('Version')).toHaveText(/^Version \d+\.\d+\.\d+$/);
+	await sidebar.getByRole('link', { name: 'Kategorien' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Kategorien' })).toBeVisible();
+
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/mehr');
+	await expect(page.getByText(/^Konto Planer \d+\.\d+\.\d+$/)).toBeVisible();
+});
