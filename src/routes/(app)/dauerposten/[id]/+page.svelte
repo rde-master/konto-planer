@@ -143,7 +143,12 @@
 	}
 </script>
 
-<Page title={item.name} back={{ path: 'dauerposten', label: 'Dauerposten' }}>
+<Page
+	title={item.name}
+	back={item.interval === 'once'
+		? { path: 'geplant', label: 'Geplant' }
+		: { path: 'dauerposten', label: 'Dauerposten' }}
+>
 	{#if message}
 		<p
 			role="alert"
@@ -696,6 +701,7 @@
 			Buchungen, kann er nur archiviert werden.
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
+			{#if item.interval === 'once'}<input type="hidden" name="once" value="on" />{/if}
 			<Button type="submit" variant="destructive">Löschen</Button>
 		</form>
 	</Sheet>

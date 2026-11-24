@@ -59,7 +59,8 @@ test('due items are booked provisionally on their bank day', async ({ page }) =>
 	await sheet.getByRole('button', { name: 'Anlegen' }).click();
 	await expect(sheet).toBeHidden();
 
-	await createItem(page, { name: 'Strom', amount: '85', interval: 'Einmalig', date: dueDay });
+	// Monthly from ten days ago: exactly one due item reached its bank day.
+	await createItem(page, { name: 'Strom', amount: '85', interval: 'Monatlich', date: dueDay });
 
 	await openAccount(page);
 	await expect(balance(page)).toHaveText(/915,00\s€/);

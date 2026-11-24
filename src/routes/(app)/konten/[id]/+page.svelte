@@ -221,6 +221,33 @@
 			</p>
 		</section>
 
+		{#if data.plan.later.length}
+			<section class="mb-8" aria-label="Danach geplant">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Danach geplant</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.plan.later as l (l.id)}
+						<li>
+							<a
+								href={resolve(`dauerposten/${l.id}`)}
+								class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+							>
+								<span class="min-w-0 flex-1 truncate text-[17px]">{l.name}</span>
+								<span class="text-[15px] text-label-2">{formatDay(l.date)}</span>
+								<span class={['text-[17px] tabular', l.amount > 0 && 'text-income']}>
+									{l.amount > 0 ? '+' : ''}{formatEuro(l.amount)}
+								</span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Liegt nach dem Stichtag und zählt noch nicht zum Mindestbestand.
+				</p>
+			</section>
+		{/if}
+
 		{#if p.steps.length}
 			<section class="mb-8" aria-label="Bis zum Stichtag fällig">
 				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Bis zum Stichtag</h2>

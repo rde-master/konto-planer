@@ -229,7 +229,8 @@ export const actions: Actions = {
 		return { action: 'attachmentDelete', success: true };
 	},
 
-	delete: async ({ locals, params }) => {
+	delete: async ({ request, locals, params }) => {
+		const once = formString(await request.formData(), 'once') === 'on';
 		// Files are removed after the rows (cascade) are gone.
 		const files = await attachmentIdsOf([params.id]);
 		try {
@@ -238,6 +239,6 @@ export const actions: Actions = {
 			return recurringError('delete', e);
 		}
 		await removeAttachmentFiles(files);
-		redirect(303, '/dauerposten');
+		redirect(303, once ? '/geplant' : '/dauerposten');
 	}
 };

@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.20.0] – Einmalige geplante Zahlungen
+
+### Neu
+
+- Neue Seite „Geplante Zahlungen“ (unter „Mehr“ und am Ende der Dauerposten): einmalige Ausgaben wie Urlaub oder eine Anschaffung und erwartete Einnahmen wie eine Steuererstattung mit Datum erfassen
+- Einfaches Formular mit Art, Bezeichnung, Betrag, Datum, Konto, Kategorie und Notiz; das Datum darf nicht in der Vergangenheit liegen
+- Liegt eine geplante Zahlung vor dem Stichtag, zählt sie im Mindestbestand mit; am Tag selbst (nächster Bankarbeitstag) wird sie vorläufig gebucht
+- Geplante Zahlungen nach dem Stichtag stehen auf der Kontoseite unter „Danach geplant“, zählen aber noch nicht
+- Einmalige Posten erscheinen nicht mehr in der Dauerposten-Liste, sondern nur noch unter „Geplante Zahlungen“; Details und Änderungen wie gewohnt auf ihrer eigenen Seite
+
 ## [0.19.0] – Puffer je Konto
 
 ### Neu
