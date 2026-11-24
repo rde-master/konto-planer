@@ -3,16 +3,24 @@
 	import FileUp from '@lucide/svelte/icons/file-up';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
+	import Sheet from '#lib/components/Sheet.svelte';
 	import { formatIban } from '#lib/iban.js';
 	import { formatDateTime } from '#lib/dates.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	let pending = $state(false);
+	let undoOpen = $state(false);
+	const undoable = $derived(data.recent.find((r) => r.id === data.undoable));
 </script>
 
 <Page title="Import" back={{ path: `konten/${data.account.id}`, label: data.account.name }}>
-	{#if form?.message}
+	{#if form && 'undone' in form}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Import zurückgenommen.
+		</p>
+	{/if}
+	{#if form && 'message' in form && form.message}
 		<p
 			role="alert"
 			class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-danger"
@@ -75,9 +83,41 @@
 							{r.completedAt ? formatDateTime(r.completedAt) : ''} · {r.newCount} neu · {r.matchedCount}
 							ersetzt · {r.skippedCount} übersprungen
 						</span>
+						{#if r.undoneAt}
+							<span class="block text-[13px] text-label-2">rückgängig gemacht</span>
+						{/if}
 					</li>
 				{/each}
 			</ul>
+			{#if undoable}
+				<div class="mt-4">
+					<Button type="button" variant="tinted" onclick={() => (undoOpen = true)}>
+						Letzten Import rückgängig machen
+					</Button>
+				</div>
+			{/if}
 		</section>
 	{/if}
 </Page>
+
+{#if undoable}
+	<Sheet bind:open={undoOpen} title="Import rückgängig">
+		<p class="mb-6 px-4 text-center text-[15px]">
+			„{undoable.fileName}“ wird zurückgenommen: seine Buchungen und Gegenbuchungen verschwinden,
+			ersetzte vorläufige und manuelle Buchungen, aufgelöste Anpassungen und übernommene Beträge
+			kommen zurück, beim Import angelegte Dauerposten werden gelöscht.
+		</p>
+		<form
+			method="POST"
+			action="?/undo"
+			use:enhance={() =>
+				async ({ update }) => {
+					undoOpen = false;
+					await update();
+				}}
+		>
+			<input type="hidden" name="importId" value={undoable.id} />
+			<Button type="submit" variant="destructive">Rückgängig machen</Button>
+		</form>
+	</Sheet>
+{/if}

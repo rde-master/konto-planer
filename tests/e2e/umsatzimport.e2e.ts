@@ -183,3 +183,45 @@ test('importing again only offers what is missing', async ({ page }) => {
 		page.getByRole('button').filter({ hasText: 'Import angelegt' }).first()
 	).toBeVisible();
 });
+
+test('the latest import can be undone completely', async ({ page }) => {
+	await login(page);
+	await openAccount(page);
+	await page.getByRole('link', { name: 'CSV importieren' }).click();
+	await page.getByRole('button', { name: 'Letzten Import rückgängig machen' }).click();
+	await page
+		.getByRole('dialog', { name: 'Import rückgängig' })
+		.getByRole('button', { name: 'Rückgängig machen' })
+		.click();
+	await expect(page.getByRole('status')).toHaveText('Import zurückgenommen.');
+	await expect(page.getByRole('region', { name: 'Letzte Importe' })).toContainText(
+		'rückgängig gemacht'
+	);
+	await expect(page.getByRole('button', { name: 'Letzten Import rückgängig machen' })).toHaveCount(
+		0
+	);
+
+	// Counter bookings are gone, the suggested item is deleted, due items are provisional again.
+	await openAccount(page, SAVINGS);
+	await expect(page.getByLabel('Kontostand', { exact: true })).toHaveText(/1\.000,00\s€/);
+	await page.goto('/dauerposten');
+	await expect(page.getByRole('link', { name: /^Beispiel Maschinenbau GmbH/ })).toHaveCount(0);
+	await page.getByRole('link', { name: /^Energie/ }).click();
+	await expect(page.getByRole('region', { name: 'Letzte Fälligkeiten' })).toContainText(
+		'vorläufig gebucht'
+	);
+
+	// The file can be imported as before.
+	await upload(page, FIXTURE);
+	const summary = page.getByRole('region', { name: 'Zusammenfassung' });
+	await expect(summary.getByLabel('Dauerposten')).toHaveText('2 zu Dauerposten');
+	await expect(summary.getByLabel('Schon vorhanden')).toHaveText('1 schon vorhanden');
+	// The restored adjustment plus the one booked after the import ("Differenz als Anpassung").
+	await expect(summary).toContainText('2 Anpassungen');
+	await page.getByRole('button', { name: 'Abbrechen' }).click();
+
+	await page.goto('/einstellungen/protokoll?bereich=import');
+	await expect(
+		page.getByRole('button').filter({ hasText: 'Import rückgängig gemacht' }).first()
+	).toBeVisible();
+});

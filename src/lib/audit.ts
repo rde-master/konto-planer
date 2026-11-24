@@ -46,7 +46,8 @@ export const ACTIONS = [
 	'interest_rate',
 	'allocate',
 	'goal_transfer',
-	'loan_extra'
+	'loan_extra',
+	'undo'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -89,7 +90,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	interest_rate: 'Zinssatz geändert',
 	allocate: 'Sparziel-Betrag zugeteilt',
 	goal_transfer: 'Sparziel umgebucht',
-	loan_extra: 'Sondertilgung geändert'
+	loan_extra: 'Sondertilgung geändert',
+	undo: 'Import rückgängig gemacht'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -178,6 +180,9 @@ const FIELD_LABELS: Record<string, string> = {
 	importSkipped: 'Übersprungen',
 	adjustmentsRemoved: 'Aufgelöste Anpassungen',
 	itemsCreated: 'Neue Dauerposten',
+	bookingsRemoved: 'Entfernte Buchungen',
+	bookingsRestored: 'Wiederhergestellte Buchungen',
+	itemsRemoved: 'Entfernte Dauerposten',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
 };

@@ -10,6 +10,8 @@ import {
 	imports,
 	recurringAmounts,
 	recurringItems,
+	type Booking,
+	type DueItem,
 	type Import
 } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -408,6 +410,27 @@ function stripAnalysis(r: AnalyzedRow): StoredRow {
 	return copy as StoredRow;
 }
 
+/** Snapshot of what an import changed besides its own bookings (`imports.undo`). */
+type UndoData = {
+	/** Replaced provisional and manual bookings and removed adjustments (full rows). */
+	restoreBookings: Booking[];
+	/** Due items before the import booked them. */
+	dues: {
+		id: string;
+		status: DueItem['status'];
+		bookingId: string | null;
+		targetBookingId: string | null;
+	}[];
+	/** Due items the import created. */
+	createdDues: string[];
+	/** Amount entries set from the bank's amount (null = there was none). */
+	amounts: { recurringId: string; validFrom: string; before: number | null }[];
+	/** Recurring items created from suggestions. */
+	items: string[];
+	/** Bookings of other accounts whose counter booking link changed. */
+	links: { id: string; counterBookingId: string | null }[];
+};
+
 export type CommitChoice = {
 	/** Lines to take over. */
 	lines: Set<number>;
@@ -445,6 +468,14 @@ export async function commitImport(
 			stored
 		);
 		const createdByLine = new Map<number, string>();
+		const undo: UndoData = {
+			restoreBookings: [],
+			dues: [],
+			createdDues: [],
+			amounts: [],
+			items: [],
+			links: []
+		};
 		let created = 0;
 		let matched = 0;
 		for (const r of analyzed) {
@@ -461,28 +492,58 @@ export async function commitImport(
 				const due = r.recurring.due;
 				if (due) {
 					const side = item.accountId === accountId ? 'bookingId' : 'targetBookingId';
-					if (due.storedId)
+					if (due.storedId) {
+						const [before] = await tx.select().from(dueItems).where(eq(dueItems.id, due.storedId));
+						if (before && !undo.dues.some((d) => d.id === before.id))
+							undo.dues.push({
+								id: before.id,
+								status: before.status,
+								bookingId: before.bookingId,
+								targetBookingId: before.targetBookingId
+							});
 						await tx
 							.update(dueItems)
 							.set({ [side]: booking.id, status: 'booked', updatedAt: new Date() })
 							.where(eq(dueItems.id, due.storedId));
-					else
-						await tx.insert(dueItems).values({
-							recurringId: item.id,
-							dueDate: due.dueDate,
-							bookingDate: due.bookingDate,
-							amount: due.amount,
-							status: 'booked',
-							[side]: booking.id
-						});
+					} else {
+						const [inserted] = await tx
+							.insert(dueItems)
+							.values({
+								recurringId: item.id,
+								dueDate: due.dueDate,
+								bookingDate: due.bookingDate,
+								amount: due.amount,
+								status: 'booked',
+								[side]: booking.id
+							})
+							.returning({ id: dueItems.id });
+						undo.createdDues.push(inserted.id);
+					}
 					if (due.replaceBookingId)
-						await tx
-							.delete(bookings)
-							.where(
-								and(eq(bookings.id, due.replaceBookingId), eq(bookings.source, 'provisional'))
-							);
+						undo.restoreBookings.push(
+							...(await tx
+								.delete(bookings)
+								.where(
+									and(eq(bookings.id, due.replaceBookingId), eq(bookings.source, 'provisional'))
+								)
+								.returning())
+						);
 					if (r.recurring.amountDiffers && choice.amountLines.has(r.line)) {
 						const amount = Math.abs(r.amount);
+						const [previous] = await tx
+							.select({ amount: recurringAmounts.amount })
+							.from(recurringAmounts)
+							.where(
+								and(
+									eq(recurringAmounts.recurringId, item.id),
+									eq(recurringAmounts.validFrom, due.dueDate)
+								)
+							);
+						undo.amounts.push({
+							recurringId: item.id,
+							validFrom: due.dueDate,
+							before: previous?.amount ?? null
+						});
 						await tx
 							.insert(recurringAmounts)
 							.values({ recurringId: item.id, amount, validFrom: due.dueDate })
@@ -512,8 +573,10 @@ export async function commitImport(
 					})
 					.returning({ id: bookings.id });
 				createdByLine.set(r.line, booking.id);
+				if (old) undo.restoreBookings.push(old);
 				// A counter booking from the other account's import keeps its link.
 				if (old?.counterBookingId) {
+					undo.links.push({ id: old.counterBookingId, counterBookingId: old.id });
 					await tx
 						.update(bookings)
 						.set({ counterBookingId: booking.id })
@@ -554,11 +617,13 @@ export async function commitImport(
 						})
 						.returning({ id: bookings.id });
 					counterId = counter.id;
-				} else if (counterId)
+				} else if (counterId) {
+					undo.links.push({ id: counterId, counterBookingId: null });
 					await tx
 						.update(bookings)
 						.set({ counterBookingId: booking.id })
 						.where(eq(bookings.id, counterId));
+				}
 				if (counterId)
 					await tx
 						.update(bookings)
@@ -596,6 +661,7 @@ export async function commitImport(
 					createdBy: actor.id
 				})
 				.returning();
+			undo.items.push(item.id);
 			await tx
 				.insert(recurringAmounts)
 				.values({ recurringId: item.id, amount: s.amount, validFrom: s.lastDate });
@@ -639,7 +705,8 @@ export async function commitImport(
 						lte(bookings.bookingDate, view.to)
 					)
 				)
-				.returning({ id: bookings.id });
+				.returning();
+			undo.restoreBookings.push(...gone);
 			removed = gone.length;
 		}
 		// Balance check: the bank's balance after the latest row against ours on that day.
@@ -672,6 +739,7 @@ export async function commitImport(
 				matchedCount: matched,
 				skippedCount: skipped,
 				adjustmentsRemoved: removed,
+				undo,
 				periodFrom: view.from,
 				periodTo: view.to,
 				...(check ?? {}),
@@ -723,10 +791,146 @@ export async function recentImports(accountId: string, limit = 5) {
 			completedAt: imports.completedAt,
 			newCount: imports.newCount,
 			matchedCount: imports.matchedCount,
-			skippedCount: imports.skippedCount
+			skippedCount: imports.skippedCount,
+			undoneAt: imports.undoneAt
 		})
 		.from(imports)
 		.where(and(eq(imports.accountId, accountId), eq(imports.status, 'done')))
 		.orderBy(desc(imports.completedAt))
 		.limit(limit);
+}
+
+/** The import that can be taken back: the latest finished one of the account, with a snapshot. */
+export async function undoableImportId(accountId: string): Promise<string | null> {
+	const [latest] = await db
+		.select({ id: imports.id, undo: imports.undo })
+		.from(imports)
+		.where(
+			and(eq(imports.accountId, accountId), eq(imports.status, 'done'), isNull(imports.undoneAt))
+		)
+		.orderBy(desc(imports.completedAt))
+		.limit(1);
+	return latest?.undo ? latest.id : null;
+}
+
+/** JSON turns dates into strings; back to the row shape for the insert. */
+function bookingRow(b: Booking): Booking {
+	return {
+		...b,
+		createdAt: new Date(b.createdAt),
+		updatedAt: new Date(b.updatedAt),
+		counterBookingId: null
+	};
+}
+
+/**
+ * "Import rückgängig": removes the import's bookings (and counter bookings), restores replaced
+ * and removed bookings, due items, amounts and links, and deletes recurring items it created.
+ */
+export async function undoImport(
+	actor: NonNullable<Actor> & Viewer,
+	accountId: string,
+	importId: string
+) {
+	const access = await importableAccount(actor, accountId);
+	if (!access || access.reason) throw new ImportError(access?.reason ?? 'Konto nicht gefunden.');
+	await db.transaction(async (tx) => {
+		await tx.execute(sql`select id from accounts where id = ${accountId} for update`);
+		const [row] = await tx
+			.select()
+			.from(imports)
+			.where(and(eq(imports.id, importId), eq(imports.accountId, accountId)));
+		if (!row || row.status !== 'done' || row.undoneAt)
+			throw new ImportError('Dieser Import lässt sich nicht zurücknehmen.');
+		const [latest] = await tx
+			.select({ id: imports.id })
+			.from(imports)
+			.where(
+				and(eq(imports.accountId, accountId), eq(imports.status, 'done'), isNull(imports.undoneAt))
+			)
+			.orderBy(desc(imports.completedAt))
+			.limit(1);
+		if (latest?.id !== importId)
+			throw new ImportError('Nur der letzte Import des Kontos lässt sich zurücknehmen.');
+		const undo = row.undo as UndoData | null;
+		if (!undo) throw new ImportError('Dieser Import ist älter und lässt sich nicht zurücknehmen.');
+
+		const removed = await tx
+			.delete(bookings)
+			.where(eq(bookings.importId, importId))
+			.returning({ id: bookings.id });
+		if (undo.items.length) {
+			const [used] = await tx
+				.select({ id: bookings.id })
+				.from(bookings)
+				.where(inArray(bookings.recurringId, undo.items))
+				.limit(1);
+			if (used)
+				throw new ImportError(
+					'Ein beim Import angelegter Dauerposten hat inzwischen weitere Buchungen.'
+				);
+			await tx.delete(recurringItems).where(inArray(recurringItems.id, undo.items));
+		}
+		if (undo.createdDues.length)
+			await tx.delete(dueItems).where(inArray(dueItems.id, undo.createdDues));
+		if (undo.restoreBookings.length) {
+			const restore = undo.restoreBookings.map(bookingRow);
+			await tx.insert(bookings).values(restore).onConflictDoNothing();
+		}
+		for (const d of undo.dues)
+			await tx
+				.update(dueItems)
+				.set({
+					status: d.status,
+					bookingId: d.bookingId,
+					targetBookingId: d.targetBookingId,
+					updatedAt: new Date()
+				})
+				.where(eq(dueItems.id, d.id));
+		for (const a of undo.amounts) {
+			const where = and(
+				eq(recurringAmounts.recurringId, a.recurringId),
+				eq(recurringAmounts.validFrom, a.validFrom)
+			);
+			if (a.before === null) await tx.delete(recurringAmounts).where(where);
+			else await tx.update(recurringAmounts).set({ amount: a.before }).where(where);
+		}
+		// Links of restored rows and of other accounts' bookings.
+		const links = [
+			...undo.restoreBookings
+				.filter((b) => b.counterBookingId)
+				.map((b) => ({ id: b.id, counterBookingId: b.counterBookingId })),
+			...undo.links
+		];
+		for (const l of links) {
+			const [target] = l.counterBookingId
+				? await tx
+						.select({ id: bookings.id })
+						.from(bookings)
+						.where(eq(bookings.id, l.counterBookingId))
+				: [];
+			await tx
+				.update(bookings)
+				.set({ counterBookingId: target ? l.counterBookingId : null })
+				.where(eq(bookings.id, l.id));
+		}
+		await tx
+			.update(imports)
+			.set({ undoneAt: new Date(), undo: null })
+			.where(eq(imports.id, importId));
+		await audit(tx, {
+			actor,
+			entityType: 'import',
+			action: 'undo',
+			entityId: importId,
+			entityLabel: access.account.name,
+			before: {
+				fileName: row.fileName,
+				bookingsRemoved: removed.length,
+				bookingsRestored: undo.restoreBookings.length,
+				itemsRemoved: undo.items.length
+			}
+		});
+	});
+	await syncDues();
 }

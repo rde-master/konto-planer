@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.27.0] – Import rückgängig
+
+### Neu
+
+- Der letzte Import eines Kontos lässt sich mit einem Klick zurücknehmen („Letzten Import rückgängig machen“ auf der Import-Seite); danach der davor
+- Vollständig: importierte Buchungen und Gegenbuchungen verschwinden, ersetzte vorläufige und manuelle Buchungen sowie aufgelöste Anpassungen kommen zurück, Fälligkeiten sind wieder vorläufig, übernommene Beträge und beim Import angelegte Dauerposten werden entfernt
+- „Letzte Importe“ zeigt zurückgenommene Importe; das Zurücknehmen steht im Protokoll
+
+### Hinweis
+
+- Importe vor dieser Version lassen sich nicht zurücknehmen, weil ihnen die nötigen Angaben fehlen
+
 ## [0.26.0] – Import: Zuordnung und Vorschläge
 
 ### Neu
