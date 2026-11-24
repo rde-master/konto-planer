@@ -1,6 +1,13 @@
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import { db } from './db/index.js';
-import { accountAccess, accounts, recurringItems, users, type Account } from './db/schema.js';
+import {
+	accountAccess,
+	accounts,
+	bookings,
+	recurringItems,
+	users,
+	type Account
+} from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import {
@@ -81,7 +88,13 @@ export async function accountHasData(accountId: string): Promise<boolean> {
 			or(eq(recurringItems.accountId, accountId), eq(recurringItems.targetAccountId, accountId))
 		)
 		.limit(1);
-	return row !== undefined;
+	if (row) return true;
+	const [booking] = await db
+		.select({ id: bookings.id })
+		.from(bookings)
+		.where(eq(bookings.accountId, accountId))
+		.limit(1);
+	return booking !== undefined;
 }
 
 export async function createAccount(

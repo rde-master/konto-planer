@@ -10,6 +10,7 @@ export const ENTITY_TYPES = [
 	'account',
 	'category',
 	'recurring',
+	'booking',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -42,6 +43,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	account: 'Konto',
 	category: 'Kategorie',
 	recurring: 'Dauerposten',
+	booking: 'Buchung',
 	settings: 'Einstellungen'
 };
 
@@ -105,6 +107,8 @@ const FIELD_LABELS: Record<string, string> = {
 	paymentMethod: 'Zahlart',
 	amount: 'Betrag',
 	validFrom: 'Gültig ab',
+	bookingDate: 'Buchungstag',
+	purpose: 'Verwendungszweck',
 	pauseFrom: 'Pause ab',
 	pauseUntil: 'Pause bis',
 	contract: 'Kündbarer Vertrag',

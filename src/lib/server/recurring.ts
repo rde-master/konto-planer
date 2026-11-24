@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { db } from './db/index.js';
 import {
 	accounts,
+	bookings,
 	categories,
 	contracts,
 	recurringAmounts,
@@ -15,6 +16,7 @@ import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor, type AccountWithLevel } from './accounts.js';
+import { categoryInfo } from './categories.js';
 import type { RecurringValues } from './recurring-rules.js';
 import { addDays, amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
@@ -119,21 +121,6 @@ async function contractsOf(executor: Executor, ids: string[]) {
 	if (!ids.length) return new Map<string, Contract>();
 	const rows = await executor.select().from(contracts).where(inArray(contracts.recurringId, ids));
 	return new Map(rows.map((r) => [r.recurringId, toContract(r)]));
-}
-
-async function categoryInfo(executor: Executor) {
-	const rows = await executor.select().from(categories);
-	const byId = new Map(rows.map((c) => [c.id, c]));
-	return (id: string | null) => {
-		const c = id ? byId.get(id) : undefined;
-		if (!c) return null;
-		const parent = c.parentId ? byId.get(c.parentId) : undefined;
-		return {
-			name: c.name,
-			color: parent ? parent.color : c.color,
-			parentName: parent?.name ?? null
-		};
-	};
 }
 
 /**
@@ -266,9 +253,13 @@ export async function transferTargets(): Promise<{ id: string; name: string }[]>
  * Whether bookings reference the item. Items with bookings are archived instead of deleted.
  * Extend when bookings arrive (0.14).
  */
-export function recurringHasData(recurringId: string): Promise<boolean> {
-	void recurringId;
-	return Promise.resolve(false);
+export async function recurringHasData(recurringId: string): Promise<boolean> {
+	const [row] = await db
+		.select({ id: bookings.id })
+		.from(bookings)
+		.where(eq(bookings.recurringId, recurringId))
+		.limit(1);
+	return row !== undefined;
 }
 
 /** Audit view of an item: references by name, interval as text. */
