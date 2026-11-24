@@ -228,6 +228,27 @@ export function validateAmount(input: {
 	return { values: { amount, validFrom: input.validFrom }, errors: null };
 }
 
+/** Validates a pause: start required, end optional and not before the start. */
+export function validatePause(input: {
+	pauseFrom: string;
+	pauseUntil: string;
+}):
+	| { values: { pauseFrom: string; pauseUntil: string | null }; errors: null }
+	| { values: null; errors: FieldErrors } {
+	const errors: FieldErrors = {};
+	if (!isValidDate(input.pauseFrom)) errors.pauseFrom = 'Bitte ein Datum wählen.';
+	if (input.pauseUntil) {
+		if (!isValidDate(input.pauseUntil)) errors.pauseUntil = 'Bitte ein gültiges Datum wählen.';
+		else if (input.pauseUntil < input.pauseFrom)
+			errors.pauseUntil = 'Die Pause kann nicht vor ihrem Beginn enden.';
+	}
+	if (Object.keys(errors).length) return { values: null, errors };
+	return {
+		values: { pauseFrom: input.pauseFrom, pauseUntil: input.pauseUntil || null },
+		errors: null
+	};
+}
+
 export type ContractInput = {
 	contract: boolean;
 	termEnd: string;

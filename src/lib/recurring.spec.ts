@@ -5,8 +5,10 @@ import {
 	amountOn,
 	dueDates,
 	intervalLabel,
+	isPausedOn,
 	monthlyEquivalent,
 	nextDue,
+	pauseLabel,
 	type Schedule
 } from './recurring';
 
@@ -104,6 +106,63 @@ describe('dueDates', () => {
 		expect(dueDates(s, '2036-02-01', '2036-03-31')).toEqual(['2036-02-29', '2036-03-31']);
 		const weekly = schedule({ startDate: '2026-01-05', interval: 'weekly' });
 		expect(dueDates(weekly, '2030-01-01', '2030-01-10')).toEqual(['2030-01-07']);
+	});
+});
+
+describe('pause', () => {
+	const s = schedule({ startDate: '2026-01-15' });
+	it('skips due dates within the pause, both ends inclusive', () => {
+		const paused = { ...s, pauseFrom: '2026-03-15', pauseUntil: '2026-05-15' };
+		expect(dueDates(paused, '2026-01-01', '2026-07-31')).toEqual([
+			'2026-01-15',
+			'2026-02-15',
+			'2026-06-15',
+			'2026-07-15'
+		]);
+	});
+	it('keeps the rhythm from the start after the pause', () => {
+		const paused = {
+			...s,
+			startDate: '2026-01-31',
+			pauseFrom: '2026-02-01',
+			pauseUntil: '2026-03-30'
+		};
+		expect(dueDates(paused, '2026-01-01', '2026-05-31')).toEqual([
+			'2026-01-31',
+			'2026-03-31',
+			'2026-04-30',
+			'2026-05-31'
+		]);
+	});
+	it('without end nothing is due from the pause on', () => {
+		const paused = { ...s, pauseFrom: '2026-03-01', pauseUntil: null };
+		expect(dueDates(paused, '2026-01-01', '2030-12-31')).toEqual(['2026-01-15', '2026-02-15']);
+		expect(nextDue(paused, '2026-03-01')).toBeNull();
+	});
+	it('one-off items inside the pause are skipped', () => {
+		const once = schedule({ interval: 'once', startDate: '2026-04-01' });
+		expect(
+			dueDates(
+				{ ...once, pauseFrom: '2026-03-01', pauseUntil: '2026-04-30' },
+				'2026-01-01',
+				'2026-12-31'
+			)
+		).toEqual([]);
+	});
+	it('labels and checks', () => {
+		const f = (d: string) => d;
+		const p = { pauseFrom: '2026-03-01', pauseUntil: '2026-05-31' };
+		expect(isPausedOn(p, '2026-02-28')).toBe(false);
+		expect(isPausedOn(p, '2026-05-31')).toBe(true);
+		expect(pauseLabel(p, '2026-02-01', f)).toBe('Pause 2026-03-01 – 2026-05-31');
+		expect(pauseLabel(p, '2026-04-01', f)).toBe('pausiert bis 2026-05-31');
+		expect(pauseLabel(p, '2026-06-01', f)).toBeNull();
+		expect(pauseLabel({ pauseFrom: '2026-03-01', pauseUntil: null }, '2026-04-01', f)).toBe(
+			'pausiert'
+		);
+		expect(pauseLabel({ pauseFrom: '2026-03-01', pauseUntil: null }, '2026-02-01', f)).toBe(
+			'pausiert ab 2026-03-01'
+		);
 	});
 });
 

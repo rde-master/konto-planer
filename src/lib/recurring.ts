@@ -58,7 +58,38 @@ export type Schedule = {
 	customUnit: CustomUnit | null;
 	startDate: string;
 	endDate: string | null;
+	/** Paused from this day (inclusive); no due dates while paused. */
+	pauseFrom?: string | null;
+	/** Last day of the pause (inclusive); null = paused until resumed. */
+	pauseUntil?: string | null;
 };
+
+type Pause = Pick<Schedule, 'pauseFrom' | 'pauseUntil'>;
+
+/** Whether `day` lies within the pause. */
+export function isPausedOn(s: Pause, day: string): boolean {
+	if (!s.pauseFrom || day < s.pauseFrom) return false;
+	return !s.pauseUntil || day <= s.pauseUntil;
+}
+
+/** Whether a pause is running on `today` or still ahead. */
+export function pauseRelevant(s: Pause, today: string): boolean {
+	return !!s.pauseFrom && (!s.pauseUntil || s.pauseUntil >= today);
+}
+
+/** "pausiert bis 31.03.2027", "pausiert ab 01.02.2027", "pausiert" – or null without a relevant pause. */
+export function pauseLabel(
+	s: Pause,
+	today: string,
+	format: (day: string) => string
+): string | null {
+	if (!pauseRelevant(s, today)) return null;
+	if (s.pauseFrom! > today)
+		return s.pauseUntil
+			? `Pause ${format(s.pauseFrom!)} – ${format(s.pauseUntil)}`
+			: `pausiert ab ${format(s.pauseFrom!)}`;
+	return s.pauseUntil ? `pausiert bis ${format(s.pauseUntil)}` : 'pausiert';
+}
 
 /** "monatlich", "alle 2 Monate", "jede Woche" … */
 export function intervalLabel(s: Pick<Schedule, 'interval' | 'customEvery' | 'customUnit'>) {
@@ -130,13 +161,16 @@ function nth(s: Schedule, k: number): string {
 	return st[0] === 'day' ? addDays(s.startDate, st[1] * k) : addMonths(s.startDate, st[1] * k);
 }
 
-/** All due dates in [from, to] (inclusive), before bank-day shifting. */
+/** All due dates in [from, to] (inclusive), before bank-day shifting; none during a pause. */
 export function dueDates(s: Schedule, from: string, to: string, limit = 1000): string[] {
-	const last = s.endDate && s.endDate < to ? s.endDate : to;
+	let last = s.endDate && s.endDate < to ? s.endDate : to;
+	// Paused without end: nothing from the pause on.
+	if (s.pauseFrom && !s.pauseUntil && s.pauseFrom <= last) last = addDays(s.pauseFrom, -1);
 	const out: string[] = [];
 	const st = step(s);
 	if (!st) {
-		if (s.startDate >= from && s.startDate <= last) out.push(s.startDate);
+		if (s.startDate >= from && s.startDate <= last && !isPausedOn(s, s.startDate))
+			out.push(s.startDate);
 		return out;
 	}
 	// Jump close to `from` instead of iterating from the start.
@@ -153,7 +187,7 @@ export function dueDates(s: Schedule, from: string, to: string, limit = 1000): s
 	for (; out.length < limit; k++) {
 		const date = nth(s, k);
 		if (date > last) break;
-		if (date >= from) out.push(date);
+		if (date >= from && !isPausedOn(s, date)) out.push(date);
 	}
 	return out;
 }

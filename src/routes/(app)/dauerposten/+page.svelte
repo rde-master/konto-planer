@@ -13,7 +13,13 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay, todayBerlin } from '#lib/dates.js';
-	import { effectOn, intervalLabel, monthlyEquivalent } from '#lib/recurring.js';
+	import {
+		effectOn,
+		intervalLabel,
+		isPausedOn,
+		monthlyEquivalent,
+		pauseLabel
+	} from '#lib/recurring.js';
 	import { cancelSoon, contractStatus } from '#lib/contracts.js';
 	import {
 		formatDiff,
@@ -65,7 +71,7 @@
 			.map((g) => {
 				const expense = -total(g.entries.filter((e) => e.effect < 0));
 				const income = total(g.entries.filter((e) => e.effect > 0));
-				const running = g.entries.filter((e) => e.item.nextDue !== null);
+				const runningEntries = g.entries.filter((e) => running(e.item));
 				return {
 					...g,
 					// Running items first by next due date, ended ones last.
@@ -75,7 +81,7 @@
 					expense,
 					income,
 					steps: monthlySteps(
-						running.map((e) => ({
+						runningEntries.map((e) => ({
 							amounts: e.item.amounts,
 							endDate: e.item.endDate,
 							schedule: e.item,
@@ -113,10 +119,15 @@
 		return diff ? `${formatEuro(total)} (${formatDiff(diff)})` : formatEuro(total);
 	}
 
+	/** Has due dates ahead and is not paused today. */
+	function running(item: Item) {
+		return item.nextDue !== null && !isPausedOn(item, today);
+	}
+
 	/** Monthly equivalent of running entries, signed. */
 	function total(entries: Entry[]) {
 		return entries
-			.filter((e) => e.item.nextDue !== null)
+			.filter((e) => running(e.item))
 			.reduce((sum, e) => sum + monthlyEquivalent(e.effect, e.item), 0);
 	}
 
@@ -131,7 +142,13 @@
 			item.contract?.cancelledOn && item.endDate
 				? `gekündigt zum ${formatDay(item.endDate)}`
 				: null;
-		return [intervalLabel(item), direction, item.isSalary ? 'Gehalt' : null, cancelled]
+		return [
+			intervalLabel(item),
+			direction,
+			item.isSalary ? 'Gehalt' : null,
+			cancelled,
+			item.archivedAt ? null : pauseLabel(item, today, formatDay)
+		]
 			.filter(Boolean)
 			.join(' · ');
 	}
@@ -195,7 +212,7 @@
 			href={resolve(`dauerposten/${item.id}`)}
 			class={[
 				'flex min-h-16 items-center gap-3 px-4 py-2.5 active:bg-fill',
-				(item.archivedAt || !item.nextDue) && 'opacity-60'
+				(item.archivedAt || !running(item)) && 'opacity-60'
 			]}
 		>
 			<span
@@ -220,7 +237,13 @@
 					{item.variable ? '≈ ' : ''}{effect > 0 ? '+' : '−'}{formatEuro(item.amount ?? 0)}
 				</span>
 				<span class="block text-[13px] text-label-2 tabular">
-					{item.archivedAt ? 'archiviert' : item.nextDue ? formatDay(item.nextDue) : 'beendet'}
+					{item.archivedAt
+						? 'archiviert'
+						: item.nextDue
+							? formatDay(item.nextDue)
+							: isPausedOn(item, today) || (item.pauseFrom && !item.pauseUntil)
+								? 'pausiert'
+								: 'beendet'}
 				</span>
 			</span>
 			<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
@@ -256,9 +279,16 @@
 			<Repeat class="mx-auto mb-3 size-10 text-label-3" />
 			<p class="text-[17px] font-semibold">Noch keine Dauerposten</p>
 			<p class="mt-1 text-[15px] text-label-2">
-				{data.accountOptions.length
-					? 'Lege mit „+“ regelmäßige Ausgaben, Einnahmen und Umbuchungen an, z. B. Miete, Gehalt oder Sparrate.'
-					: 'Du brauchst ein Konto mit Recht „Bearbeiten“, um Dauerposten anzulegen.'}
+				{#if data.accountOptions.length}
+					Lege mit „+“ regelmäßige Ausgaben, Einnahmen und Umbuchungen an, z. B. Miete, Gehalt oder
+					Sparrate.
+				{:else if data.user.role === 'admin'}
+					Lege zuerst unter <a href={resolve('konten')} class="text-accent">Konten</a> ein Girokonto an;
+					danach kannst du hier Dauerposten anlegen.
+				{:else}
+					Du brauchst ein Konto mit Recht „Bearbeiten“, um Dauerposten anzulegen. Den Zugriff
+					vergibt der Admin.
+				{/if}
 			</p>
 		</div>
 	{/if}

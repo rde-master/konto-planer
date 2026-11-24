@@ -64,6 +64,13 @@
       "when": 1795468360184,
       "tag": "0008_contract_details",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795500498149,
+      "tag": "0009_pause",
+      "breakpoints": true
     }
   ]
 }

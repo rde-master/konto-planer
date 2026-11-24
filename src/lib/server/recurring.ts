@@ -16,7 +16,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor, type AccountWithLevel } from './accounts.js';
 import type { RecurringValues } from './recurring-rules.js';
-import { amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
+import { addDays, amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
 import { endDateAfterSave, periodLabel, renewalLabel, type Contract } from '../contracts.js';
 
@@ -523,6 +523,59 @@ export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: st
 const DATE_TAKEN = 'Für dieses Datum gibt es schon einen Betrag.';
 
 /** Adds an amount valid from a date (past or future). */
+/** Pauses the item (replaces an existing pause). */
+export async function setPause(
+	actor: NonNullable<Actor> & Viewer,
+	id: string,
+	pause: { pauseFrom: string; pauseUntil: string | null }
+) {
+	const item = await requireEditable(actor, id);
+	await db.transaction(async (tx) => {
+		await tx
+			.update(recurringItems)
+			.set({ ...pause, updatedAt: new Date() })
+			.where(eq(recurringItems.id, id));
+		await audit(tx, {
+			actor,
+			entityType: 'recurring',
+			action: 'pause',
+			entityId: id,
+			entityLabel: item.name,
+			before: item.pauseFrom ? { pauseFrom: item.pauseFrom, pauseUntil: item.pauseUntil } : null,
+			after: pause
+		});
+	});
+}
+
+/**
+ * Ends the pause: a pause that already began ends yesterday (so past due dates stay skipped),
+ * one that has not begun yet is removed.
+ */
+export async function endPause(actor: NonNullable<Actor> & Viewer, id: string) {
+	const item = await requireEditable(actor, id);
+	if (!item.pauseFrom) throw new RecurringError('Der Dauerposten ist nicht pausiert.');
+	const today = todayBerlin();
+	const next =
+		item.pauseFrom < today
+			? { pauseFrom: item.pauseFrom, pauseUntil: addDays(today, -1) }
+			: { pauseFrom: null, pauseUntil: null };
+	await db.transaction(async (tx) => {
+		await tx
+			.update(recurringItems)
+			.set({ ...next, updatedAt: new Date() })
+			.where(eq(recurringItems.id, id));
+		await audit(tx, {
+			actor,
+			entityType: 'recurring',
+			action: 'resume',
+			entityId: id,
+			entityLabel: item.name,
+			before: { pauseFrom: item.pauseFrom, pauseUntil: item.pauseUntil },
+			after: next.pauseFrom ? next : null
+		});
+	});
+}
+
 export async function addAmount(
 	actor: NonNullable<Actor> & Viewer,
 	id: string,

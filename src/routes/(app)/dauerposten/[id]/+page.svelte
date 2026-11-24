@@ -31,7 +31,9 @@
 		PAYMENT_METHOD_LABELS,
 		amountOn,
 		intervalLabel,
-		monthlyEquivalent
+		monthlyEquivalent,
+		pauseLabel,
+		pauseRelevant
 	} from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
@@ -60,6 +62,17 @@
 	function askDeleteAttachment(file: { id: string; fileName: string }) {
 		attachmentToDelete = file;
 		attachmentDeleteOpen = true;
+	}
+	let pauseOpen = $state(false);
+	let pauseKey = $state(0);
+	const paused = $derived(pauseRelevant(item, data.today));
+	const pauseText = $derived(pauseLabel(item, data.today, formatDay));
+	const pauseErrors = $derived(
+		form?.action === 'pause' && 'errors' in form ? form.errors : undefined
+	);
+	function openPause() {
+		pauseKey++;
+		pauseOpen = true;
 	}
 	let amountOpen = $state(false);
 	let amountKey = $state(0);
@@ -98,6 +111,8 @@
 			update: 'Änderungen gesichert.',
 			amount: 'Betragsverlauf gesichert.',
 			amountDelete: 'Betrag gelöscht.',
+			pause: 'Pause gesichert.',
+			pauseEnd: 'Pause beendet.',
 			attachmentAdd: 'PDF hinzugefügt.',
 			attachmentDelete: 'PDF gelöscht.',
 			archive: 'Dauerposten archiviert.',
@@ -150,7 +165,9 @@
 		</span>
 		<div class="min-w-0">
 			<p class="text-[13px] text-label-2">
-				{KIND_LABELS[item.kind]} · {intervalLabel(item)}{item.archivedAt ? ' · archiviert' : ''}
+				{[KIND_LABELS[item.kind], intervalLabel(item), item.archivedAt ? 'archiviert' : pauseText]
+					.filter(Boolean)
+					.join(' · ')}
 			</p>
 			<p
 				class={['text-[28px] font-bold tabular', item.kind === 'income' && 'text-income']}
@@ -184,8 +201,53 @@
 		</ListGroup>
 	{:else if !item.archivedAt}
 		<p class="mb-8 px-4 text-[15px] text-label-2">
-			Keine weiteren Fälligkeiten – der Dauerposten ist beendet.
+			{paused
+				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
+				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if paused || item.canEdit}
+		<ListGroup header="Pause" footer="Während der Pause entstehen keine Fälligkeiten.">
+			{#if paused}
+				<ListRow label="Von" value={formatDay(item.pauseFrom ?? '')} />
+				<ListRow
+					label="Bis"
+					value={item.pauseUntil ? formatDay(item.pauseUntil) : 'bis auf Weiteres'}
+				/>
+				{#if item.canEdit}
+					<li>
+						<button
+							type="button"
+							onclick={openPause}
+							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+						>
+							Pause ändern
+						</button>
+					</li>
+					<li>
+						<form method="POST" action="?/pauseEnd" use:enhance>
+							<button
+								type="submit"
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+							>
+								Pause beenden
+							</button>
+						</form>
+					</li>
+				{/if}
+			{:else}
+				<li>
+					<button
+						type="button"
+						onclick={openPause}
+						class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+					>
+						Pausieren
+					</button>
+				</li>
+			{/if}
+		</ListGroup>
 	{/if}
 
 	{#if contract && contractState}
@@ -450,6 +512,52 @@
 		</ListGroup>
 	{/if}
 </Page>
+
+{#if item.canEdit}
+	<Sheet
+		bind:open={pauseOpen}
+		title={paused ? 'Pause ändern' : 'Pausieren'}
+		confirmLabel="Sichern"
+		formId="pause-form"
+	>
+		<form
+			id="pause-form"
+			method="POST"
+			action="?/pause"
+			use:enhance={() =>
+				async ({ result, update }) => {
+					if (result.type === 'success') pauseOpen = false;
+					await update({ reset: false });
+				}}
+		>
+			{#key pauseKey}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<FormField
+						label="Pause ab"
+						name="pauseFrom"
+						type="date"
+						value={paused ? (item.pauseFrom ?? data.today) : data.today}
+						required
+						error={pauseErrors?.pauseFrom}
+					/>
+					<FormField
+						label="Pause bis (optional)"
+						name="pauseUntil"
+						type="date"
+						value={paused ? (item.pauseUntil ?? '') : ''}
+						error={pauseErrors?.pauseUntil}
+					/>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Beide Tage zählen zur Pause. Ohne Ende ruht der Dauerposten, bis du die Pause beendest.
+					Danach geht es im gewohnten Rhythmus weiter.
+				</p>
+			{/key}
+		</form>
+	</Sheet>
+{/if}
 
 {#if item.canEdit}
 	<Sheet

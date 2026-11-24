@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	isValidCreditorId,
-	validateContract,
 	validateAmount,
+	validateContract,
+	validatePause,
 	validateRecurring,
 	type RecurringInput
 } from './recurring-rules';
@@ -267,5 +268,22 @@ describe('validateContract', () => {
 		expect(Object.keys(errors ?? {}).sort()).toEqual(
 			['cancelEmail', 'cancelledOn', 'leadDays', 'noticeEvery', 'renewalMonths'].sort()
 		);
+	});
+});
+
+describe('validatePause', () => {
+	it('needs a start; the end is optional but not before the start', () => {
+		expect(validatePause({ pauseFrom: '2027-01-01', pauseUntil: '' }).values).toEqual({
+			pauseFrom: '2027-01-01',
+			pauseUntil: null
+		});
+		expect(validatePause({ pauseFrom: '2027-01-01', pauseUntil: '2027-01-01' }).values).toEqual({
+			pauseFrom: '2027-01-01',
+			pauseUntil: '2027-01-01'
+		});
+		expect(validatePause({ pauseFrom: '', pauseUntil: '' }).errors?.pauseFrom).toBeDefined();
+		expect(
+			validatePause({ pauseFrom: '2027-02-01', pauseUntil: '2027-01-31' }).errors?.pauseUntil
+		).toBe('Die Pause kann nicht vor ihrem Beginn enden.');
 	});
 });
