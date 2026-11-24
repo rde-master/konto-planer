@@ -5,14 +5,20 @@ import { validateAccount } from '#lib/server/account-rules.js';
 import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError } from '#lib/server/validation.js';
 import { balancesOf } from '#lib/server/bookings.js';
+import { plansFor } from '#lib/server/minimum.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const list = await listAccountsFor(user);
 	const balances = await balancesOf(list);
+	const plans = await plansFor(user, list, balances);
 	return {
-		accounts: list.map((a) => ({ ...a, balance: balances.get(a.id) ?? a.openingBalance })),
+		accounts: list.map((a) => ({
+			...a,
+			balance: balances.get(a.id) ?? a.openingBalance,
+			available: plans.get(a.id)?.plan.available ?? null
+		})),
 		isAdmin: user.role === 'admin'
 	};
 };

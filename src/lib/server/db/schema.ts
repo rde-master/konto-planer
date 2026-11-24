@@ -89,6 +89,8 @@ export const auditLog = pgTable(
 export const accountType = pgEnum('account_type', ['giro', 'sparbuch']);
 export const accessLevel = pgEnum('access_level', ['view', 'edit']);
 
+export const cutoffMode = pgEnum('cutoff_mode', ['salary', 'month_end', 'date']);
+
 /** Bank account. All amounts in euro cents. */
 export const accounts = pgTable('accounts', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -102,6 +104,14 @@ export const accounts = pgTable('accounts', {
 	openingDate: date('opening_date', { mode: 'string' }).notNull(),
 	/** Overdraft limit as a positive amount; 0 = none. Only for giro accounts. */
 	overdraftLimit: bigint('overdraft_limit', { mode: 'number' }).notNull().default(0),
+	/** Cut-off day of the minimum balance ("Stichtag"); giro accounts only. */
+	cutoffMode: cutoffMode('cutoff_mode').notNull().default('salary'),
+	/** Mode "salary": the income or transfer that sets the day; null = next salary. */
+	cutoffRecurringId: uuid('cutoff_recurring_id').references((): AnyPgColumn => recurringItems.id, {
+		onDelete: 'set null'
+	}),
+	/** Mode "date": the fixed day. */
+	cutoffDate: date('cutoff_date', { mode: 'string' }),
 	archivedAt: timestamp('archived_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

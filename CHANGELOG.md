@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.18.0] – Mindestbestand mit Stichtag und Dispo-Hinweis
+
+### Neu
+
+- Jedes Girokonto zeigt, wie viel bis zum Stichtag verfügbar ist, und den Mindestbestand: so viel muss heute auf dem Konto sein, damit es bis dahin an keinem Tag ins Minus geht
+- Stichtag ist standardmäßig der nächste Gehaltseingang; umschaltbar auf Monatsende, ein festes Datum oder einen bestimmten Eingang (auch eine Umbuchung auf das Konto)
+- Gerechnet wird bis einschließlich Stichtag; an jedem Tag zählen erst die Ausgänge, dann die Eingänge
+- Die Kontoseite listet alle Zahlungen bis zum Stichtag mit dem Stand danach und markiert den tiefsten Stand
+- Dispo-Hinweise: wenn das Konto im Minus ist, wenn es bis zum Stichtag ins Minus rutscht, und eine große Warnung, wenn der Dispo nicht reicht
+- Der Dispo zählt nie zum verfügbaren Betrag
+- Die Kontenliste zeigt bei Girokonten den verfügbaren Betrag
+- Änderungen am Stichtag stehen im Protokoll
+
 ## [0.17.0] – Fälligkeiten mit vorläufigem Buchen und Bankkalender
 
 ### Neu
