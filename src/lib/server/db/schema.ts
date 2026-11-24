@@ -692,3 +692,27 @@ export const categoryRules = pgTable(
 );
 
 export type CategoryRule = typeof categoryRules.$inferSelect;
+
+/**
+ * Parts of a split booking ("Splitbuchung"): amount (signed like the booking) and category.
+ * What the parts do not cover stays with the booking's own category.
+ */
+export const bookingParts = pgTable(
+	'booking_parts',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		bookingId: uuid('booking_id')
+			.notNull()
+			.references(() => bookings.id, { onDelete: 'cascade' }),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		position: integer('position').notNull().default(0),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('booking_parts_booking_idx').on(t.bookingId),
+		check('booking_parts_amount_not_zero', sql`${t.amount} <> 0`)
+	]
+);
+
+export type BookingPart = typeof bookingParts.$inferSelect;

@@ -43,11 +43,13 @@
 	}
 
 	function subtitle(b: Booking) {
-		const category = b.category
-			? b.category.parentName
-				? `${b.category.parentName} › ${b.category.name}`
-				: b.category.name
-			: 'Ohne Kategorie';
+		const category = b.parts.length
+			? `aufgeteilt in ${b.parts.length + (b.parts.reduce((r, p) => r - p.amount, b.amount) !== 0 ? 1 : 0)} Kategorien`
+			: b.category
+				? b.category.parentName
+					? `${b.category.parentName} › ${b.category.name}`
+					: b.category.name
+				: 'Ohne Kategorie';
 		return [
 			b.source === 'provisional' ? 'vorläufig' : null,
 			category,

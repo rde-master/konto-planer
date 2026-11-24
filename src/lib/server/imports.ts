@@ -3,6 +3,7 @@ import { and, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-o
 import { db } from './db/index.js';
 import {
 	accounts,
+	bookingParts,
 	bookings,
 	categories,
 	counterpartyCategories,
@@ -11,6 +12,7 @@ import {
 	recurringAmounts,
 	recurringItems,
 	type Booking,
+	type BookingPart,
 	type DueItem,
 	type Import
 } from './db/schema.js';
@@ -438,6 +440,8 @@ type UndoData = {
 	items: string[];
 	/** Bookings of other accounts whose counter booking link changed. */
 	links: { id: string; counterBookingId: string | null }[];
+	/** Parts of replaced manual bookings (moved to the imported booking). */
+	parts?: BookingPart[];
 };
 
 export type CommitChoice = {
@@ -483,7 +487,8 @@ export async function commitImport(
 			createdDues: [],
 			amounts: [],
 			items: [],
-			links: []
+			links: [],
+			parts: []
 		};
 		let created = 0;
 		let matched = 0;
@@ -595,6 +600,13 @@ export async function commitImport(
 						.set({ counterBookingId: old.counterBookingId })
 						.where(eq(bookings.id, booking.id));
 				}
+				// A split stays with the real booking.
+				const moved = await tx
+					.update(bookingParts)
+					.set({ bookingId: booking.id })
+					.where(eq(bookingParts.bookingId, r.replace.id))
+					.returning();
+				undo.parts!.push(...moved.map((p) => ({ ...p, bookingId: r.replace!.id })));
 				await tx.delete(bookings).where(eq(bookings.id, r.replace.id));
 				matched++;
 			} else {
@@ -886,6 +898,11 @@ export async function undoImport(
 			const restore = undo.restoreBookings.map(bookingRow);
 			await tx.insert(bookings).values(restore).onConflictDoNothing();
 		}
+		if (undo.parts?.length)
+			await tx
+				.insert(bookingParts)
+				.values(undo.parts.map((p) => ({ ...p, createdAt: new Date(p.createdAt) })))
+				.onConflictDoNothing();
 		for (const d of undo.dues)
 			await tx
 				.update(dueItems)

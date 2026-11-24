@@ -188,6 +188,7 @@ const FIELD_LABELS: Record<string, string> = {
 	bookingsRestored: 'Wiederhergestellte Buchungen',
 	itemsRemoved: 'Entfernte Dauerposten',
 	rule: 'Regel',
+	split: 'Aufteilung',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

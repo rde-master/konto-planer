@@ -11,6 +11,7 @@
 	import BookingFields from '#lib/components/BookingFields.svelte';
 	import FormField from '#lib/components/FormField.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
+	import SplitSection from '#lib/components/SplitSection.svelte';
 	import { formatIban } from '#lib/iban.js';
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
@@ -128,6 +129,7 @@
 	);
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 	const saved = $derived(form?.action === 'update' && 'success' in form);
+	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
 
 	const values = $derived(
 		updateInput ?? {
@@ -153,6 +155,10 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if splitSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Aufteilung gesichert.
 		</p>
 	{:else if dueSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -212,6 +218,14 @@
 			</div>
 		</form>
 
+		<SplitSection
+			amount={booking.amount}
+			categoryName={categoryText}
+			parts={booking.parts}
+			canSplit={booking.canSplit}
+			categoryGroups={data.categoryGroups}
+			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
+		/>
 		<ListGroup header="Verwaltung">
 			<ListRow
 				label="Als Vorlage sichern"
@@ -261,6 +275,14 @@
 				/>{/if}
 			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
 		</ListGroup>
+		<SplitSection
+			amount={booking.amount}
+			categoryName={categoryText}
+			parts={booking.parts}
+			canSplit={booking.canSplit}
+			categoryGroups={data.categoryGroups}
+			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
+		/>
 		{#if credit}
 			<ListGroup
 				header="Zinsgutschrift"
