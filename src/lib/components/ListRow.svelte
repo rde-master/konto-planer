@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Component, Snippet } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { resolve } from '$app/paths';
+	import { resolvePath } from '#lib/navigation.js';
 	import type { Path } from '$app/types';
 
 	let {
@@ -42,7 +42,8 @@
 
 <li>
 	{#if href}
-		<a href={resolve(href)} class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill">
+		<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
+		<a href={resolvePath(href)} class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill">
 			{@render content()}
 		</a>
 	{:else if onclick}

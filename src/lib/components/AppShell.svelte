@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
-	import { SECTIONS, TABS, isActive, isTabActive } from '#lib/navigation.js';
+	import { SECTIONS, TABS, isActive, isTabActive, resolvePath } from '#lib/navigation.js';
 	import Plus from '@lucide/svelte/icons/plus';
 	import QuickEntry from './QuickEntry.svelte';
 	import type { QuickTemplate } from './QuickEntry.svelte';
@@ -33,8 +32,9 @@
 			{#each SECTIONS as item (item.path)}
 				{@const active = isActive(item.path, page.url.pathname)}
 				<li>
+					<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
 					<a
-						href={resolve(item.path)}
+						href={resolvePath(item.path)}
 						aria-current={active ? 'page' : undefined}
 						class={[
 							'flex items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors',
@@ -74,8 +74,9 @@
 			{#each TABS as tab (tab.path)}
 				{@const active = isTabActive(tab.path, page.url.pathname)}
 				<li class="flex-1">
+					<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
 					<a
-						href={resolve(tab.path)}
+						href={resolvePath(tab.path)}
 						aria-current={active ? 'page' : undefined}
 						class={[
 							'flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-medium transition-colors',

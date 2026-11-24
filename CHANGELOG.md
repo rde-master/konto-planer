@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.25.0] – CSV-Import
+
+### Neu
+
+- Girokonten lassen sich mit dem CSV-Export der Volksbank (Semikolon, 19 Spalten) füllen: auf der Kontoseite „CSV importieren“
+- Zeichensatz (UTF-8 oder Windows-1252), Datums- und Zahlenformat erkennt die App selbst und zeigt sie in der Vorschau
+- Die IBAN in der Datei muss zum Konto passen, sonst bricht der Import ab
+- Dublettenprüfung über Buchungstag, Betrag, IBAN, Verwendungszweck und Saldo: schon importierte und doppelte Zeilen werden übersprungen, ein erneuter Import bringt nur Fehlendes
+- Vorschau mit Status je Zeile (neu, ersetzt eine Buchung, schon vorhanden); einzelne Zeilen lassen sich abwählen
+- Eine importierte Buchung ersetzt eine vorläufige oder manuelle Buchung mit gleichem Betrag bis drei Tage Abstand; die Fälligkeit gilt dann als gebucht, die Kategorie bleibt
+- Anpassungen im Zeitraum der Datei werden aufgelöst; danach vergleicht die App den Stand mit dem Saldo der Bank und bucht eine verbleibende Differenz auf Knopfdruck als Anpassung
+- Jeder Import steht mit Datei und Anzahlen im Protokoll und unter „Letzte Importe“
+
 ## [0.24.0] – Darlehen
 
 ### Neu
