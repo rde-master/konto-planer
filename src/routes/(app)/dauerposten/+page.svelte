@@ -279,9 +279,16 @@
 			<Repeat class="mx-auto mb-3 size-10 text-label-3" />
 			<p class="text-[17px] font-semibold">Noch keine Dauerposten</p>
 			<p class="mt-1 text-[15px] text-label-2">
-				{data.accountOptions.length
-					? 'Lege mit „+“ regelmäßige Ausgaben, Einnahmen und Umbuchungen an, z. B. Miete, Gehalt oder Sparrate.'
-					: 'Du brauchst ein Konto mit Recht „Bearbeiten“, um Dauerposten anzulegen.'}
+				{#if data.accountOptions.length}
+					Lege mit „+“ regelmäßige Ausgaben, Einnahmen und Umbuchungen an, z. B. Miete, Gehalt oder
+					Sparrate.
+				{:else if data.user.role === 'admin'}
+					Lege zuerst unter <a href={resolve('konten')} class="text-accent">Konten</a> ein Girokonto an;
+					danach kannst du hier Dauerposten anlegen.
+				{:else}
+					Du brauchst ein Konto mit Recht „Bearbeiten“, um Dauerposten anzulegen. Den Zugriff
+					vergibt der Admin.
+				{/if}
 			</p>
 		</div>
 	{/if}

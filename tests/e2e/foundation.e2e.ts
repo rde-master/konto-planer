@@ -65,6 +65,11 @@ test('login, tab bar navigation, theme switch and logout on a phone', async ({ p
 		await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
 	}
 
+	// Without accounts the admin is pointed to "Konten", not told about missing rights.
+	await tabBar.getByRole('link', { name: 'Dauerposten' }).click();
+	await expect(page.getByText('Lege zuerst unter Konten ein Girokonto an')).toBeVisible();
+	await expect(page.getByText('Recht „Bearbeiten“')).toHaveCount(0);
+
 	await page.goto('/einstellungen');
 	const saved = page.waitForResponse((r) => r.url().includes('/einstellungen?/theme') && r.ok());
 	await page.getByRole('radio', { name: 'Dunkel' }).click();

@@ -13,6 +13,10 @@ Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https:
 - Liste und Detailseite zeigen die Pause an; pausierte Posten zählen nicht zu den Monatssummen
 - Pausen stehen im Protokoll
 
+### Behoben
+
+- Dauerposten-Seite ohne Konten: Der Admin bekam fälschlich den Hinweis, ihm fehle das Recht „Bearbeiten“. Jetzt verweist die Seite darauf, zuerst unter „Konten“ ein Girokonto anzulegen
+
 ## [0.12.0] – Geplante Betragsänderung
 
 ### Neu
