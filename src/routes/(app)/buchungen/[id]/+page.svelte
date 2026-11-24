@@ -38,7 +38,8 @@
 		import: 'Import',
 		adjustment: 'Anpassung',
 		provisional: 'Vorläufig aus Dauerposten',
-		interest: 'Zinsen (berechnet)'
+		interest: 'Zinsen (berechnet)',
+		goal: 'Umbuchung für Sparziel'
 	};
 
 	let savePending = $state(false);
@@ -70,6 +71,7 @@
 		templateOpen = true;
 	}
 
+	let goalUndoOpen = $state(false);
 	const due = $derived(data.due);
 	let moveOpen = $state(false);
 	let amountOpen = $state(false);
@@ -256,6 +258,28 @@
 				</ListGroup>
 			{/if}
 		{/if}
+		{#if data.goalTransfer}
+			{@const gt = data.goalTransfer}
+			<ListGroup
+				header="Sparziel"
+				footer="Am Tag der Zahlung vom Sparbuch aufs Girokonto gebucht, damit die Zahlung den Mindestbestand nicht belastet."
+			>
+				{#if gt.goalVisible && gt.goalId}
+					<ListRow label="Sparziel" value={gt.goalName ?? ''} href={`sparziele/${gt.goalId}`} />
+				{:else}
+					<ListRow label="Sparziel" value={gt.goalName ?? 'gelöscht'} />
+				{/if}
+			</ListGroup>
+			{#if gt.canUndo}
+				<ListGroup>
+					<ListRow
+						label="Umbuchung zurücknehmen"
+						destructive
+						onclick={() => (goalUndoOpen = true)}
+					/>
+				</ListGroup>
+			{/if}
+		{/if}
 		{#if due}
 			<ListGroup
 				header="Vorläufige Buchung"
@@ -281,18 +305,20 @@
 		<p class="mb-8 px-4 text-[13px] text-label-2">
 			{booking.source === 'interest'
 				? 'Zinsgutschriften berechnet die App selbst.'
-				: booking.source === 'provisional'
-					? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
-					: booking.source === 'adjustment'
-						? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
-						: 'Du kannst diese Buchung nur ansehen.'}
+				: booking.source === 'goal'
+					? 'Umbuchungen für Sparziele bucht die App selbst.'
+					: booking.source === 'provisional'
+						? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
+						: booking.source === 'adjustment'
+							? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
+							: 'Du kannst diese Buchung nur ansehen.'}
 		</p>
 		{#if booking.canDelete}
 			<ListGroup header="Verwaltung">
 				<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
 			</ListGroup>
 		{/if}
-		{#if data.templateAccounts.length && booking.source !== 'adjustment' && booking.source !== 'interest'}
+		{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal'].includes(booking.source)}
 			<ListGroup>
 				<ListRow
 					label="Als Vorlage sichern"
@@ -304,6 +330,18 @@
 		{/if}
 	{/if}
 </Page>
+
+{#if data.goalTransfer?.canUndo}
+	<Sheet bind:open={goalUndoOpen} title="Umbuchung zurücknehmen">
+		<p class="mb-6 px-4 text-center text-[15px]">
+			Beide Buchungen (Sparbuch und Girokonto) werden entfernt. Der Betrag gilt wieder als für das
+			Sparziel zurückgelegt.
+		</p>
+		<form method="POST" action="?/goalUndo" use:enhance>
+			<Button type="submit" variant="destructive">Zurücknehmen</Button>
+		</form>
+	</Sheet>
+{/if}
 
 {#if booking.canDelete}
 	<Sheet

@@ -10,6 +10,7 @@ import {
 } from '#lib/server/interest.js';
 import { INTEREST_RHYTHMS, parseRate } from '#lib/interest.js';
 import { isValidDate } from '#lib/server/recurring-rules.js';
+import { listGoalsFor } from '#lib/server/goals.js';
 import {
 	CutoffError,
 	cutoffCandidates,
@@ -40,7 +41,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!account) error(404, 'Konto nicht gefunden.');
 	const isAdmin = user.role === 'admin';
 	const balance = await balanceOf(account);
+	const goals =
+		account.type === 'sparbuch' ? await listGoalsFor(user, { accountId: account.id }) : null;
 	return {
+		goals,
 		account,
 		isAdmin,
 		access: isAdmin ? await listAccess(account.id) : [],

@@ -3,6 +3,7 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import Tags from '@lucide/svelte/icons/tags';
 	import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
 	import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
@@ -24,6 +25,7 @@
 			icon={CalendarPlus}
 			iconColor="bg-[#34c759]"
 		/>
+		<ListRow label="Sparziele" href="sparziele" icon={PiggyBank} iconColor="bg-[#ff2d55]" />
 		<ListRow label="Kategorien" href="kategorien" icon={Tags} iconColor="bg-[#ff9500]" />
 		<ListRow label="Auswertungen" href="auswertungen" icon={ChartPie} iconColor="bg-[#af52de]" />
 		<ListRow label="Einstellungen" href="einstellungen" icon={Settings} iconColor="bg-[#8e8e93]" />

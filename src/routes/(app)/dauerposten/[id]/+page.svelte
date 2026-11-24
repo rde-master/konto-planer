@@ -14,6 +14,7 @@
 	import { formatSize } from '#lib/files.js';
 	import FormField from '#lib/components/FormField.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
+	import GoalRow from '#lib/components/GoalRow.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput, parseEuro } from '#lib/money.js';
 	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
@@ -216,6 +217,20 @@
 				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if data.goals.length}
+		<section class="mb-8" aria-label="Sparziele">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.goals as goal (goal.id)}<GoalRow {goal} showAccount />{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Am Tag der Zahlung kommt das Zurückgelegte vom Sparbuch aufs Girokonto.
+			</p>
+		</section>
 	{/if}
 
 	{#if data.recent.length}

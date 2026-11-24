@@ -5,6 +5,7 @@ import {
 	accounts,
 	bookings,
 	recurringItems,
+	savingsGoals,
 	users,
 	type Account
 } from './db/schema.js';
@@ -96,7 +97,13 @@ export async function accountHasData(accountId: string): Promise<boolean> {
 		.from(bookings)
 		.where(eq(bookings.accountId, accountId))
 		.limit(1);
-	return booking !== undefined;
+	if (booking) return true;
+	const [goal] = await db
+		.select({ id: savingsGoals.id })
+		.from(savingsGoals)
+		.where(eq(savingsGoals.accountId, accountId))
+		.limit(1);
+	return goal !== undefined;
 }
 
 export async function createAccount(

@@ -15,6 +15,7 @@ import { fieldError, formString } from '#lib/server/validation.js';
 import { DueError, changeDue, dueForBooking, skipDue } from '#lib/server/due.js';
 import { parseEuro } from '#lib/money.js';
 import { InterestError, creditForBooking, setCreditAmount } from '#lib/server/interest.js';
+import { GoalError, goalTransferForBooking, undoGoalTransfer } from '#lib/server/goals.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -29,10 +30,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		booking.source === 'provisional' ? await dueForBooking(locals.user!, booking.id) : null;
 	const credit =
 		booking.source === 'interest' ? await creditForBooking(locals.user!, booking.id) : null;
+	const goalTransfer =
+		booking.source === 'goal' ? await goalTransferForBooking(locals.user!, booking.id) : null;
 	return {
 		booking,
 		due,
 		credit,
+		goalTransfer,
 		accounts,
 		categoryGroups: options.categoryGroups,
 		/** Accounts a template may name: only those the user can book on. */
@@ -147,6 +151,19 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	goalUndo: async ({ locals, params }) => {
+		const user = locals.user!;
+		if (!(await getBookingFor(user, params.id))) error(404, 'Buchung nicht gefunden.');
+		const t = await goalTransferForBooking(user, params.id);
+		try {
+			await undoGoalTransfer(user, params.id);
+		} catch (e) {
+			if (e instanceof GoalError) return fail(400, { action: 'goalUndo', message: e.message });
+			throw e;
+		}
+		redirect(303, t?.goalVisible && t.goalId ? `/sparziele/${t.goalId}` : '/buchungen');
 	},
 
 	delete: async ({ locals, params }) => {

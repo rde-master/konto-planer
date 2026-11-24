@@ -14,6 +14,7 @@ export const ENTITY_TYPES = [
 	'recurring',
 	'booking',
 	'template',
+	'goal',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -41,7 +42,9 @@ export const ACTIONS = [
 	'due_sync',
 	'skip',
 	'interest_credit',
-	'interest_rate'
+	'interest_rate',
+	'allocate',
+	'goal_transfer'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -53,6 +56,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	recurring: 'Dauerposten',
 	booking: 'Buchung',
 	template: 'Vorlage',
+	goal: 'Sparziel',
 	settings: 'Einstellungen'
 };
 
@@ -79,7 +83,9 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	due_sync: 'Fälligkeiten vorläufig gebucht',
 	skip: 'Vorläufige Buchung zurückgenommen',
 	interest_credit: 'Zinsen gutgeschrieben',
-	interest_rate: 'Zinssatz geändert'
+	interest_rate: 'Zinssatz geändert',
+	allocate: 'Sparziel-Betrag zugeteilt',
+	goal_transfer: 'Sparziel umgebucht'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -153,7 +159,11 @@ const FIELD_LABELS: Record<string, string> = {
 	interestRhythm: 'Zinsgutschrift',
 	creditsCreated: 'Neu gebucht',
 	creditsUpdated: 'Angepasst',
-	creditsRemoved: 'Entfernt'
+	creditsRemoved: 'Entfernt',
+	targetAmount: 'Zielbetrag',
+	targetDate: 'Zieldatum',
+	payment: 'Verknüpfte Zahlung',
+	allocated: 'Zugeteilt'
 };
 
 export function fieldLabel(field: string): string {
@@ -188,7 +198,9 @@ const CENT_FIELDS = new Set([
 	'buffer',
 	'amount',
 	'balanceBefore',
-	'balanceAfter'
+	'balanceAfter',
+	'targetAmount',
+	'allocated'
 ]);
 /** Values that mean the same in every field (access levels). */
 const COMMON_VALUES: Record<string, string> = { view: 'Sehen', edit: 'Bearbeiten' };

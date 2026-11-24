@@ -325,7 +325,8 @@ export const bookingSource = pgEnum('booking_source', [
 	'import',
 	'adjustment',
 	'provisional',
-	'interest'
+	'interest',
+	'goal'
 ]);
 
 /**
@@ -483,3 +484,71 @@ export const interestCredits = pgTable(
 );
 
 export type InterestCredit = typeof interestCredits.$inferSelect;
+
+/**
+ * Savings goal on a savings account. `allocated` is the part of the account's balance set
+ * aside for it (the sum over an account's goals may not exceed its balance). A goal linked to
+ * an expense (`recurringId`) gets a transfer to the paying giro account on each due day from
+ * `since` on; for a linked goal the target date is the next due date (not stored).
+ */
+export const savingsGoals = pgTable(
+	'savings_goals',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'restrict' }),
+		name: text('name').notNull(),
+		targetAmount: bigint('target_amount', { mode: 'number' }).notNull(),
+		/** Only for goals without a linked payment; null = no date (no saving rate). */
+		targetDate: date('target_date', { mode: 'string' }),
+		recurringId: uuid('recurring_id').references(() => recurringItems.id, {
+			onDelete: 'set null'
+		}),
+		allocated: bigint('allocated', { mode: 'number' }).notNull().default(0),
+		/** Due items from this day on get a transfer. */
+		since: date('since', { mode: 'string' }).notNull(),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		unique('savings_goals_account_name').on(t.accountId, t.name),
+		index('savings_goals_recurring_idx').on(t.recurringId),
+		check('savings_goals_target_positive', sql`${t.targetAmount} > 0`),
+		check('savings_goals_allocated_range', sql`${t.allocated} >= 0`)
+	]
+);
+
+export type SavingsGoal = typeof savingsGoals.$inferSelect;
+
+/**
+ * Transfer of a goal from the savings account to the giro account on a due day of the linked
+ * payment (`bookings.source = 'goal'`). Amount 0 = nothing was set aside (no bookings).
+ * "skipped" = taken back by hand; the row stays so the transfer is not made again.
+ */
+export const goalTransfers = pgTable(
+	'goal_transfers',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		goalId: uuid('goal_id').references(() => savingsGoals.id, { onDelete: 'set null' }),
+		dueDate: date('due_date', { mode: 'string' }).notNull(),
+		bookingDate: date('booking_date', { mode: 'string' }).notNull(),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		status: text('status').notNull().default('booked'),
+		bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+		targetBookingId: uuid('target_booking_id').references(() => bookings.id, {
+			onDelete: 'set null'
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		uniqueIndex('goal_transfers_goal_date_idx').on(t.goalId, t.dueDate),
+		index('goal_transfers_booking_idx').on(t.bookingId),
+		index('goal_transfers_target_booking_idx').on(t.targetBookingId),
+		check('goal_transfers_status', sql`${t.status} in ('booked', 'skipped')`),
+		check('goal_transfers_amount', sql`${t.amount} >= 0`)
+	]
+);
+
+export type GoalTransfer = typeof goalTransfers.$inferSelect;
