@@ -1,4 +1,18 @@
+<script lang="ts" module>
+	/** A template as the quick entry receives it (see `quickTemplates()`). */
+	export type QuickTemplate = {
+		id: string;
+		name: string;
+		kind: string;
+		amount: string;
+		accountId: string | null;
+		categoryId: string | null;
+		counterparty: string | null;
+	};
+</script>
+
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { applyAction, enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -9,14 +23,16 @@
 	/**
 	 * Quick entry: round plus button on every page (phone: above the tab bar, desktop: in the
 	 * sidebar). Books amount, account and category for today. The last account is remembered
-	 * per device.
+	 * per device. Templates above the fields fill everything in with one tap.
 	 */
 	let {
 		accounts,
-		categories
+		categories,
+		templates = []
 	}: {
 		accounts: { value: string; label: string }[];
 		categories: { label: string; options: { value: string; label: string }[] }[];
+		templates?: QuickTemplate[];
 	} = $props();
 
 	const STORAGE_KEY = 'kontoplaner.quickAccount';
@@ -26,6 +42,8 @@
 	let key = $state(0);
 	let errors: Partial<Record<string, string>> | undefined = $state();
 	let values = $state({ kind: 'expense', amount: '', accountId: '', categoryId: '' });
+	/** Template applied last; its payee is booked along. */
+	let chosen: QuickTemplate | null = $state(null);
 	let toast: string | null = $state(null);
 	let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -50,9 +68,32 @@
 	/** Opens the sheet (also called by the sidebar button on desktop). */
 	export function start() {
 		values = { kind: 'expense', amount: '', accountId: rememberedAccount(), categoryId: '' };
+		chosen = null;
 		errors = undefined;
 		key++;
 		open = true;
+	}
+
+	/** Fills the sheet from a template; tapping it again clears it. */
+	async function apply(t: QuickTemplate) {
+		const accountId = rememberedAccount();
+		if (chosen?.id === t.id) {
+			chosen = null;
+			values = { kind: 'expense', amount: '', accountId, categoryId: '' };
+		} else {
+			chosen = t;
+			values = {
+				kind: t.kind,
+				amount: t.amount,
+				accountId: t.accountId ?? accountId,
+				categoryId: t.categoryId ?? ''
+			};
+		}
+		errors = undefined;
+		key++;
+		await tick();
+		const amount = document.querySelector<HTMLInputElement>('#quick-entry input[name="amount"]');
+		if (chosen && !chosen.amount) amount?.focus();
 	}
 
 	function showToast(text: string) {
@@ -103,13 +144,47 @@
 			};
 		}}
 	>
+		{#if templates.length}
+			<div
+				role="group"
+				aria-label="Vorlagen"
+				class="-mx-4 mb-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1"
+			>
+				{#each templates as t (t.id)}
+					<button
+						type="button"
+						aria-pressed={chosen?.id === t.id}
+						onclick={() => apply(t)}
+						class={[
+							'min-h-9 shrink-0 rounded-full px-4 text-[15px] font-medium whitespace-nowrap active:opacity-60',
+							chosen?.id === t.id ? 'bg-accent text-accent-contrast' : 'bg-card text-accent'
+						]}
+					>
+						{t.name}
+					</button>
+				{/each}
+			</div>
+		{/if}
+		{#if chosen?.counterparty}
+			<input type="hidden" name="counterparty" value={chosen.counterparty} />
+		{/if}
 		{#key key}
 			<BookingFields {values} {errors} {accounts} {categories} />
 		{/key}
+		{#if chosen?.counterparty}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">Empfänger/Zahler: {chosen.counterparty}</p>
+		{/if}
 		<p class="mt-1.5 px-4 text-[13px] text-label-2">
 			Gebucht wird mit dem heutigen Datum. Datum, Empfänger und Notiz kannst du danach unter
 			„Buchungen“ ändern.
 		</p>
+		<a
+			href={resolve('einstellungen/vorlagen')}
+			onclick={() => (open = false)}
+			class="mt-4 block px-4 text-[15px] text-accent"
+		>
+			{templates.length ? 'Vorlagen verwalten' : 'Vorlagen anlegen'}
+		</a>
 	</form>
 </Sheet>
 

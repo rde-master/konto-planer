@@ -84,7 +84,7 @@ test('the full form takes date, payee and note', async ({ page }) => {
 	await row.click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Bäckerei Muster' })).toBeVisible();
 	bookingUrl = new URL(page.url()).pathname;
-	await page.locator('main').getByLabel('Betrag in €').fill('4,20');
+	await page.locator('main').getByLabel('Betrag in €', { exact: true }).fill('4,20');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
 	await expect(page.locator('main')).toContainText(/−4,20\s€/);

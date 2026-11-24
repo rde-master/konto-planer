@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.15.0] – Vorlagen für die Schnellerfassung
+
+### Neu
+
+- Vorlagen für häufige Buchungen, z. B. „Bäcker“ oder „Tanken“: Ein Tipp oben in der Schnellerfassung füllt Art, Betrag, Konto, Kategorie und Empfänger aus, danach nur noch „Buchen“
+- Betrag und Konto sind optional: Ohne Betrag fragt die Schnellerfassung nur den Betrag ab, ohne Konto gilt das zuletzt benutzte
+- Eigene Vorlagen sieht nur, wer sie angelegt hat; Vorlagen „für alle“ stehen allen Benutzern zur Verfügung
+- Neue Seite Einstellungen › Vorlagen zum Anlegen, Ändern, Löschen und Ordnen
+- Jede Buchung lässt sich mit „Als Vorlage sichern“ als Vorlage übernehmen
+- Gemeinsame Vorlagen darf jeder ändern, löschen darf sie nur der Admin
+- Anlegen, Ändern, Ordnen und Löschen von Vorlagen stehen im Protokoll
+
 ## [0.14.0] – Buchungen und Schnellerfassung
 
 ### Neu
