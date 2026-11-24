@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.21.0] – Sparbuch-Zinsen
+
+### Neu
+
+- Sparbücher haben einen Zinssatz mit Verlauf: neuer Satz ab einem Datum, auch für künftige Zinsänderungen
+- Die App rechnet die Zinsen tagegenau (act/365, im Schaltjahr 366) auf den Stand am Ende jedes Tages, ohne Steuern
+- Rhythmus der Gutschrift wählbar: monatlich, vierteljährlich oder jährlich (Standard); gutgeschriebene Zinsen werden mitverzinst
+- Am Ende jeder Periode bucht die App die Zinsen vorläufig; weicht die Bank ab, lässt sich ihr Betrag übernehmen und später wieder auf den berechneten zurückstellen
+- Die Kontoseite eines Sparbuchs zeigt Zinssatz, Zinsen bisher in dieser Periode, die erwartete Gutschrift (mit geplanten Umbuchungen) und den Verlauf des Kontostands als Kurve
+- Zinsänderungen, der Rhythmus und automatische Gutschriften stehen im Protokoll
+
 ## [0.20.0] – Einmalige geplante Zahlungen
 
 ### Neu

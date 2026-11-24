@@ -12,6 +12,8 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import AccountFields from '#lib/components/AccountFields.svelte';
 	import FormField from '#lib/components/FormField.svelte';
+	import BalanceChart from '#lib/components/BalanceChart.svelte';
+	import { INTEREST_RHYTHMS, INTEREST_RHYTHM_LABELS, formatRate } from '#lib/interest.js';
 	import { CUTOFF_MODE_LABELS, CUTOFF_MODES } from '#lib/minimum.js';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
@@ -41,6 +43,23 @@
 	const cutoffErrors = $derived(
 		form?.action === 'cutoff' && 'errors' in form ? form.errors : undefined
 	);
+
+	let rateOpen = $state(false);
+	let ratePending = $state(false);
+	let rateKey = $state(0);
+	const rateErrors: Partial<Record<string, string>> | undefined = $derived(
+		form?.action === 'rate' && 'errors' in form ? form.errors : undefined
+	);
+	const rateInput = $derived(form?.action === 'rate' && 'input' in form ? form.input : undefined);
+
+	function openRate() {
+		rateKey++;
+		rateOpen = true;
+	}
+
+	function submitRhythm(e: Event) {
+		(e.currentTarget as HTMLSelectElement).form?.requestSubmit();
+	}
 
 	function chooseMode(value: string) {
 		cutoffMode = value;
@@ -82,7 +101,10 @@
 			access: 'Zugriffe gesichert.',
 			archive: 'Konto archiviert. Es ist jetzt schreibgeschützt.',
 			restore: 'Konto wiederhergestellt.',
-			cutoff: 'Stichtag gesichert.'
+			cutoff: 'Stichtag gesichert.',
+			rate: 'Zinssatz gesichert.',
+			rateDelete: 'Zinssatz gelöscht.',
+			rhythm: 'Rhythmus der Gutschrift gesichert.'
 		}[form.action];
 	});
 
@@ -272,6 +294,105 @@
 						</li>
 					{/each}
 				</ul>
+			</section>
+		{/if}
+	{/if}
+
+	{#if data.interest}
+		{@const zi = data.interest}
+		<section class="mb-8" aria-label="Zinsen">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinsen</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1 text-[17px]">Zinssatz</span>
+					<span class="text-label-2 tabular" aria-label="Zinssatz">
+						{zi.currentRate ? `${formatRate(zi.currentRate)} p. a.` : 'keiner'}
+					</span>
+				</li>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1 text-[17px]">Bisher in dieser Periode</span>
+					<span class="text-label-2 tabular" aria-label="Bisher in dieser Periode">
+						{formatEuro(zi.accrued)}
+					</span>
+				</li>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1 text-[17px]">Gutschrift am {formatDay(zi.expected.date)}</span>
+					<span class="text-income tabular" aria-label="Erwartete Gutschrift">
+						+{formatEuro(zi.expected.amount)}
+					</span>
+				</li>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
+					{#if canEdit}
+						<form method="POST" action="?/rhythm" use:enhance class="contents">
+							<label for="interest-rhythm" class="flex-1 text-[17px]">Gutschrift</label>
+							<select
+								id="interest-rhythm"
+								name="interestRhythm"
+								onchange={submitRhythm}
+								class="bg-transparent text-right text-label-2"
+							>
+								{#each INTEREST_RHYTHMS as r (r)}
+									<option value={r} selected={r === zi.rhythm}>{INTEREST_RHYTHM_LABELS[r]}</option>
+								{/each}
+							</select>
+						</form>
+					{:else}
+						<span class="flex-1 text-[17px]">Gutschrift</span>
+						<span class="text-label-2">{INTEREST_RHYTHM_LABELS[zi.rhythm]}</span>
+					{/if}
+				</li>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Tagegenau auf den Stand am Ende jedes Tages (act/365), ohne Steuern. Am Ende der Periode
+				bucht die App die Zinsen vorläufig; weicht die Bank ab, passe den Betrag an der Buchung an.
+			</p>
+		</section>
+
+		{#if zi.rates.length || canEdit}
+			<section class="mb-8" aria-label="Zinssätze">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinssätze</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each [...zi.rates].reverse() as r (r.id)}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2">
+							<span class="flex-1 text-[17px]">ab {formatDay(r.validFrom)}</span>
+							<span class="tabular">{formatRate(r.rate)}</span>
+							{#if canEdit}
+								<form method="POST" action="?/rateDelete" use:enhance>
+									<input type="hidden" name="rateId" value={r.id} />
+									<button
+										type="submit"
+										class="text-[15px] text-danger"
+										aria-label="Zinssatz ab {formatDay(r.validFrom)} löschen"
+									>
+										Löschen
+									</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+					{#if canEdit}
+						<li>
+							<button
+								type="button"
+								onclick={openRate}
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+							>
+								Zinssatz ändern
+							</button>
+						</li>
+					{/if}
+				</ul>
+			</section>
+		{/if}
+
+		{#if zi.series.length > 1}
+			<section class="mb-8" aria-label="Verlauf">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Verlauf</h2>
+				<BalanceChart series={zi.series} label="Kontostand im Verlauf" />
 			</section>
 		{/if}
 	{/if}
@@ -536,6 +657,59 @@
 				Bis zu diesem Tag (einschließlich) muss das Geld reichen. „Nächstes Gehalt“ nimmt die
 				nächste als Gehalt markierte Einnahme; auch eine Umbuchung auf dieses Konto kann Stichtag
 				sein.
+			</p>
+		</form>
+	</Sheet>
+{/if}
+
+{#if canEdit && data.interest}
+	<Sheet
+		bind:open={rateOpen}
+		title="Zinssatz ändern"
+		confirmLabel="Sichern"
+		formId="rate-form"
+		confirmDisabled={ratePending}
+	>
+		<form
+			id="rate-form"
+			method="POST"
+			action="?/rate"
+			use:enhance={() => {
+				ratePending = true;
+				return async ({ result, update }) => {
+					ratePending = false;
+					if (result.type === 'success') rateOpen = false;
+					await update({ reset: false });
+					rateKey++;
+				};
+			}}
+		>
+			{#key rateKey}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<FormField
+						label="Zinssatz in % p. a."
+						name="rate"
+						value={rateInput?.rate ?? ''}
+						inputmode="decimal"
+						autocomplete="off"
+						placeholder="z. B. 2,75"
+						required
+						error={rateErrors?.rate}
+					/>
+					<FormField
+						label="Gültig ab"
+						name="validFrom"
+						type="date"
+						value={rateInput?.validFrom ?? data.today}
+						required
+						error={rateErrors?.validFrom}
+					/>
+				</ul>
+			{/key}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Ein künftiges Datum plant eine Zinsänderung ein; bis dahin gilt der bisherige Satz.
 			</p>
 		</form>
 	</Sheet>

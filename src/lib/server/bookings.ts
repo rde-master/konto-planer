@@ -10,6 +10,7 @@ import { buildTree } from './category-rules.js';
 import { categoryGroups } from './recurring-form.js';
 import type { AdjustmentValues, BookingContext, BookingValues } from './booking-rules.js';
 import { adjustmentAmount, countsToBalance } from '../balance.js';
+import { syncInterest } from './interest.js';
 import { todayBerlin } from '../dates.js';
 
 export class BookingError extends Error {}
@@ -246,6 +247,8 @@ export async function deleteBooking(actor: NonNullable<Actor> & Viewer, id: stri
 			before
 		});
 	});
+	// Deleting an adjustment on a savings account changes its interest.
+	await syncInterest([current.accountId]);
 }
 
 /** Number of bookings on an account (shown on the account page). */
@@ -321,7 +324,7 @@ export async function adjustBalance(
 	const account = await getAccountFor(actor, accountId);
 	if (!account || !canEditAccount(account.level, account.archivedAt !== null))
 		throw new BookingError('Diesen Kontostand darfst du nicht korrigieren.');
-	return db.transaction(async (tx) => {
+	const amount = await db.transaction(async (tx) => {
 		// Serialise corrections of the same account so two at once cannot both book the difference.
 		await tx.execute(sql`select id from accounts where id = ${accountId} for update`);
 		const before = account.openingBalance + (await bookingSum(tx, account, values.date));
@@ -354,4 +357,6 @@ export async function adjustBalance(
 		});
 		return amount;
 	});
+	await syncInterest([accountId]);
+	return amount;
 }

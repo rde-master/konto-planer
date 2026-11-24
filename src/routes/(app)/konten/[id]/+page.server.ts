@@ -2,6 +2,15 @@ import { BookingError, adjustBalance, balanceOf, countBookings } from '#lib/serv
 import { validateAdjustment } from '#lib/server/booking-rules.js';
 import { todayBerlin } from '#lib/dates.js';
 import {
+	InterestError,
+	addRate,
+	deleteRate,
+	interestInfo,
+	setRhythm
+} from '#lib/server/interest.js';
+import { INTEREST_RHYTHMS, parseRate } from '#lib/interest.js';
+import { isValidDate } from '#lib/server/recurring-rules.js';
+import {
 	CutoffError,
 	cutoffCandidates,
 	plansFor,
@@ -38,6 +47,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		hasData: isAdmin ? await accountHasData(account.id) : true,
 		bookingCount: await countBookings(account.id),
 		balance,
+		interest:
+			account.type === 'sparbuch' && !account.archivedAt ? await interestInfo(user, account) : null,
 		plan:
 			(await plansFor(user, [account], new Map([[account.id, balance]]))).get(account.id) ?? null,
 		today: todayBerlin()
@@ -127,6 +138,56 @@ export const actions: Actions = {
 			throw e;
 		}
 		return { action: 'cutoff' as const, success: true };
+	},
+
+	/** Savings: a new interest rate valid from a day. */
+	rate: async ({ request, locals, params }) => {
+		const data = await request.formData();
+		const input = { rate: formString(data, 'rate'), validFrom: formString(data, 'validFrom') };
+		const rate = parseRate(input.rate);
+		const errors: Record<string, string> = {};
+		if (rate === null) errors.rate = 'Bitte einen Zinssatz wie 2,75 eingeben.';
+		if (!isValidDate(input.validFrom)) errors.validFrom = 'Bitte ein Datum wählen.';
+		if (rate === null || Object.keys(errors).length)
+			return fail(400, { action: 'rate' as const, input, errors });
+		try {
+			await addRate(locals.user!, params.id, { rate, validFrom: input.validFrom });
+		} catch (e) {
+			if (e instanceof InterestError)
+				return fail(400, {
+					action: 'rate' as const,
+					input,
+					errors: { validFrom: e.message }
+				});
+			throw e;
+		}
+		return { action: 'rate' as const, success: true };
+	},
+
+	rateDelete: async ({ request, locals, params }) => {
+		try {
+			await deleteRate(locals.user!, params.id, formString(await request.formData(), 'rateId'));
+		} catch (e) {
+			if (e instanceof InterestError)
+				return fail(400, { action: 'rateDelete' as const, message: e.message });
+			throw e;
+		}
+		return { action: 'rateDelete' as const, success: true };
+	},
+
+	rhythm: async ({ request, locals, params }) => {
+		const value = formString(await request.formData(), 'interestRhythm');
+		const rhythm = INTEREST_RHYTHMS.find((r) => r === value);
+		if (!rhythm)
+			return fail(400, { action: 'rhythm' as const, message: 'Bitte einen Rhythmus wählen.' });
+		try {
+			await setRhythm(locals.user!, params.id, rhythm);
+		} catch (e) {
+			if (e instanceof InterestError)
+				return fail(400, { action: 'rhythm' as const, message: e.message });
+			throw e;
+		}
+		return { action: 'rhythm' as const, success: true };
 	},
 
 	access: async ({ request, locals, params }) => {
