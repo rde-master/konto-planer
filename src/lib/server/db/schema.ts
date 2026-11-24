@@ -552,3 +552,51 @@ export const goalTransfers = pgTable(
 );
 
 export type GoalTransfer = typeof goalTransfers.$inferSelect;
+
+/**
+ * Loan repaid by an expense (1:1 with the recurring item): each due date of the item is an
+ * installment; interest per installment 30/360 on the remaining debt, the rest repays it.
+ * Rate in thousandths of a percent (3,5 % = 3500).
+ */
+export const loans = pgTable(
+	'loans',
+	{
+		recurringId: uuid('recurring_id')
+			.primaryKey()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		principal: bigint('principal', { mode: 'number' }).notNull(),
+		rate: integer('rate').notNull(),
+		/** Payout day; interest runs from here. */
+		startDate: date('start_date', { mode: 'string' }).notNull(),
+		/** End of the term or of the fixed interest period (optional). */
+		termEnd: date('term_end', { mode: 'string' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		check('loans_principal_positive', sql`${t.principal} > 0`),
+		check('loans_rate_range', sql`${t.rate} between 0 and 100000`)
+	]
+);
+
+export type Loan = typeof loans.$inferSelect;
+
+/** Extra repayments ("Sondertilgungen") of a loan. */
+export const loanExtraPayments = pgTable(
+	'loan_extra_payments',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => loans.recurringId, { onDelete: 'cascade' }),
+		date: date('date', { mode: 'string' }).notNull(),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('loan_extra_payments_loan_idx').on(t.recurringId),
+		check('loan_extra_payments_amount_positive', sql`${t.amount} > 0`)
+	]
+);
+
+export type LoanExtraPayment = typeof loanExtraPayments.$inferSelect;
