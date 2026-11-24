@@ -647,6 +647,9 @@ export const imports = pgTable(
 		periodTo: date('period_to', { mode: 'string' }),
 		bankBalance: bigint('bank_balance', { mode: 'number' }),
 		appBalance: bigint('app_balance', { mode: 'number' }),
+		/** What the import changed beyond its own bookings, to take it back ("rückgängig"). */
+		undo: jsonb('undo'),
+		undoneAt: timestamp('undone_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		completedAt: timestamp('completed_at', { withTimezone: true })
 	},
