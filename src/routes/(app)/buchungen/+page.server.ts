@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import {
 	BookingError,
 	bookingFormContext,
+	balanceOf,
 	createBooking,
 	listBookingsFor
 } from '#lib/server/bookings.js';
@@ -43,9 +44,10 @@ async function create(request: Request, user: NonNullable<App.Locals['user']>) {
 		throw e;
 	}
 	const account = (await listAccountsFor(user)).find((a) => a.id === values.accountId);
+	const balance = account ? ` Neuer Stand: ${formatEuro(await balanceOf(account))}.` : '';
 	return {
 		action: 'create',
-		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.`
+		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.${balance}`
 	};
 }
 

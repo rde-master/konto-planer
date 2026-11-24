@@ -128,6 +128,12 @@
 		</div>
 	</section>
 
+	{#if !booking.counts}
+		<p class="-mt-6 mb-8 px-4 text-[13px] text-label-2">
+			Liegt vor dem Startsaldo des Kontos und zählt deshalb nicht zum Kontostand.
+		</p>
+	{/if}
+
 	{#if booking.canEdit}
 		<form
 			method="POST"
@@ -173,8 +179,17 @@
 			{#if booking.purpose}<ListRow label="Notiz" value={booking.purpose} />{/if}
 			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
 		</ListGroup>
-		<p class="mb-8 px-4 text-[13px] text-label-2">Du kannst diese Buchung nur ansehen.</p>
-		{#if data.templateAccounts.length}
+		<p class="mb-8 px-4 text-[13px] text-label-2">
+			{booking.source === 'adjustment'
+				? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
+				: 'Du kannst diese Buchung nur ansehen.'}
+		</p>
+		{#if booking.canDelete}
+			<ListGroup header="Verwaltung">
+				<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
+			</ListGroup>
+		{/if}
+		{#if data.templateAccounts.length && booking.source !== 'adjustment'}
 			<ListGroup>
 				<ListRow
 					label="Als Vorlage sichern"
@@ -187,10 +202,15 @@
 	{/if}
 </Page>
 
-{#if booking.canEdit}
-	<Sheet bind:open={deleteOpen} title="Buchung löschen">
+{#if booking.canDelete}
+	<Sheet
+		bind:open={deleteOpen}
+		title={booking.source === 'adjustment' ? 'Anpassung löschen' : 'Buchung löschen'}
+	>
 		<p class="mb-6 px-4 text-center text-[15px]">
-			Die Buchung über {formatEuro(booking.amount)} wird endgültig gelöscht.
+			Die {booking.source === 'adjustment' ? 'Anpassung' : 'Buchung'} über {formatEuro(
+				booking.amount
+			)} wird endgültig gelöscht.
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
 			<Button type="submit" variant="destructive">Löschen</Button>

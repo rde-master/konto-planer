@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.16.0] – Kontostand und Anpassungsbuchung
+
+### Neu
+
+- Jedes Konto zeigt seinen aktuellen Kontostand: Startsaldo plus alle Buchungen ab dem Startsaldo-Datum, in der Kontenliste und auf der Kontoseite
+- „Kontostand korrigieren“: tatsächlichen Stand an einem Tag eingeben, die Differenz wird als Anpassung gebucht
+- Anpassungen erscheinen in den Buchungen; sie lassen sich nicht ändern, aber löschen
+- Die Schnellerfassung meldet nach dem Buchen den neuen Stand des Kontos
+- Buchungen vor dem Startsaldo-Datum bleiben gespeichert und sind als „zählt nicht zum Kontostand“ gekennzeichnet
+- Korrekturen stehen im Protokoll mit Stand vorher und nachher
+
 ## [0.15.0] – Vorlagen für die Schnellerfassung
 
 ### Neu

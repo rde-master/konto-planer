@@ -77,3 +77,22 @@ export function validateBooking(
 		errors: null
 	};
 }
+
+export type AdjustmentInput = { actual: string; date: string };
+export type AdjustmentValues = { actual: number; date: string };
+
+/** Validates "Kontostand korrigieren": the actual balance at the end of a day. */
+export function validateAdjustment(
+	input: AdjustmentInput,
+	ctx: { today: string; openingDate: string }
+): { values: AdjustmentValues; errors: null } | { values: null; errors: FieldErrors } {
+	const errors: FieldErrors = {};
+	const actual = parseEuro(input.actual);
+	if (actual === null) errors.actual = 'Bitte einen Betrag wie 1.234,56 eingeben (minus für Soll).';
+	if (!isValidDate(input.date)) errors.date = 'Bitte ein Datum wählen.';
+	else if (input.date > ctx.today) errors.date = 'Das Datum darf nicht in der Zukunft liegen.';
+	else if (input.date < ctx.openingDate)
+		errors.date = 'Das Datum darf nicht vor dem Startsaldo liegen.';
+	if (Object.keys(errors).length || actual === null) return { values: null, errors };
+	return { values: { actual, date: input.date }, errors: null };
+}
