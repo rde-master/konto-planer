@@ -15,6 +15,7 @@
 	import FormField from '#lib/components/FormField.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import GoalRow from '#lib/components/GoalRow.svelte';
+	import LoanSection from '#lib/components/LoanSection.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput, parseEuro } from '#lib/money.js';
 	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
@@ -126,7 +127,12 @@
 			attachmentDelete: 'PDF gelöscht.',
 			archive: 'Dauerposten archiviert.',
 			restore: 'Dauerposten wiederhergestellt.',
-			restoreDue: 'Fälligkeit wieder vorläufig gebucht.'
+			restoreDue: 'Fälligkeit wieder vorläufig gebucht.',
+			loan: 'Darlehensdaten gesichert.',
+			loanDelete: 'Darlehensdaten entfernt.',
+			extra: 'Sondertilgung gesichert.',
+			extraDelete: 'Sondertilgung gelöscht.',
+			loanEnd: 'Ende übernommen.'
 		}[form.action];
 	});
 
@@ -225,6 +231,18 @@
 				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if item.kind === 'expense' && (data.loan || item.canEdit)}
+		<LoanSection
+			loan={data.loan}
+			canEdit={item.canEdit}
+			endDate={item.endDate}
+			loanInput={form?.action === 'loan' && 'loanInput' in form ? form.loanInput : undefined}
+			loanErrors={form?.action === 'loan' && 'errors' in form ? form.errors : undefined}
+			extraInput={form?.action === 'extra' && 'extraInput' in form ? form.extraInput : undefined}
+			extraErrors={form?.action === 'extra' && 'errors' in form ? form.errors : undefined}
+		/>
 	{/if}
 
 	{#if reserve !== null}

@@ -14,6 +14,16 @@ import {
 } from '#lib/server/recurring.js';
 import { listGoalsFor } from '#lib/server/goals.js';
 import {
+	addExtra,
+	applyLoanEnd,
+	deleteExtra,
+	deleteLoan,
+	loanInfo,
+	saveLoan,
+	validateExtra,
+	validateLoan
+} from '#lib/server/loans.js';
+import {
 	validateAmount,
 	validateContract,
 	validatePause,
@@ -58,9 +68,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const ownSide = item.account.level !== null;
 	const goals =
 		item.kind === 'expense' ? await listGoalsFor(locals.user!, { recurringId: item.id }) : [];
+	const loan = item.kind === 'expense' ? await loanInfo(item) : null;
 	return {
 		item,
 		goals,
+		loan,
 		defaultLeadDays: settings.defaultLeadDays,
 		attachments,
 		...options,
@@ -182,6 +194,70 @@ export const actions: Actions = {
 			return recurringError('pause', e);
 		}
 		return { action: 'pause', success: true };
+	},
+
+	loan: async ({ request, locals, params }) => {
+		const data = await request.formData();
+		const loanInput = {
+			principal: formString(data, 'principal'),
+			rate: formString(data, 'rate'),
+			startDate: formString(data, 'startDate'),
+			termEnd: formString(data, 'termEnd')
+		};
+		const { values, errors } = validateLoan(loanInput);
+		if (!values) return fail(400, { action: 'loan', loanInput, errors });
+		try {
+			await saveLoan(locals.user!, params.id, values);
+		} catch (e) {
+			return recurringError('loan', e);
+		}
+		return { action: 'loan', success: true };
+	},
+
+	loanDelete: async ({ locals, params }) => {
+		try {
+			await deleteLoan(locals.user!, params.id);
+		} catch (e) {
+			return recurringError('loanDelete', e);
+		}
+		return { action: 'loanDelete', success: true };
+	},
+
+	extra: async ({ request, locals, params }) => {
+		const data = await request.formData();
+		const extraInput = { date: formString(data, 'date'), amount: formString(data, 'amount') };
+		const { values, errors } = validateExtra(extraInput);
+		if (!values) return fail(400, { action: 'extra', extraInput, errors });
+		try {
+			await addExtra(locals.user!, params.id, values);
+		} catch (e) {
+			if (e instanceof RecurringError)
+				return fail(400, {
+					action: 'extra',
+					extraInput,
+					errors: fieldError('date', e.message)
+				});
+			throw e;
+		}
+		return { action: 'extra', success: true };
+	},
+
+	extraDelete: async ({ request, locals, params }) => {
+		try {
+			await deleteExtra(locals.user!, params.id, formString(await request.formData(), 'extraId'));
+		} catch (e) {
+			return recurringError('extraDelete', e);
+		}
+		return { action: 'extraDelete', success: true };
+	},
+
+	loanEnd: async ({ locals, params }) => {
+		try {
+			await applyLoanEnd(locals.user!, params.id);
+		} catch (e) {
+			return recurringError('loanEnd', e);
+		}
+		return { action: 'loanEnd', success: true };
 	},
 
 	pauseEnd: async ({ locals, params }) => {

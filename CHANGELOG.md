@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.24.0] – Darlehen
+
+### Neu
+
+- An einer Ausgabe lassen sich Darlehensdaten erfassen: Darlehenssumme, Zinssatz, Beginn und optional Laufzeitende bzw. Ende der Zinsbindung
+- Jede Fälligkeit des Dauerpostens gilt als Rate: erst die Zinsen (30/360 auf die Restschuld), der Rest tilgt
+- Die Seite zeigt Restschuld heute, getilgten Anteil, berechnetes Ende mit letzter Rate, Restschuld zum Laufzeitende, Zinsen bisher und gesamt, die nächsten Raten mit Zins- und Tilgungsanteil und den Tilgungsverlauf als Kurve
+- Sondertilgungen mit Datum und Betrag senken die Restschuld und verkürzen die Laufzeit
+- „Ende übernehmen“ setzt das Ende des Dauerpostens auf die letzte Rate
+- Deckt die Rate die Zinsen nicht, warnt die App
+- Änderungen an Darlehen und Sondertilgungen stehen im Protokoll
+
 ## [0.23.0] – Rücklagen für Jahreszahlungen
 
 ### Neu

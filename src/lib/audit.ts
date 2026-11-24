@@ -44,7 +44,8 @@ export const ACTIONS = [
 	'interest_credit',
 	'interest_rate',
 	'allocate',
-	'goal_transfer'
+	'goal_transfer',
+	'loan_extra'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -85,7 +86,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	interest_credit: 'Zinsen gutgeschrieben',
 	interest_rate: 'Zinssatz geändert',
 	allocate: 'Sparziel-Betrag zugeteilt',
-	goal_transfer: 'Sparziel umgebucht'
+	goal_transfer: 'Sparziel umgebucht',
+	loan_extra: 'Sondertilgung geändert'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -163,7 +165,12 @@ const FIELD_LABELS: Record<string, string> = {
 	targetAmount: 'Zielbetrag',
 	targetDate: 'Zieldatum',
 	payment: 'Verknüpfte Zahlung',
-	allocated: 'Zugeteilt'
+	allocated: 'Zugeteilt',
+	loanPrincipal: 'Darlehenssumme',
+	loanRate: 'Darlehenszins',
+	loanStart: 'Darlehensbeginn',
+	loanTermEnd: 'Laufzeitende',
+	date: 'Datum'
 };
 
 export function fieldLabel(field: string): string {
@@ -200,7 +207,8 @@ const CENT_FIELDS = new Set([
 	'balanceBefore',
 	'balanceAfter',
 	'targetAmount',
-	'allocated'
+	'allocated',
+	'loanPrincipal'
 ]);
 /** Values that mean the same in every field (access levels). */
 const COMMON_VALUES: Record<string, string> = { view: 'Sehen', edit: 'Bearbeiten' };
