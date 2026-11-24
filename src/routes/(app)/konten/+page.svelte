@@ -34,7 +34,8 @@
 		iban: '',
 		openingBalance: '',
 		openingDate: todayBerlin(),
-		overdraftLimit: ''
+		overdraftLimit: '',
+		buffer: ''
 	});
 	const formValues = $derived(
 		form && 'input' in form && form.input

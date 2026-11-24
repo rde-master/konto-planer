@@ -14,6 +14,7 @@
 		openingBalance: number | string;
 		openingDate: string;
 		overdraftLimit: number | string;
+		buffer: number | string;
 	};
 
 	/**
@@ -127,7 +128,7 @@
 
 	{#if type === 'giro'}
 		<section class="mb-6">
-			<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Dispo</h3>
+			<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Dispo und Puffer</h3>
 			<ul
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 			>
@@ -140,9 +141,19 @@
 					placeholder="0,00"
 					error={errors?.overdraftLimit}
 				/>
+				<FormField
+					label="Puffer in € (optional)"
+					name="buffer"
+					value={values.buffer ? amount(values.buffer) : ''}
+					inputmode="decimal"
+					autocomplete="off"
+					placeholder="0,00"
+					error={errors?.buffer}
+				/>
 			</ul>
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Der Dispo zählt nie zum verfügbaren Betrag.
+				Der Dispo zählt nie zum verfügbaren Betrag. Der Puffer ist ein Sicherheitsbetrag, der immer
+				zum Mindestbestand dazukommt.
 			</p>
 		</section>
 	{/if}

@@ -16,6 +16,7 @@ export type AccountInput = {
 	openingBalance: string;
 	openingDate: string;
 	overdraftLimit: string;
+	buffer: string;
 };
 
 export type AccountValues = {
@@ -26,6 +27,8 @@ export type AccountValues = {
 	openingBalance: number;
 	openingDate: string;
 	overdraftLimit: number;
+	/** Added to the minimum balance (giro only). */
+	buffer: number;
 };
 
 function validDate(value: string): boolean {
@@ -64,6 +67,13 @@ export function validateAccount(
 		else overdraftLimit = parsed;
 	}
 
+	let buffer = 0;
+	if (type === 'giro' && input.buffer.trim()) {
+		const parsed = parseEuro(input.buffer);
+		if (parsed === null || parsed < 0) errors.buffer = 'Bitte einen positiven Betrag eingeben.';
+		else buffer = parsed;
+	}
+
 	if (Object.keys(errors).length || !type || openingBalance === null)
 		return { values: null, errors };
 	return {
@@ -74,7 +84,8 @@ export function validateAccount(
 			iban: iban || null,
 			openingBalance,
 			openingDate: input.openingDate,
-			overdraftLimit
+			overdraftLimit,
+			buffer
 		},
 		errors: null
 	};

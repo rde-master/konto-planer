@@ -104,6 +104,8 @@ export const accounts = pgTable('accounts', {
 	openingDate: date('opening_date', { mode: 'string' }).notNull(),
 	/** Overdraft limit as a positive amount; 0 = none. Only for giro accounts. */
 	overdraftLimit: bigint('overdraft_limit', { mode: 'number' }).notNull().default(0),
+	/** Safety amount always added to the minimum balance; giro accounts only. */
+	buffer: bigint('buffer', { mode: 'number' }).notNull().default(0),
 	/** Cut-off day of the minimum balance ("Stichtag"); giro accounts only. */
 	cutoffMode: cutoffMode('cutoff_mode').notNull().default('salary'),
 	/** Mode "salary": the income or transfer that sets the day; null = next salary. */

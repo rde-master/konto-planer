@@ -34,7 +34,8 @@ function auditFields(a: Pick<Account, keyof AccountValues>) {
 		iban: a.iban,
 		openingBalance: a.openingBalance,
 		openingDate: a.openingDate,
-		overdraftLimit: a.overdraftLimit
+		overdraftLimit: a.overdraftLimit,
+		buffer: a.buffer
 	};
 }
 
@@ -133,7 +134,10 @@ export async function updateAccount(
 	}
 	// The type is fixed after creation: savings and giro accounts behave differently.
 	const next = { ...values, type: current.type };
-	if (next.type !== 'giro') next.overdraftLimit = 0;
+	if (next.type !== 'giro') {
+		next.overdraftLimit = 0;
+		next.buffer = 0;
+	}
 	try {
 		await db.transaction(async (tx) => {
 			await tx

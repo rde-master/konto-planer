@@ -78,4 +78,10 @@ describe('minimumPlan', () => {
 			available: -120_00
 		});
 	});
+	it('the buffer always adds to the minimum', () => {
+		const none = minimumPlan(250_00, 0, [], '2026-11-30', today, 100_00);
+		expect(none).toMatchObject({ minimum: 100_00, buffer: 100_00, available: 150_00 });
+		const drop = minimumPlan(250_00, 0, [ev('2026-11-26', -200_00)], '2026-11-30', today, 100_00);
+		expect(drop).toMatchObject({ minimum: 300_00, available: -50_00, goesNegative: false });
+	});
 });

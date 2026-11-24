@@ -118,7 +118,8 @@ export async function plansFor(
 				account.overdraftLimit,
 				events,
 				cutoff.date,
-				today
+				today,
+				account.buffer
 			),
 			candidates: candidates.map((i) => ({
 				value: i.id,

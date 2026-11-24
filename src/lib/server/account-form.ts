@@ -10,6 +10,7 @@ export function readAccountForm(data: FormData, fixedType?: string): AccountInpu
 		iban: formString(data, 'iban'),
 		openingBalance: formString(data, 'openingBalance'),
 		openingDate: formString(data, 'openingDate'),
-		overdraftLimit: formString(data, 'overdraftLimit')
+		overdraftLimit: formString(data, 'overdraftLimit'),
+		buffer: formString(data, 'buffer')
 	};
 }

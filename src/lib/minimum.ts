@@ -48,8 +48,10 @@ export function resolveCutoff(
 export type PlanEvent = { date: string; amount: number; label: string };
 
 export type MinimumPlan = {
-	/** Amount that must be on the account today (>= 0). */
+	/** Amount that must be on the account today (>= 0): deepest drop plus buffer. */
 	minimum: number;
+	/** Safety amount of the account, part of the minimum. */
+	buffer: number;
 	/** Balance minus minimum; negative = money is missing. */
 	available: number;
 	/** Lowest projected balance and its day (null if nothing happens until the cut-off). */
@@ -64,14 +66,16 @@ export type MinimumPlan = {
 
 /**
  * Walks the events after today up to and including the cut-off day; on each day outgoing
- * payments first, then incoming ones (cautious). The minimum is the deepest drop below today.
+ * payments first, then incoming ones (cautious). The minimum is the deepest drop below today
+ * plus the account's buffer.
  */
 export function minimumPlan(
 	balance: number,
 	overdraftLimit: number,
 	events: PlanEvent[],
 	cutoff: string,
-	today: string
+	today: string,
+	buffer = 0
 ): MinimumPlan {
 	const relevant = events
 		.filter((e) => e.date > today && e.date <= cutoff && e.amount !== 0)
@@ -92,8 +96,9 @@ export function minimumPlan(
 	const drop = lowest ? Math.max(0, balance - lowest.balance) : 0;
 	const projectedLow = Math.min(balance, lowest?.balance ?? balance);
 	return {
-		minimum: drop,
-		available: balance - drop,
+		minimum: drop + buffer,
+		buffer,
+		available: balance - drop - buffer,
 		lowest,
 		overdraftInUse: balance < 0,
 		goesNegative: projectedLow < 0 && (lowest?.balance ?? 0) < 0 && balance >= 0,

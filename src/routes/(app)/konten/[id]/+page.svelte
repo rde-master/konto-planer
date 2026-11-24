@@ -185,6 +185,12 @@
 						{formatEuro(p.minimum)}
 					</span>
 				</li>
+				{#if p.buffer}
+					<li class="flex min-h-11 items-center gap-3 py-2.5 pr-4 pl-8">
+						<span class="flex-1 text-[15px] text-label-2">davon Puffer</span>
+						<span class="text-[15px] text-label-2 tabular">{formatEuro(p.buffer)}</span>
+					</li>
+				{/if}
 				<li>
 					<svelte:element
 						this={canEdit ? 'button' : 'div'}
@@ -304,6 +310,7 @@
 					label="Dispo"
 					value={account.overdraftLimit ? formatEuro(account.overdraftLimit) : 'keiner'}
 				/>
+				<ListRow label="Puffer" value={account.buffer ? formatEuro(account.buffer) : 'keiner'} />
 			{/if}
 		</ListGroup>
 	{/if}

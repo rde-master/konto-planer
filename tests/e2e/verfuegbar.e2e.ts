@@ -124,3 +124,18 @@ test('the cut-off day can be a fixed date or a chosen income; logged', async ({ 
 	await page.getByRole('button').filter({ hasText: ACCOUNT }).first().click();
 	await expect(page.getByRole('dialog', { name: 'Eintrag' })).toContainText('Stichtag-Eingang');
 });
+
+test('the buffer always adds to the minimum balance', async ({ page }) => {
+	await login(page);
+	await openAccount(page);
+	await page.locator('main').getByLabel('Puffer in € (optional)').fill('150');
+	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
+	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
+	await expect(minimum(page)).toHaveText(/1\.350,00\s€/);
+	await expect(page.getByText('davon Puffer')).toBeVisible();
+	await expect(available(page)).toHaveText(/−350,00\s€/);
+
+	await page.goto('/einstellungen/protokoll?bereich=account');
+	await page.getByRole('button').filter({ hasText: ACCOUNT }).first().click();
+	await expect(page.getByRole('dialog', { name: 'Eintrag' })).toContainText('Puffer');
+});
