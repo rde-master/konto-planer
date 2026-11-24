@@ -1,0 +1,3 @@
+ALTER TABLE "recurring_items" ADD COLUMN "pause_from" date;--> statement-breakpoint
+ALTER TABLE "recurring_items" ADD COLUMN "pause_until" date;--> statement-breakpoint
+ALTER TABLE "recurring_items" ADD CONSTRAINT "recurring_items_pause_check" CHECK ("recurring_items"."pause_until" is null or ("recurring_items"."pause_from" is not null and "recurring_items"."pause_until" >= "recurring_items"."pause_from"));

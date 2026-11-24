@@ -4,8 +4,10 @@ import {
 	addAmount,
 	deleteAmount,
 	deleteRecurring,
+	endPause,
 	getRecurringFor,
 	recurringHasData,
+	setPause,
 	setRecurringArchived,
 	updateAmount,
 	updateRecurring
@@ -13,6 +15,7 @@ import {
 import {
 	validateAmount,
 	validateContract,
+	validatePause,
 	validateRecurring
 } from '#lib/server/recurring-rules.js';
 import {
@@ -131,6 +134,31 @@ export const actions: Actions = {
 			return recurringError('amountDelete', e);
 		}
 		return { action: 'amountDelete', success: true };
+	},
+
+	pause: async ({ request, locals, params }) => {
+		const data = await request.formData();
+		const input = {
+			pauseFrom: formString(data, 'pauseFrom'),
+			pauseUntil: formString(data, 'pauseUntil')
+		};
+		const { values, errors } = validatePause(input);
+		if (!values) return fail(400, { action: 'pause', pauseInput: input, errors });
+		try {
+			await setPause(locals.user!, params.id, values);
+		} catch (e) {
+			return recurringError('pause', e);
+		}
+		return { action: 'pause', success: true };
+	},
+
+	pauseEnd: async ({ locals, params }) => {
+		try {
+			await endPause(locals.user!, params.id);
+		} catch (e) {
+			return recurringError('pauseEnd', e);
+		}
+		return { action: 'pauseEnd', success: true };
 	},
 
 	archive: async ({ locals, params }) => {

@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.13.0] – Dauerposten pausieren
+
+### Neu
+
+- Dauerposten lassen sich pausieren, z. B. ein Abo während einer Reise: Pause ab einem Tag, Ende optional
+- In der Pause entstehen keine Fälligkeiten; danach geht es im gewohnten Rhythmus weiter
+- Ohne Ende ruht der Dauerposten, bis jemand die Pause beendet
+- „Pause beenden“: Eine laufende Pause endet am Vortag, eine noch nicht begonnene wird entfernt
+- Liste und Detailseite zeigen die Pause an; pausierte Posten zählen nicht zu den Monatssummen
+- Pausen stehen im Protokoll
+
 ## [0.12.0] – Geplante Betragsänderung
 
 ### Neu

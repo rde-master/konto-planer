@@ -204,6 +204,9 @@ export const recurringItems = pgTable(
 		paymentMethod: paymentMethod('payment_method'),
 		customerNumber: text('customer_number'),
 		note: text('note'),
+		/** Pause: no due dates from `pauseFrom` to `pauseUntil` (inclusive; null = open). */
+		pauseFrom: date('pause_from', { mode: 'string' }),
+		pauseUntil: date('pause_until', { mode: 'string' }),
 		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -212,7 +215,11 @@ export const recurringItems = pgTable(
 	(t) => [
 		index('recurring_items_account_idx').on(t.accountId),
 		index('recurring_items_target_account_idx').on(t.targetAccountId),
-		index('recurring_items_category_idx').on(t.categoryId)
+		index('recurring_items_category_idx').on(t.categoryId),
+		check(
+			'recurring_items_pause_check',
+			sql`${t.pauseUntil} is null or (${t.pauseFrom} is not null and ${t.pauseUntil} >= ${t.pauseFrom})`
+		)
 	]
 );
 

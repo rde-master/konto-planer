@@ -30,7 +30,9 @@ export const ACTIONS = [
 	'access_change',
 	'amount_change',
 	'attachment_add',
-	'attachment_delete'
+	'attachment_delete',
+	'pause',
+	'resume'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -59,7 +61,9 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	access_change: 'Zugriffe geändert',
 	amount_change: 'Betrag geändert',
 	attachment_add: 'Anhang hinzugefügt',
-	attachment_delete: 'Anhang gelöscht'
+	attachment_delete: 'Anhang gelöscht',
+	pause: 'Pausiert',
+	resume: 'Pause beendet'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -101,6 +105,8 @@ const FIELD_LABELS: Record<string, string> = {
 	paymentMethod: 'Zahlart',
 	amount: 'Betrag',
 	validFrom: 'Gültig ab',
+	pauseFrom: 'Pause ab',
+	pauseUntil: 'Pause bis',
 	contract: 'Kündbarer Vertrag',
 	termEnd: 'Laufzeit bis',
 	notice: 'Kündigungsfrist',
