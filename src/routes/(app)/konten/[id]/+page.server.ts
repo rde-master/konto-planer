@@ -11,6 +11,7 @@ import {
 import { INTEREST_RHYTHMS, parseRate } from '#lib/interest.js';
 import { isValidDate } from '#lib/server/recurring-rules.js';
 import { listGoalsFor } from '#lib/server/goals.js';
+import { forecastFor } from '#lib/server/forecast.js';
 import {
 	CutoffError,
 	cutoffCandidates,
@@ -43,7 +44,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const balance = await balanceOf(account);
 	const goals =
 		account.type === 'sparbuch' ? await listGoalsFor(user, { accountId: account.id }) : null;
+	const forecast = account.archivedAt ? null : await forecastFor(user, account, balance);
 	return {
+		forecast,
 		goals,
 		account,
 		isAdmin,

@@ -196,3 +196,20 @@ test('one-off payments after the cut-off day are only a hint', async ({ page }) 
 		.click();
 	await expect(page).toHaveURL('/geplant');
 });
+
+test('the 12-month forecast shows the lowest point', async ({ page }) => {
+	await login(page);
+	await openAccount(page);
+	const forecast = page.getByRole('region', { name: 'Vorschau 12 Monate' });
+	await expect(
+		forecast.getByRole('img', { name: 'Kontostand in den nächsten 12 Monaten' })
+	).toBeVisible();
+	// 1.000 € − 700 € rent − 500 € insurance, before the first salary.
+	await expect(forecast.getByLabel('Tiefster Stand')).toHaveText(
+		new RegExp(
+			`^−200,00\\s€ am ${formatDay(nextBankDay(addDays(today, 10))).replace(/\./g, '\\.')}$`
+		)
+	);
+	// The overdraft of 500 € covers it.
+	await expect(forecast.getByTestId('forecast-warning')).toHaveCount(0);
+});

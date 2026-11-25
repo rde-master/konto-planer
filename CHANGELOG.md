@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.38.0] – 12-Monats-Vorschau
+
+### Neu
+
+- Jede Kontoseite zeigt die Vorschau des Kontostands für die nächsten 12 Monate als Kurve
+- Der tiefste Punkt ist markiert und mit Betrag und Datum angegeben, dazu der Stand in 12 Monaten; bei Girokonten mit Dispo steht die Dispo-Grenze als gestrichelte Linie in der Kurve
+- Berücksichtigt werden alle offenen Fälligkeiten (auch Umbuchungen und Sparziel-Umbuchungen), geplante Zahlungen und Buchungen mit Datum in der Zukunft; schwankende Beträge mit dem letzten Wert
+- Reicht das Geld nach Plan im Laufe des Jahres nicht, weist die App darauf hin
+
 ## [0.37.0] – Jahresvergleich
 
 ### Neu

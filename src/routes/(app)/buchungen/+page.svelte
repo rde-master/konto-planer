@@ -106,14 +106,15 @@
 
 	const moreQuery = $derived(query(data.filter, { anzahl: String(data.limit + 100) }));
 
-	let text = $derived(data.filter.text);
 	/** Active filters except the text, as form fields. */
 	const hiddenParams = $derived([
 		...new URLSearchParams(query({ ...data.filter, text: '' })).entries()
 	]);
+	/** The field is not bound: text typed before the page is interactive must survive. */
 	function search(e: SubmitEvent) {
 		e.preventDefault();
-		go({ ...data.filter, text: text.trim() });
+		const value = new FormData(e.currentTarget as HTMLFormElement).get('q');
+		go({ ...data.filter, text: typeof value === 'string' ? value.trim() : '' });
 	}
 
 	const chips = $derived(
@@ -198,14 +199,16 @@
 		<label class="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-row)] bg-card px-4">
 			<SearchIcon class="size-5 shrink-0 text-label-3" />
 			<span class="sr-only">Suchen</span>
-			<input
-				type="search"
-				name="q"
-				bind:value={text}
-				placeholder="Empfänger, Zweck oder IBAN"
-				enterkeyhint="search"
-				class="min-w-0 flex-1 bg-transparent py-2.5 text-[17px] outline-none placeholder:text-label-3"
-			/>
+			{#key data.filter.text}
+				<input
+					type="search"
+					name="q"
+					defaultValue={data.filter.text}
+					placeholder="Empfänger, Zweck oder IBAN"
+					enterkeyhint="search"
+					class="min-w-0 flex-1 bg-transparent py-2.5 text-[17px] outline-none placeholder:text-label-3"
+				/>
+			{/key}
 		</label>
 		<button
 			type="button"
