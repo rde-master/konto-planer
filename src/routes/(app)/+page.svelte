@@ -134,6 +134,37 @@
 			</section>
 		{/if}
 
+		{#if data.missing.length}
+			<section class="mb-8" aria-label="Ausgeblieben">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Ausgeblieben</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.missing as m (m.bookingId)}
+						<li>
+							<a
+								href={resolve(`buchungen/${m.bookingId}`)}
+								class="flex min-h-11 items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate">{m.name}</span>
+									<span class="block truncate text-[13px] text-label-2">
+										fällig {formatDay(m.date)} · {m.accountName}
+									</span>
+								</span>
+								<span class="tabular">{signed(m.amount)}</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Vorläufig gebucht, aber im Import nicht aufgetaucht. An der Buchung entscheidest du:
+					behalten, verschieben oder zurücknehmen.
+				</p>
+			</section>
+		{/if}
+
 		{#if data.budgetAlerts.length}
 			<section class="mb-8" aria-label="Budgets">
 				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">

@@ -217,6 +217,7 @@ const FIELD_LABELS: Record<string, string> = {
 	homeAssistant: 'Home Assistant',
 	repeat: 'Wiederholung',
 	notifyTargets: 'Geräte',
+	toleranceDays: 'Toleranz (Tage)',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
@@ -228,7 +229,13 @@ export function fieldLabel(field: string): string {
 
 const VALUE_LABELS: Record<string, Record<string, string>> = {
 	scenarioChange: { add: 'Neuer Posten', cancel: 'Kündigen', amount: 'Neuer Betrag' },
-	notificationType: { cancel_deadline: 'Kündigungsfrist endet bald' },
+	notificationType: {
+		cancel_deadline: 'Kündigungsfrist endet bald',
+		minimum_shortfall: 'Mindestbestand unterschritten',
+		payment_missing: 'Erwartete Zahlung ausgeblieben',
+		overdraft_reached: 'Dispo erreicht',
+		overdraft_risk: 'Dispo könnte überschritten werden'
+	},
 	repeat: { once: 'einmalig', daily: 'täglich bis erledigt' },
 	role: { admin: 'Admin', user: 'Benutzer' },
 	type: { giro: 'Girokonto', sparbuch: 'Sparbuch' },

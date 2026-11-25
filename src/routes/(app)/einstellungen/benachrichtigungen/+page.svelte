@@ -23,6 +23,15 @@
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 
 	let modes = $state<Record<string, string>>({});
+
+	const RULE_HINTS: Record<string, string> = {
+		cancel_deadline: 'Sobald die Kündigungsfrist abzüglich Vorlauf erreicht ist.',
+		minimum_shortfall: 'Wenn auf einem Girokonto weniger als der Mindestbestand ist.',
+		payment_missing:
+			'Wenn eine vorläufige Buchung nach der Toleranz nicht durch einen Import bestätigt ist (nur Konten mit Import).',
+		overdraft_reached: 'Sobald ein Girokonto im Minus steht.',
+		overdraft_risk: 'Wenn der Dispo bis zum Stichtag nach Plan nicht reicht.'
+	};
 </script>
 
 <Page title="Benachrichtigungen" back={{ path: 'einstellungen', label: 'Einstellungen' }}>
@@ -175,6 +184,15 @@
 							{ value: 'daily', label: 'Täglich bis erledigt' }
 						]}
 					/>
+					{#if rule.type === 'payment_missing'}
+						<FormField
+							label="Als ausgeblieben nach (Tagen)"
+							name="toleranceDays"
+							value={String(rule.toleranceDays)}
+							inputmode="numeric"
+							autocomplete="off"
+						/>
+					{/if}
 					<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
 						<label for="mode-{rule.type}" class="flex-1 text-[17px]">Empfänger</label>
 						<select
@@ -206,8 +224,8 @@
 					{/if}
 				</ul>
 				<p class="mt-1.5 px-4 text-[13px] text-label-2">
-					Gesendet wird ab 8 Uhr, wenn die Frist abzüglich Vorlauf erreicht ist; ausgewählte
-					Empfänger bekommen die Meldung nur zu Konten, die sie bearbeiten dürfen.
+					{RULE_HINTS[rule.type]} Gesendet wird ab 8 Uhr; ausgewählte Empfänger bekommen die Meldung nur
+					zu Konten, die sie bearbeiten dürfen.
 				</p>
 				<div class="mt-3"><Button type="submit">Regel sichern</Button></div>
 			</form>

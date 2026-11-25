@@ -138,7 +138,7 @@ test('a near notice deadline is sent once by e-mail and Home Assistant', async (
 	await expect(sheet).toBeHidden();
 
 	await page.goto('/einstellungen/benachrichtigungen');
-	const rule = page.getByRole('region', { name: /^Meldungsregel/ });
+	const rule = page.getByRole('region', { name: 'Meldungsregel Kündigungsfrist endet bald' });
 	await rule.getByRole('switch', { name: 'Über Home Assistant' }).check();
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
@@ -156,4 +156,25 @@ test('a near notice deadline is sent once by e-mail and Home Assistant', async (
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText('Keine Meldung fällig.');
 	expect(mails.length).toBe(before);
+});
+
+test('an account in the red is reported', async ({ page }) => {
+	await login(page);
+	await page.goto('/buchungen');
+	await page.getByRole('button', { name: 'Buchung erfassen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neue Buchung' });
+	await sheet.getByLabel('Betrag in €').fill('250');
+	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await sheet.getByLabel('Empfänger/Zahler (optional)').fill('Reparatur Melde');
+	await sheet.getByRole('button', { name: 'Buchen' }).click();
+	await expect(sheet).toBeHidden();
+
+	await page.goto('/einstellungen/benachrichtigungen');
+	await expect(page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' })).toBeVisible();
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText(/Meldungen? verschickt/);
+	expect(mails.some((m) => m.data.includes('Dispo erreicht: Meldekonto'))).toBe(true);
+	expect(mails.some((m) => m.data.includes('Mindestbestand unterschritten: Meldekonto'))).toBe(
+		true
+	);
 });
