@@ -266,8 +266,8 @@
 					und {editingMain.children.length === 1
 						? 'ihre Unterkategorie werden'
 						: `ihre ${editingMain.children.length} Unterkategorien werden`}{:else}
-					wird{/if} endgültig gelöscht. Buchungen und Dauerposten bleiben erhalten und gelten danach als
-				unkategorisiert.
+					wird{/if} gelöscht. Buchungen und Dauerposten bleiben erhalten und gelten danach als unkategorisiert.
+				Im Papierkorb lässt sich alles 30 Tage lang samt Zuordnungen wiederherstellen.
 			</p>
 			<form
 				method="POST"

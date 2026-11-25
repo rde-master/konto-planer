@@ -2,6 +2,7 @@ import { asc, eq, or } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { categories, type Category } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
+import { snapshotCategory, toTrash } from './trash.js';
 import { diff } from './audit-rules.js';
 import { DEFAULT_CATEGORIES, type CategoryValues } from './category-rules.js';
 
@@ -128,6 +129,12 @@ export async function deleteCategory(actor: NonNullable<Actor>, id: string): Pro
 				before: { name: c.name, parent: c.id === id ? parentName : target.name, color: c.color }
 			});
 		}
+		await toTrash(tx, actor, {
+			type: 'category',
+			id,
+			label: target.name,
+			snapshot: await snapshotCategory(tx, id)
+		});
 		await tx.delete(categories).where(eq(categories.id, id));
 		return target.name;
 	});

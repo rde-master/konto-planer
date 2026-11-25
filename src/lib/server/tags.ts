@@ -15,6 +15,7 @@ import { canEditAccount, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor } from './accounts.js';
 import { getRecurringFor } from './recurring.js';
 import { categoryInfo } from './categories.js';
+import { snapshotTag, toTrash } from './trash.js';
 import { validateTagName, yearSummary, type YearSummary } from '../tags.js';
 
 export class TagError extends Error {}
@@ -106,6 +107,12 @@ export async function deleteTag(actor: NonNullable<Actor> & Viewer, id: string) 
 	const tag = await getTag(id);
 	if (!tag) throw new TagError('Tag nicht gefunden.');
 	await db.transaction(async (tx) => {
+		await toTrash(tx, actor, {
+			type: 'tag',
+			id,
+			label: tag.name,
+			snapshot: await snapshotTag(tx, id)
+		});
 		await tx.delete(tags).where(eq(tags.id, id));
 		await audit(tx, {
 			actor,

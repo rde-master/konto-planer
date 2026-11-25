@@ -38,13 +38,7 @@ import {
 	recurringFormContext
 } from '#lib/server/recurring-form.js';
 import { getSettings } from '#lib/server/settings.js';
-import {
-	addAttachment,
-	attachmentIdsOf,
-	deleteAttachment,
-	listAttachments,
-	removeAttachmentFiles
-} from '#lib/server/attachments.js';
+import { addAttachment, deleteAttachment, listAttachments } from '#lib/server/attachments.js';
 import { fieldError, formString } from '#lib/server/validation.js';
 import { addDays, addMonths } from '#lib/recurring.js';
 import { duesBetween } from '#lib/due.js';
@@ -355,14 +349,12 @@ export const actions: Actions = {
 
 	delete: async ({ request, locals, params }) => {
 		const once = formString(await request.formData(), 'once') === 'on';
-		// Files are removed after the rows (cascade) are gone.
-		const files = await attachmentIdsOf([params.id]);
+		// Attachment files move to the trash folder together with the item.
 		try {
 			await deleteRecurring(locals.user!, params.id);
 		} catch (e) {
 			return recurringError('delete', e);
 		}
-		await removeAttachmentFiles(files);
 		redirect(303, once ? '/geplant' : '/dauerposten');
 	}
 };

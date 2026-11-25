@@ -14,6 +14,7 @@ import type { Part } from '../splits.js';
 import type { LogoRef } from '../logos.js';
 import { logoOf, logoOverrides } from './logos.js';
 import { formatEuro } from '../money.js';
+import { snapshotBooking, toTrash } from './trash.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
@@ -506,6 +507,13 @@ export async function deleteBooking(actor: NonNullable<Actor> & Viewer, id: stri
 	if (!current.canDelete) throw new BookingError('Du darfst diese Buchung nicht löschen.');
 	await db.transaction(async (tx) => {
 		const before = await auditFields(tx, valuesOf(current));
+		await toTrash(tx, actor, {
+			type: 'booking',
+			id,
+			label: label(current, before.category),
+			accountId: current.accountId,
+			snapshot: await snapshotBooking(tx, id)
+		});
 		await tx.delete(bookings).where(eq(bookings.id, id));
 		await audit(tx, {
 			actor,

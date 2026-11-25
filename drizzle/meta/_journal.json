@@ -176,6 +176,13 @@
       "when": 1795573078754,
       "tag": "0024_payee_logos",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795585904844,
+      "tag": "0025_trash",
+      "breakpoints": true
     }
   ]
 }

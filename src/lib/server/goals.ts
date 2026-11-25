@@ -19,6 +19,7 @@ import { getAccountFor, listAccountsFor, type AccountWithLevel } from './account
 import { balancesOf } from './bookings.js';
 import { listRecurringFor } from './recurring.js';
 import { syncInterest } from './interest.js';
+import { snapshotGoal, toTrash } from './trash.js';
 import type { GoalValues, LinkablePayment } from './goal-rules.js';
 import { freeAmount, nextGoalDue, progress, savingRate, transferAmount } from '../goals.js';
 import type { PlanEvent } from '../minimum.js';
@@ -426,6 +427,13 @@ export async function allocateGoal(actor: NonNullable<Actor> & Viewer, id: strin
 export async function deleteGoal(actor: NonNullable<Actor> & Viewer, id: string) {
 	const goal = await requireEditableGoal(actor, id);
 	await db.transaction(async (tx) => {
+		await toTrash(tx, actor, {
+			type: 'goal',
+			id,
+			label: goal.name,
+			accountId: goal.accountId,
+			snapshot: await snapshotGoal(tx, id)
+		});
 		await tx.delete(savingsGoals).where(eq(savingsGoals.id, id));
 		await audit(tx, {
 			actor,
