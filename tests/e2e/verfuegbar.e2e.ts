@@ -213,3 +213,47 @@ test('the 12-month forecast shows the lowest point', async ({ page }) => {
 	// The overdraft of 500 € covers it.
 	await expect(forecast.getByTestId('forecast-warning')).toHaveCount(0);
 });
+
+test('what if: cancel the rent, add a new expense', async ({ page }) => {
+	await login(page);
+	await page.goto('/was-waere-wenn');
+	await page.getByRole('button', { name: 'Szenario anlegen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neues Szenario' });
+	await sheet.getByLabel('Name').fill('Ohne Miete');
+	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await sheet.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Ohne Miete' })).toBeVisible();
+	const effect = page.getByRole('listitem', { name: 'Verfügbar', exact: true });
+	await expect(effect).toContainText(/−350,00\s€/);
+
+	const add = async (fill: () => Promise<void>) => {
+		await page.getByRole('button', { name: 'Änderung hinzufügen' }).click();
+		await fill();
+		await page
+			.getByRole('dialog', { name: 'Änderung' })
+			.getByRole('button', { name: 'Hinzufügen' })
+			.click();
+		await expect(page.getByRole('status')).toHaveText('Änderung hinzugefügt.');
+	};
+	const change = page.getByRole('dialog', { name: 'Änderung' });
+	await add(async () => {
+		await change.getByLabel('Art').selectOption({ label: 'Posten kündigen' });
+		await change.getByLabel('Dauerposten').selectOption({ label: 'Miete (700,00 €)' });
+	});
+	// Without the rent only the insurance (500 €) lowers the balance, plus the buffer of 150 €.
+	await expect(effect).toContainText(/350,00\s€\s*\+700,00\s€/);
+
+	await add(async () => {
+		await change.getByLabel('Bezeichnung').fill('Autoabo');
+		await change.getByLabel('Betrag in €').fill('100');
+		await change.getByLabel('Ab', { exact: true }).fill(addDays(today, 3));
+	});
+	await expect(effect).toContainText(/250,00\s€/);
+	await expect(page.getByRole('region', { name: 'Probeweise Änderungen' })).toContainText(
+		'Neue Ausgabe: Autoabo'
+	);
+
+	// The real account is unchanged.
+	await openAccount(page);
+	await expect(available(page)).toHaveText(/−350,00\s€/);
+});

@@ -57,13 +57,16 @@ function nextBankDue(item: Item, today: string): string | null {
 export async function plansFor(
 	viewer: Viewer,
 	list: AccountWithLevel[],
-	balances: Map<string, number>
+	balances: Map<string, number>,
+	/** "Was wäre wenn": changes the recurring items before planning. */
+	transform?: (items: RecurringSummary[]) => RecurringSummary[]
 ): Promise<Map<string, AccountPlan>> {
 	const giro = list.filter((a) => a.type === 'giro' && !a.archivedAt);
 	const result = new Map<string, AccountPlan>();
 	if (!giro.length) return result;
 	const today = todayBerlin();
-	const items = (await listRecurringFor(viewer)).filter((i) => !i.archivedAt);
+	const loaded = (await listRecurringFor(viewer)).filter((i) => !i.archivedAt);
+	const items = transform ? transform(loaded) : loaded;
 	// Bookings dated after today (e.g. a provisional booking moved by hand).
 	const later = await db
 		.select({

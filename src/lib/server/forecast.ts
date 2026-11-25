@@ -3,7 +3,7 @@ import { db } from './db/index.js';
 import { bookings } from './db/schema.js';
 import type { Viewer } from './account-rules.js';
 import type { AccountWithLevel } from './accounts.js';
-import { listRecurringFor } from './recurring.js';
+import { listRecurringFor, type RecurringSummary } from './recurring.js';
 import { goalEvents } from './goals.js';
 import { openPayments } from '../due.js';
 import { forecast, type Forecast } from '../forecast.js';
@@ -19,10 +19,13 @@ export async function forecastFor(
 	viewer: Viewer,
 	account: AccountWithLevel,
 	balance: number,
-	today = todayBerlin()
+	today = todayBerlin(),
+	/** "Was wäre wenn": changes the recurring items before the forecast. */
+	transform?: (items: RecurringSummary[]) => RecurringSummary[]
 ): Promise<Forecast & { until: string }> {
 	const until = addMonths(today, 12);
-	const items = (await listRecurringFor(viewer)).filter((i) => !i.archivedAt);
+	const loaded = (await listRecurringFor(viewer)).filter((i) => !i.archivedAt);
+	const items = transform ? transform(loaded) : loaded;
 	const later = await db
 		.select({ date: bookings.bookingDate, amount: bookings.amount, purpose: bookings.purpose })
 		.from(bookings)

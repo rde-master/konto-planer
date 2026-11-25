@@ -876,3 +876,45 @@ export const budgets = pgTable(
 );
 
 export type Budget = typeof budgets.$inferSelect;
+
+/** "Was wäre wenn": a named scenario of one user for a giro account (changes nothing real). */
+export const scenarios = pgTable('scenarios', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	ownerId: uuid('owner_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	accountId: uuid('account_id')
+		.notNull()
+		.references(() => accounts.id, { onDelete: 'cascade' }),
+	name: text('name').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+/**
+ * A change of a scenario: "add" a new item, "cancel" an item from a date on, or a new
+ * "amount" from a date on. Amounts are positive cents.
+ */
+export const scenarioChanges = pgTable(
+	'scenario_changes',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		scenarioId: uuid('scenario_id')
+			.notNull()
+			.references(() => scenarios.id, { onDelete: 'cascade' }),
+		kind: text('kind').notNull(),
+		recurringId: uuid('recurring_id').references(() => recurringItems.id, { onDelete: 'cascade' }),
+		name: text('name'),
+		direction: text('direction'),
+		interval: text('interval'),
+		amount: bigint('amount', { mode: 'number' }),
+		date: date('date', { mode: 'string' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		index('scenario_changes_scenario_idx').on(t.scenarioId),
+		check('scenario_changes_kind', sql`${t.kind} in ('add', 'cancel', 'amount')`)
+	]
+);
+
+export type ScenarioChange = typeof scenarioChanges.$inferSelect;

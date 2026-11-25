@@ -20,6 +20,7 @@ export const ENTITY_TYPES = [
 	'tag',
 	'settlement',
 	'budget',
+	'scenario',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -71,6 +72,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	tag: 'Tag',
 	settlement: 'Ausgleich',
 	budget: 'Budget',
+	scenario: 'Szenario',
 	settings: 'Einstellungen'
 };
 
@@ -202,6 +204,7 @@ const FIELD_LABELS: Record<string, string> = {
 	fromTrash: 'Aus dem Papierkorb',
 	sharedExpense: 'Gemeinsame Ausgabe',
 	budgetFor: 'Budget für',
+	scenarioChange: 'Probeweise Änderung',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
@@ -212,6 +215,7 @@ export function fieldLabel(field: string): string {
 }
 
 const VALUE_LABELS: Record<string, Record<string, string>> = {
+	scenarioChange: { add: 'Neuer Posten', cancel: 'Kündigen', amount: 'Neuer Betrag' },
 	role: { admin: 'Admin', user: 'Benutzer' },
 	type: { giro: 'Girokonto', sparbuch: 'Sparbuch' },
 	kind: KIND_LABELS,
