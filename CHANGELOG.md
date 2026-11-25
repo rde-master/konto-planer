@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.39.0] – Kennzahlen
+
+### Neu
+
+- Neue Ansicht „Kennzahlen“ in den Auswertungen, über alle Konten, die du siehst
+- Fixkostenquote: regelmäßige Ausgaben geteilt durch regelmäßige Einnahmen der Dauerposten (je Monat)
+- Sparquote: was in den letzten 12 Monaten netto auf Sparbücher umgebucht wurde, geteilt durch die Einnahmen der Girokonten; dazu der Verlauf je Monat
+- Preissteigerung je Vertrag in Prozent pro Jahr, mit Durchschnitt und den stärksten Steigerungen
+- Die Übersicht zeigt Fixkosten- und Sparquote in einer Zeile mit Link zu den Kennzahlen
+
 ## [0.38.0] – 12-Monats-Vorschau
 
 ### Neu

@@ -20,7 +20,8 @@
 		{ value: 'fixkosten', label: 'Fixkosten' },
 		{ value: 'preise', label: 'Preise' },
 		{ value: 'kalender', label: 'Kalender' },
-		{ value: 'vergleich', label: 'Vergleich' }
+		{ value: 'vergleich', label: 'Vergleich' },
+		{ value: 'kennzahlen', label: 'Kennzahlen' }
 	] as const;
 
 	/** Query string from pairs (empty values left out). */
@@ -45,6 +46,11 @@
 			['konto', value !== 'giro' ? value : null]
 		]);
 		void goto(resolve(`auswertungen?${query}`), { replace: true, reset: false });
+	}
+
+	/** 0.27 → "27 %" */
+	function pct(v: number) {
+		return `${Math.round(v * 100)} %`;
 	}
 
 	function short(month: string) {
@@ -83,15 +89,17 @@
 		{/each}
 	</nav>
 
-	<ul class="mb-6 overflow-hidden rounded-[var(--radius-row)] bg-card">
-		<SelectField
-			label="Konten"
-			name="konto"
-			options={data.accounts.options}
-			value={data.accounts.value}
-			onchange={account}
-		/>
-	</ul>
+	{#if data.view !== 'kennzahlen'}
+		<ul class="mb-6 overflow-hidden rounded-[var(--radius-row)] bg-card">
+			<SelectField
+				label="Konten"
+				name="konto"
+				options={data.accounts.options}
+				value={data.accounts.value}
+				onchange={account}
+			/>
+		</ul>
+	{/if}
 
 	{#if data.categories}
 		<nav aria-label="Zeitraum" class="mb-4 flex gap-2 overflow-x-auto pb-1">
@@ -329,6 +337,71 @@
 				</p>
 			{/if}
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">Mehr ausgegeben ist rot, weniger grün.</p>
+		</section>
+	{:else if data.metrics}
+		{@const m = data.metrics}
+		<section class="mb-6 grid grid-cols-2 gap-3" aria-label="Kennzahlen">
+			<div class="rounded-[var(--radius-card)] bg-card p-4">
+				<p class="text-[13px] text-label-2">Fixkostenquote</p>
+				<p class="text-[28px] font-bold tabular" aria-label="Fixkostenquote">
+					{m.fixedRatio === null ? '–' : pct(m.fixedRatio)}
+				</p>
+				<p class="text-[13px] text-label-2 tabular">
+					{formatEuro(m.fixedCosts)} von {formatEuro(m.regularIncome)} im Monat
+				</p>
+			</div>
+			<div class="rounded-[var(--radius-card)] bg-card p-4">
+				<p class="text-[13px] text-label-2">Sparquote</p>
+				<p class="text-[28px] font-bold tabular" aria-label="Sparquote">
+					{m.savingsRate === null ? '–' : pct(m.savingsRate)}
+				</p>
+				<p class="text-[13px] text-label-2 tabular">
+					{formatEuro(m.saved)} von {formatEuro(m.income)} in 12 Monaten
+				</p>
+			</div>
+		</section>
+		<p class="mb-6 px-4 text-[13px] text-label-2">
+			Fixkostenquote: regelmäßige Ausgaben ÷ regelmäßige Einnahmen der Dauerposten (je Monat).
+			Sparquote: was netto auf Sparbücher umgebucht wurde ÷ Einnahmen der Girokonten. Alle Konten,
+			die du siehst.
+		</p>
+		<BarChart
+			label="Sparquote je Monat"
+			labels={m.months.map((x) => short(x.month))}
+			series={[{ name: 'Gespart', values: m.months.map((x) => x.saved), color: '--kp-green' }]}
+		/>
+		<section class="mt-6 mb-8" aria-label="Preissteigerung">
+			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+				<span class="flex-1">Preissteigerung je Vertrag</span>
+				<span class="tabular" aria-label="Durchschnittliche Preissteigerung">
+					{m.averageIncrease === null ? '' : `Ø ${percent(m.averageIncrease)} / Jahr`}
+				</span>
+			</h2>
+			{#if m.increases.length}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each m.increases as p (p.id)}
+						<li>
+							<a
+								href={resolve(`dauerposten/${p.id}`)}
+								class="flex min-h-11 items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<span class="flex-1 truncate">{p.name}</span>
+								<span
+									class={['tabular', (p.perYear ?? p.change) > 0 ? 'text-danger' : 'text-income']}
+								>
+									{p.perYear !== null ? `${percent(p.perYear)} / Jahr` : percent(p.change)}
+								</span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-label-2">
+					Noch keine Preisänderungen bei Ausgaben.
+				</p>
+			{/if}
 		</section>
 	{:else if data.prices}
 		<section class="mb-8" aria-label="Preisverlauf">

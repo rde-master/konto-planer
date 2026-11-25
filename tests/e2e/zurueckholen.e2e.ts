@@ -145,6 +145,8 @@ test('the admin empties the trash', async ({ page }) => {
 		.getByRole('dialog', { name: 'Tag löschen' })
 		.getByRole('button', { name: 'Löschen' })
 		.click();
+	// Wait for the delete to finish (it redirects to the tag list).
+	await expect(page).toHaveURL('/tags');
 	await page.goto('/papierkorb');
 	await expect(page.getByRole('listitem', { name: 'Recycling' })).toBeVisible();
 	await page.getByRole('button', { name: 'Papierkorb leeren' }).click();

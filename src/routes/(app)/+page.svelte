@@ -63,6 +63,20 @@
 					</div>
 				{/if}
 			</dl>
+			{#if data.metrics && (data.metrics.fixedRatio !== null || data.metrics.savingsRate !== null)}
+				<a
+					href={resolve('auswertungen?ansicht=kennzahlen')}
+					class="mt-3 block text-[15px] text-accent tabular"
+					aria-label="Kennzahlen"
+				>
+					Fixkostenquote {data.metrics.fixedRatio === null
+						? '–'
+						: `${Math.round(data.metrics.fixedRatio * 100)} %`} · Sparquote {data.metrics
+						.savingsRate === null
+						? '–'
+						: `${Math.round(data.metrics.savingsRate * 100)} %`}
+				</a>
+			{/if}
 		</section>
 
 		{#if data.giro.length}

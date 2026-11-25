@@ -1,4 +1,5 @@
 import {
+	metricsFor,
 	reportAccounts,
 	reportBookings,
 	reportCategories,
@@ -20,7 +21,15 @@ import { addMonths } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import type { PageServerLoad } from './$types';
 
-const VIEWS = ['kategorien', 'einaus', 'fixkosten', 'preise', 'kalender', 'vergleich'] as const;
+const VIEWS = [
+	'kategorien',
+	'einaus',
+	'fixkosten',
+	'preise',
+	'kalender',
+	'vergleich',
+	'kennzahlen'
+] as const;
 type View = (typeof VIEWS)[number];
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -75,6 +84,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				.sort((a, b) => b.amount - a.amount)
 		};
 	}
+	if (view === 'kennzahlen') return { ...base, metrics: await metricsFor(user, today) };
 	if (view === 'vergleich') {
 		const current = Number(today.slice(0, 4));
 		const asked = Number(url.searchParams.get('jahr'));

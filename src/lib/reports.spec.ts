@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	averageIncrease,
+	ratio,
+	regularIncomeByMonth,
+	savedByMonth,
 	compareCategories,
 	comparisonPeriods,
 	dayHeat,
@@ -221,5 +225,37 @@ describe('year comparison', () => {
 		]);
 		expect(rows[0].ratio).toBeCloseTo(0.2);
 		expect(rows[2].ratio).toBeNull();
+	});
+});
+
+describe('metrics', () => {
+	it('regular income, savings per month, ratios and the mean price change', () => {
+		const salary: FixedItem = {
+			...base,
+			id: 's',
+			kind: 'income',
+			amounts: [{ amount: 3_000_00, validFrom: '2026-01-15' }]
+		};
+		expect(regularIncomeByMonth([salary, base], ['2025-12', '2026-02'])).toEqual([0, 3_000_00]);
+		expect(
+			savedByMonth(
+				[
+					b({ bookingDate: '2026-02-01', amount: 200_00, internal: true }),
+					b({ bookingDate: '2026-02-20', amount: -50_00, internal: true }),
+					b({ bookingDate: '2026-02-28', amount: 3_00 })
+				],
+				['2026-01', '2026-02']
+			)
+		).toEqual([0, 150_00]);
+		expect(ratio(810_00, 3_000_00)).toBeCloseTo(0.27);
+		expect(ratio(1, 0)).toBeNull();
+		expect(
+			averageIncrease([
+				{ perYear: 0.1 } as never,
+				{ perYear: 0.3 } as never,
+				{ perYear: null } as never
+			])
+		).toBeCloseTo(0.2);
+		expect(averageIncrease([])).toBeNull();
 	});
 });
