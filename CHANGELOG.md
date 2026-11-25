@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.35.0] – Dashboard und Gesamtübersicht Haushalt
+
+### Neu
+
+- Die Startseite „Übersicht“ ist jetzt ein Dashboard
+- Oben die Gesamtübersicht Haushalt: Summe aller sichtbaren Konten, verfügbar auf allen Girokonten zusammen, Summe der Sparbücher und der Stand der Sparziele
+- „Verfügbar“ je Girokonto mit Stand, Mindestbestand und Stichtag; eine Warnung, wenn das Konto ins Minus rutscht oder der Dispo überschritten werden könnte
+- „Nächste 7 Tage“: anstehende Zahlungen aller Konten mit Firmenlogo, Link zu allen offenen Zahlungen
+- „Bald kündbar“: Verträge, deren Kündigungsfrist bald endet, mit Frist und Ende
+
 ## [0.34.0] – Ausgleich zwischen Benutzern
 
 ### Neu
