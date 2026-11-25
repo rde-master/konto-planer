@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.43.0] – Weitere Meldungen
+
+### Neu
+
+- Meldung „Mindestbestand unterschritten“: wenn auf einem Girokonto weniger liegt als bis zum Stichtag gebraucht wird
+- Meldung „Zahlung ausgeblieben“: wenn eine erwartete Zahlung nach einer einstellbaren Toleranz (Standard 3 Tage) nicht im Import auftaucht – nur bei Konten, die importiert werden
+- Meldung „Dispo erreicht“: sobald ein Girokonto im Minus steht
+- Meldung „Dispo droht“: wenn das Geld samt Dispo bis zum Stichtag nach Plan nicht reicht
+- Jede Meldung hat eine eigene Regel mit Kanälen, Empfängern und Wiederholung
+- Die Übersicht zeigt ausgebliebene Zahlungen in einem eigenen Abschnitt
+
 ## [0.42.0] – Benachrichtigungen
 
 ### Neu

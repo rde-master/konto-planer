@@ -7,6 +7,7 @@ import { getSettings } from '#lib/server/settings.js';
 import { itemLogos } from '#lib/server/logos.js';
 import { metricsFor } from '#lib/server/reports.js';
 import { budgetsFor } from '#lib/server/budgets.js';
+import { listRules, missingPayments } from '#lib/server/notify.js';
 import { openPayments } from '#lib/due.js';
 import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
@@ -71,6 +72,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const metrics = accounts.length ? await metricsFor(user, today) : null;
 	// Budgets from 80 % on.
 	const budgetAlerts = (await budgetsFor(user, today.slice(0, 7))).filter((b) => b.state !== 'ok');
+	// Expected payments not confirmed by an import (tolerance from the notification rule).
+	const tolerance =
+		(await listRules()).find((r) => r.type === 'payment_missing')?.toleranceDays ?? 3;
+	const missing = accounts.length
+		? await missingPayments(
+				today,
+				tolerance,
+				accounts.map((a) => a.id)
+			)
+		: [];
 	return {
 		today,
 		metrics: metrics ? { fixedRatio: metrics.fixedRatio, savingsRate: metrics.savingsRate } : null,
@@ -85,6 +96,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		},
 		giro,
 		budgetAlerts,
+		missing: missing.map((m) => ({
+			bookingId: m.bookingId,
+			name: m.name,
+			accountName: m.accountName,
+			date: m.bookingDate,
+			amount: m.amount
+		})),
 		upcoming,
 		logos,
 		soon

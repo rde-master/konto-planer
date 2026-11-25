@@ -89,13 +89,17 @@ export const actions: Actions = {
 		const type = NOTIFICATION_TYPES.find((t) => t === formString(data, 'type'));
 		if (!type) return fail(400, { action: 'rule' as const, message: 'Unbekannte Meldung.' });
 		const chosen = data.getAll('recipient').filter((v): v is string => typeof v === 'string');
+		const tolerance = Number(formString(data, 'toleranceDays') || '3');
+		if (!Number.isInteger(tolerance) || tolerance < 1 || tolerance > 60)
+			return fail(400, { action: 'rule' as const, message: 'Toleranz: 1 bis 60 Tage.' });
 		await saveRule(user, {
 			type,
 			enabled: formString(data, 'enabled') === 'on',
 			email: formString(data, 'email') === 'on',
 			homeAssistant: formString(data, 'homeAssistant') === 'on',
 			repeat: REPEATS.find((r) => r === formString(data, 'repeat')) ?? 'once',
-			recipients: formString(data, 'recipientMode') === 'chosen' ? chosen : null
+			recipients: formString(data, 'recipientMode') === 'chosen' ? chosen : null,
+			toleranceDays: tolerance
 		});
 		return { action: 'rule' as const, success: 'Meldungsregel gesichert.' };
 	},

@@ -5,7 +5,10 @@ import {
 	accountAccess,
 	accounts,
 	appSettings,
+	bookings,
 	contracts,
+	dueItems,
+	imports,
 	notificationLog,
 	notificationRules,
 	recurringItems,
@@ -15,16 +18,21 @@ import { audit, type Actor } from './audit.js';
 import { decrypt, encrypt } from './secrets.js';
 import { getSettings } from './settings.js';
 import { toContract } from './recurring.js';
+import { listAccountsFor } from './accounts.js';
+import { balancesOf } from './bookings.js';
+import { plansFor } from './minimum.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
 	NOTIFICATION_TYPES,
 	SEND_HOUR,
 	berlinHour,
+	isMissing,
 	shouldSend,
 	type NotificationType,
 	type Repeat
 } from '../notify.js';
 import { berlinDay, formatDay, todayBerlin } from '../dates.js';
+import { formatEuro } from '../money.js';
 
 export class NotifyError extends Error {}
 
@@ -278,6 +286,8 @@ export type Rule = {
 	/** null = everyone with edit right on the account. */
 	recipients: string[] | null;
 	repeat: Repeat;
+	/** Days until an expected payment counts as missing. */
+	toleranceDays: number;
 };
 
 export async function listRules(): Promise<Rule[]> {
@@ -290,7 +300,8 @@ export async function listRules(): Promise<Rule[]> {
 			email: r?.email ?? true,
 			homeAssistant: r?.homeAssistant ?? false,
 			recipients: r?.recipients ?? null,
-			repeat: (r?.repeat as Repeat) ?? 'once'
+			repeat: (r?.repeat as Repeat) ?? 'once',
+			toleranceDays: r?.toleranceDays ?? 3
 		};
 	});
 }
@@ -315,7 +326,8 @@ export async function saveRule(actor: NonNullable<Actor>, rule: Rule) {
 				enabled: rule.enabled,
 				email: rule.email,
 				homeAssistant: rule.homeAssistant,
-				repeat: rule.repeat
+				repeat: rule.repeat,
+				toleranceDays: rule.toleranceDays
 			}
 		});
 	});
@@ -375,6 +387,94 @@ async function cancelDeadlineEvents(today: string): Promise<Event[]> {
 	return out;
 }
 
+/** System view for the job: sees every account like an admin. */
+const SYSTEM = { id: '00000000-0000-0000-0000-000000000000', role: 'admin' as const };
+
+/** Minimum balance and overdraft of the active giro accounts. */
+async function accountEvents(): Promise<Event[]> {
+	const list = (await listAccountsFor(SYSTEM)).filter((a) => a.type === 'giro' && !a.archivedAt);
+	if (!list.length) return [];
+	const balances = await balancesOf(list);
+	const plans = await plansFor(SYSTEM, list, balances);
+	const out: Event[] = [];
+	for (const a of list) {
+		const plan = plans.get(a.id);
+		const balance = balances.get(a.id) ?? a.openingBalance;
+		if (!plan) continue;
+		const until = plan.cutoff.date;
+		if (plan.plan.available < 0)
+			out.push({
+				type: 'minimum_shortfall',
+				key: `${a.id}:${until}`,
+				accountId: a.id,
+				title: `Mindestbestand unterschritten: ${a.name}`,
+				message: `Auf ${a.name} fehlen ${formatEuro(-plan.plan.available)} bis zum ${formatDay(until)} (Stand ${formatEuro(balance)}, Mindestbestand ${formatEuro(plan.plan.minimum)}).`
+			});
+		if (balance < 0)
+			out.push({
+				type: 'overdraft_reached',
+				key: `${a.id}:${until}`,
+				accountId: a.id,
+				title: `Dispo erreicht: ${a.name}`,
+				message: `${a.name} steht mit ${formatEuro(balance)} im Minus${a.overdraftLimit ? ` (Dispo ${formatEuro(a.overdraftLimit)})` : ''}.`
+			});
+		if (plan.plan.exceedsOverdraft && plan.plan.lowest)
+			out.push({
+				type: 'overdraft_risk',
+				key: `${a.id}:${until}`,
+				accountId: a.id,
+				title: `Dispo in Gefahr: ${a.name}`,
+				message: `Nach Plan sinkt ${a.name} am ${formatDay(plan.plan.lowest.date)} auf ${formatEuro(plan.plan.lowest.balance)}${a.overdraftLimit ? ` und damit unter den Dispo von ${formatEuro(a.overdraftLimit)}` : ''}.`
+			});
+	}
+	return out;
+}
+
+/** Provisional bookings not confirmed by an import after the tolerance. */
+export async function missingPayments(today: string, tolerance: number, accountIds?: string[]) {
+	const imported = new Set(
+		(
+			await db
+				.selectDistinct({ id: imports.accountId })
+				.from(imports)
+				.where(and(eq(imports.status, 'done'), isNull(imports.undoneAt)))
+		).map((r) => r.id)
+	);
+	const rows = await db
+		.select({
+			dueId: dueItems.id,
+			bookingId: bookings.id,
+			bookingDate: bookings.bookingDate,
+			amount: bookings.amount,
+			accountId: bookings.accountId,
+			accountName: accounts.name,
+			name: recurringItems.name
+		})
+		.from(dueItems)
+		.innerJoin(bookings, eq(bookings.id, dueItems.bookingId))
+		.innerJoin(accounts, eq(accounts.id, bookings.accountId))
+		.innerJoin(recurringItems, eq(recurringItems.id, dueItems.recurringId))
+		.where(
+			and(
+				eq(dueItems.status, 'provisional'),
+				eq(bookings.source, 'provisional'),
+				isNull(accounts.archivedAt),
+				accountIds ? inArray(bookings.accountId, accountIds.length ? accountIds : ['']) : undefined
+			)
+		);
+	return rows.filter((r) => isMissing(r.bookingDate, today, tolerance, imported.has(r.accountId)));
+}
+
+async function missingEvents(today: string, tolerance: number): Promise<Event[]> {
+	return (await missingPayments(today, tolerance)).map((r) => ({
+		type: 'payment_missing' as const,
+		key: r.dueId,
+		accountId: r.accountId,
+		title: `Zahlung ausgeblieben: ${r.name}`,
+		message: `${r.name} (${formatEuro(Math.abs(r.amount))}) war am ${formatDay(r.bookingDate)} auf ${r.accountName} fällig, ist aber im Import nicht aufgetaucht. Behalten, verschieben oder zurücknehmen kannst du die vorläufige Buchung in der App.`
+	}));
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -397,7 +497,16 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 	const { smtp, ha } = await notifySettings();
 	if (!smtp && !ha) return 0;
 	const rules = new Map((await listRules()).map((r) => [r.type, r]));
-	const events = (await cancelDeadlineEvents(today)).filter((e) => rules.get(e.type)?.enabled);
+	const on = (t: NotificationType) => rules.get(t)?.enabled ?? false;
+	const events = [
+		...(on('cancel_deadline') ? await cancelDeadlineEvents(today) : []),
+		...(on('minimum_shortfall') || on('overdraft_reached') || on('overdraft_risk')
+			? await accountEvents()
+			: []),
+		...(on('payment_missing')
+			? await missingEvents(today, rules.get('payment_missing')!.toleranceDays)
+			: [])
+	].filter((e) => on(e.type));
 	if (!events.length) return 0;
 	const people = await db
 		.select({ id: users.id, email: users.email, targets: users.notifyTargets })
