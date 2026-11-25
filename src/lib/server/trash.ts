@@ -17,6 +17,7 @@ import {
 	goalTransfers,
 	loanExtraPayments,
 	loans,
+	manualTransfersDone,
 	recurringAmounts,
 	recurringAttachments,
 	recurringItems,
@@ -50,6 +51,7 @@ const TABLES = {
 	recurringTags,
 	loans,
 	loanExtraPayments,
+	manualTransfersDone,
 	bookings,
 	bookingParts,
 	bookingTags,
@@ -164,6 +166,10 @@ export async function snapshotRecurring(executor: Executor, id: string): Promise
 			{
 				table: 'loanExtraPayments',
 				rows: await rowsOf(executor, loanExtraPayments, 'recurringId', [id])
+			},
+			{
+				table: 'manualTransfersDone',
+				rows: await rowsOf(executor, manualTransfersDone, 'recurringId', [id])
 			}
 		],
 		links: [

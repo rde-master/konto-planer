@@ -22,6 +22,7 @@ import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import { pushToUser, pushUsers } from './push.js';
+import { remindersFor } from './manual-transfers.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
 	NOTIFICATION_TYPES,
@@ -34,6 +35,7 @@ import {
 } from '../notify.js';
 import { berlinDay, formatDay, todayBerlin } from '../dates.js';
 import { formatEuro } from '../money.js';
+import { formatIban } from '../iban.js';
 
 export class NotifyError extends Error {}
 
@@ -290,6 +292,8 @@ export type Rule = {
 	repeat: Repeat;
 	/** Days until an expected payment counts as missing. */
 	toleranceDays: number;
+	/** Bank days before the bank day a manual transfer is reminded. */
+	leadDays: number;
 };
 
 export async function listRules(): Promise<Rule[]> {
@@ -304,7 +308,8 @@ export async function listRules(): Promise<Rule[]> {
 			push: r?.push ?? false,
 			recipients: r?.recipients ?? null,
 			repeat: (r?.repeat as Repeat) ?? 'once',
-			toleranceDays: r?.toleranceDays ?? 3
+			toleranceDays: r?.toleranceDays ?? 3,
+			leadDays: r?.leadDays ?? 1
 		};
 	});
 }
@@ -331,7 +336,8 @@ export async function saveRule(actor: NonNullable<Actor>, rule: Rule) {
 				homeAssistant: rule.homeAssistant,
 				push: rule.push,
 				repeat: rule.repeat,
-				toleranceDays: rule.toleranceDays
+				toleranceDays: rule.toleranceDays,
+				transferLeadDays: rule.leadDays
 			}
 		});
 	});
@@ -486,6 +492,26 @@ async function missingEvents(today: string, tolerance: number): Promise<Event[]>
 	}));
 }
 
+/** Manual transfers whose reminder day has come and that are not done yet. */
+async function manualTransferEvents(today: string, lead: number): Promise<Event[]> {
+	return (await remindersFor(SYSTEM, today, lead)).map((r) => {
+		const to = r.targetName ?? r.payee;
+		const due = r.overdue
+			? `war am ${formatDay(r.bookingDate)} fällig`
+			: r.bookingDate === today
+				? 'ist heute fällig'
+				: `ist am ${formatDay(r.bookingDate)} fällig`;
+		return {
+			type: 'manual_transfer' as const,
+			key: `${r.recurringId}:${r.dueDate}`,
+			accountId: r.accountId,
+			url: '',
+			title: `Überweisen: ${r.name}`,
+			message: `${r.name} über ${formatEuro(r.amount)} von ${r.accountName}${to ? ` an ${to}` : ''}${r.iban ? ` (${formatIban(r.iban)})` : ''} ${due}. In der Übersicht als „Überwiesen“ abhaken.`
+		};
+	});
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -517,6 +543,9 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 			: []),
 		...(on('payment_missing')
 			? await missingEvents(today, rules.get('payment_missing')!.toleranceDays)
+			: []),
+		...(on('manual_transfer')
+			? await manualTransferEvents(today, rules.get('manual_transfer')!.leadDays)
 			: [])
 	].filter((e) => on(e.type));
 	if (!events.length) return 0;

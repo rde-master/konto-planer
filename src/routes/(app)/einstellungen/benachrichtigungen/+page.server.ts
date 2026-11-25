@@ -92,6 +92,12 @@ export const actions: Actions = {
 		const tolerance = Number(formString(data, 'toleranceDays') || '3');
 		if (!Number.isInteger(tolerance) || tolerance < 1 || tolerance > 60)
 			return fail(400, { action: 'rule' as const, message: 'Toleranz: 1 bis 60 Tage.' });
+		const lead = Number(formString(data, 'leadDays') || '1');
+		if (!Number.isInteger(lead) || lead < 0 || lead > 10)
+			return fail(400, {
+				action: 'rule' as const,
+				message: 'Vorlauf: 0 bis 10 Bankarbeitstage.'
+			});
 		await saveRule(user, {
 			type,
 			enabled: formString(data, 'enabled') === 'on',
@@ -100,7 +106,8 @@ export const actions: Actions = {
 			push: formString(data, 'push') === 'on',
 			repeat: REPEATS.find((r) => r === formString(data, 'repeat')) ?? 'once',
 			recipients: formString(data, 'recipientMode') === 'chosen' ? chosen : null,
-			toleranceDays: tolerance
+			toleranceDays: tolerance,
+			leadDays: lead
 		});
 		return { action: 'rule' as const, success: 'Meldungsregel gesichert.' };
 	},

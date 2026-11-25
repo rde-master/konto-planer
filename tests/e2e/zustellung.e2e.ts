@@ -273,3 +273,55 @@ test('devices the push service no longer knows are removed', async ({ page }) =>
 	await expect(page.getByRole('status')).toHaveText('Gerät entfernt.');
 	await expect(devices).toBeHidden();
 });
+
+test('a manual transfer is reminded until it is marked as transferred', async ({ page }) => {
+	await login(page);
+	await page.goto('/dauerposten');
+	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
+	await sheet.getByLabel('Bezeichnung').fill('Garagenmiete Melde');
+	await sheet.getByLabel('Betrag in €').fill('80');
+	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await sheet.getByLabel('Erste Fälligkeit').fill(today);
+	await sheet.getByLabel('Empfänger (optional)').fill('Hausverwaltung Beispiel');
+	await sheet.getByLabel('Zahlart').selectOption({ label: 'Manuelle Überweisung' });
+	await sheet.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(sheet).toBeHidden();
+
+	await page.goto('/einstellungen/benachrichtigungen');
+	const rule = page.getByRole('region', { name: 'Meldungsregel Manuelle Überweisung fällig' });
+	await expect(rule.getByLabel('Vorlauf (Bankarbeitstage)')).toHaveValue('1');
+	await rule.getByLabel('Vorlauf (Bankarbeitstage)').fill('11');
+	await rule.getByRole('button', { name: 'Regel sichern' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Vorlauf: 0 bis 10 Bankarbeitstage.');
+	await rule.getByLabel('Vorlauf (Bankarbeitstage)').fill('2');
+	await rule.getByText('Täglich bis erledigt').click();
+	await rule.getByRole('button', { name: 'Regel sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
+
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText(/verschickt/);
+	expect(mails.some((m) => m.data.includes('Garagenmiete Melde'))).toBe(true);
+
+	await page.goto('/');
+	const row = page
+		.getByRole('region', { name: 'Zu überweisen' })
+		.getByRole('listitem', { name: 'Garagenmiete Melde' });
+	await expect(row).toContainText('Hausverwaltung Beispiel');
+	await expect(row).toContainText(/80,00\s€/);
+	await row.getByRole('button', { name: 'Überwiesen' }).click();
+	await expect(page.getByRole('status')).toHaveText('Garagenmiete Melde: als überwiesen abgehakt.');
+	await expect(page.getByRole('region', { name: 'Zu überweisen' })).toBeHidden();
+
+	// Done: even "daily until done" sends nothing more.
+	await page.goto('/einstellungen/benachrichtigungen');
+	const before = mails.length;
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toBeVisible();
+	expect(mails.slice(before).some((m) => m.data.includes('Garagenmiete Melde'))).toBe(false);
+
+	await page.goto('/einstellungen/protokoll?bereich=recurring');
+	await expect(
+		page.getByRole('button').filter({ hasText: 'Garagenmiete Melde' }).first()
+	).toBeVisible();
+});
