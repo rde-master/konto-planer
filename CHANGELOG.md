@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.48.0] – Preis- und Abo-Wächter
+
+### Neu
+
+- Meldung „Dauerposten wird teurer“: wenn eine Ausgabe einen höheren Betrag bekommt (auch angekündigt für später) oder der Import eine höhere Abbuchung findet – mit altem und neuem Betrag, Plus in Prozent und Mehrkosten im Jahr
+- Meldung „Neue regelmäßige Abbuchung im Import“: ab der zweiten Zahlung an denselben Empfänger, wenn es keinen Dauerposten gibt und du den Vorschlag beim Import nicht übernommen hast
+- Die Übersicht zeigt „Teurer geworden“ und „Neues Abo?“; ein Tipp legt den Dauerposten an (ab der nächsten erwarteten Abbuchung) oder blendet den Empfänger dauerhaft aus
+- „Import rückgängig“ entfernt auch die dabei entstandenen Abo-Hinweise
+
 ## [0.47.0] – Kreditkarte
 
 ### Neu

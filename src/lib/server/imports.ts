@@ -11,6 +11,7 @@ import {
 	imports,
 	recurringAmounts,
 	recurringItems,
+	subscriptionHints,
 	type Booking,
 	type BookingPart,
 	type DueItem,
@@ -446,6 +447,8 @@ type UndoData = {
 	links: { id: string; counterBookingId: string | null }[];
 	/** Parts of replaced manual bookings (moved to the imported booking). */
 	parts?: BookingPart[];
+	/** "Neues Abo?" hints the import created. */
+	hints?: string[];
 };
 
 export type CommitChoice = {
@@ -492,7 +495,8 @@ export async function commitImport(
 			amounts: [],
 			items: [],
 			links: [],
-			parts: []
+			parts: [],
+			hints: []
 		};
 		let created = 0;
 		let matched = 0;
@@ -718,6 +722,43 @@ export async function commitImport(
 			itemsCreated++;
 		}
 
+		// Expense suggestions not taken over become "Neues Abo?" hints (dismissed ones stay so).
+		for (const s of suggestions) {
+			if (choice.suggestions.has(s.key) || s.kind !== 'expense') continue;
+			const [hint] = await tx
+				.insert(subscriptionHints)
+				.values({
+					accountId,
+					key: s.key,
+					name: s.name.slice(0, 60),
+					iban: s.iban,
+					amount: s.amount,
+					interval: s.interval,
+					lastDate: s.lastDate,
+					count: s.count
+				})
+				.onConflictDoNothing()
+				.returning({ id: subscriptionHints.id });
+			if (hint) undo.hints!.push(hint.id);
+			else
+				await tx
+					.update(subscriptionHints)
+					.set({
+						amount: s.amount,
+						lastDate: s.lastDate,
+						count: s.count,
+						interval: s.interval,
+						updatedAt: new Date()
+					})
+					.where(
+						and(
+							eq(subscriptionHints.accountId, accountId),
+							eq(subscriptionHints.key, s.key),
+							eq(subscriptionHints.status, 'open')
+						)
+					);
+		}
+
 		let removed = 0;
 		if (view.from && view.to) {
 			const gone = await tx
@@ -898,6 +939,8 @@ export async function undoImport(
 		}
 		if (undo.createdDues.length)
 			await tx.delete(dueItems).where(inArray(dueItems.id, undo.createdDues));
+		if (undo.hints?.length)
+			await tx.delete(subscriptionHints).where(inArray(subscriptionHints.id, undo.hints));
 		if (undo.restoreBookings.length) {
 			const restore = undo.restoreBookings.map(bookingRow);
 			await tx.insert(bookings).values(restore).onConflictDoNothing();

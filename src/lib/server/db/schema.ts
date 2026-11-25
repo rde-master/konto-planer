@@ -1062,3 +1062,33 @@ export const cardSettlements = pgTable(
 	},
 	(t) => [uniqueIndex('card_settlements_card_statement_idx').on(t.cardAccountId, t.statementDate)]
 );
+
+/**
+ * A new regular debit found by the import ("neues Abo?"), from a suggestion that was not taken
+ * over: open until dismissed or created as recurring item. Key = payee key per account.
+ */
+export const subscriptionHints = pgTable(
+	'subscription_hints',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		key: text('key').notNull(),
+		name: text('name').notNull(),
+		iban: text('iban'),
+		/** Latest amount, positive cents. */
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		interval: text('interval').notNull(),
+		lastDate: date('last_date', { mode: 'string' }).notNull(),
+		count: integer('count').notNull(),
+		status: text('status').notNull().default('open'),
+		recurringId: uuid('recurring_id').references(() => recurringItems.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		uniqueIndex('subscription_hints_account_key_idx').on(t.accountId, t.key),
+		check('subscription_hints_status', sql`${t.status} in ('open', 'dismissed', 'created')`)
+	]
+);

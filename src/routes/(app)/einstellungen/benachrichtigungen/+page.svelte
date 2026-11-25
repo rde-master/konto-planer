@@ -36,7 +36,11 @@
 		savings_suggestion:
 			'Wenn das Gehalt gebucht ist (Stichtag „Gehalt“ am Girokonto) und mindestens 10 € frei verfügbar sind.',
 		credit_limit:
-			'Wenn eine Kreditkarte ihren Kreditrahmen jetzt oder nach Plan in den nächsten zwei Monaten überschreitet.'
+			'Wenn eine Kreditkarte ihren Kreditrahmen jetzt oder nach Plan in den nächsten zwei Monaten überschreitet.',
+		price_increase:
+			'Wenn ein Dauerposten (Ausgabe) einen höheren Betrag bekommt oder der Import eine höhere Abbuchung findet; auch angekündigte Erhöhungen.',
+		new_subscription:
+			'Wenn der Import eine regelmäßige Abbuchung ohne Dauerposten findet (ab der zweiten Zahlung) und du sie nicht übernommen hast.'
 	};
 </script>
 

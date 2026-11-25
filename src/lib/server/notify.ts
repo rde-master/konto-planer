@@ -12,6 +12,7 @@ import {
 	notificationLog,
 	notificationRules,
 	recurringItems,
+	subscriptionHints,
 	users
 } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -25,6 +26,7 @@ import { pushToUser, pushUsers } from './push.js';
 import { remindersFor } from './manual-transfers.js';
 import { suggestionsFor } from './savings-suggestion.js';
 import { forecastFor } from './forecast.js';
+import { increasesOn } from './watch.js';
 import { addMonths } from '../recurring.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
@@ -559,6 +561,39 @@ async function creditLimitEvents(today: string): Promise<Event[]> {
 	return out;
 }
 
+/** Expenses that became more expensive (new amount or a higher imported debit). */
+async function priceEvents(today: string): Promise<Event[]> {
+	const ids = (await listAccountsFor(SYSTEM)).filter((a) => !a.archivedAt).map((a) => a.id);
+	return (await increasesOn(ids, today)).map((x) => ({
+		type: 'price_increase' as const,
+		key: `${x.recurringId}:${x.from}:${x.source}`,
+		accountId: x.accountId,
+		url: `dauerposten/${x.recurringId}`,
+		title: `Teurer: ${x.name} (+${x.percent} %)`,
+		message:
+			x.source === 'paid'
+				? `${x.name} wurde am ${formatDay(x.from)} mit ${formatEuro(x.after)} statt ${formatEuro(x.before)} abgebucht (+${x.percent} %, ${formatEuro(x.perYear)} im Jahr mehr). Passe den Betrag am Dauerposten an, wenn das so bleibt.`
+				: `${x.name} kostet ab ${formatDay(x.from)} ${formatEuro(x.after)} statt ${formatEuro(x.before)} (+${x.percent} %, ${formatEuro(x.perYear)} im Jahr mehr).`
+	}));
+}
+
+/** New regular debits the import found and nobody has created or dismissed. */
+async function subscriptionEvents(): Promise<Event[]> {
+	const rows = await db
+		.select({ hint: subscriptionHints, accountName: accounts.name })
+		.from(subscriptionHints)
+		.innerJoin(accounts, eq(accounts.id, subscriptionHints.accountId))
+		.where(and(eq(subscriptionHints.status, 'open'), isNull(accounts.archivedAt)));
+	return rows.map(({ hint, accountName }) => ({
+		type: 'new_subscription' as const,
+		key: hint.id,
+		accountId: hint.accountId,
+		url: '',
+		title: `Neues Abo? ${hint.name}`,
+		message: `${hint.name} wurde ${hint.count}-mal von ${accountName} abgebucht, zuletzt am ${formatDay(hint.lastDate)} über ${formatEuro(hint.amount)}, aber es gibt keinen Dauerposten dafür. In der Übersicht kannst du ihn anlegen oder den Hinweis ignorieren.`
+	}));
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -595,7 +630,9 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 			? await manualTransferEvents(today, rules.get('manual_transfer')!.leadDays)
 			: []),
 		...(on('savings_suggestion') ? await savingsEvents(today) : []),
-		...(on('credit_limit') ? await creditLimitEvents(today) : [])
+		...(on('credit_limit') ? await creditLimitEvents(today) : []),
+		...(on('price_increase') ? await priceEvents(today) : []),
+		...(on('new_subscription') ? await subscriptionEvents() : [])
 	].filter((e) => on(e.type));
 	if (!events.length) return 0;
 	const people = await db

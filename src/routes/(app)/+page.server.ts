@@ -13,7 +13,7 @@ import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import { formatIban } from '#lib/iban.js';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import {
 	ManualTransferError,
 	markTransferred,
@@ -28,6 +28,13 @@ import {
 	transferSaving
 } from '#lib/server/savings-suggestion.js';
 import { parseEuro, formatEuro } from '#lib/money.js';
+import {
+	WatchError,
+	createFromHint,
+	dismissHint,
+	hintsFor,
+	increasesOn
+} from '#lib/server/watch.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Start page: household totals, available per giro account, next payments, cancel soon. */
@@ -101,11 +108,23 @@ export const load: PageServerLoad = async ({ locals }) => {
 			)
 		: [];
 	const suggestions = await suggestionsFor(user, today);
+	const [hints, increases] = await Promise.all([hintsFor(user), increasesOn([...ids], today)]);
 	const targets = suggestions.length ? await savingsTargets(user) : [];
 	return {
 		today,
 		suggestions,
 		targets,
+		hints: hints.map((h) => ({
+			id: h.id,
+			name: h.name,
+			amount: h.amount,
+			interval: h.interval,
+			lastDate: h.lastDate,
+			count: h.count,
+			accountName: h.accountName,
+			canEdit: h.canEdit
+		})),
+		increases: increases.slice(0, 5),
 		metrics: metrics ? { fixedRatio: metrics.fixedRatio, savingsRate: metrics.savingsRate } : null,
 		household: {
 			total: accounts.reduce((s, a) => s + (balances.get(a.id) ?? a.openingBalance), 0),
@@ -144,6 +163,29 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	hintCreate: async ({ request, locals }) => {
+		try {
+			const { recurringId } = await createFromHint(
+				locals.user!,
+				formString(await request.formData(), 'id')
+			);
+			redirect(303, `/dauerposten/${recurringId}`);
+		} catch (e) {
+			if (e instanceof WatchError) return fail(400, { message: e.message });
+			throw e;
+		}
+	},
+
+	hintDismiss: async ({ request, locals }) => {
+		try {
+			const name = await dismissHint(locals.user!, formString(await request.formData(), 'id'));
+			return { success: `„${name}“ wird nicht mehr vorgeschlagen.` };
+		} catch (e) {
+			if (e instanceof WatchError) return fail(400, { message: e.message });
+			throw e;
+		}
+	},
+
 	saveTransfer: async ({ request, locals }) => {
 		const data = await request.formData();
 		const accountId = formString(data, 'accountId');
