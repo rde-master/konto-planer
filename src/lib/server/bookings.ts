@@ -10,6 +10,8 @@ import {
 } from './db/schema.js';
 import { payeeKey } from '../import-match.js';
 import type { Part } from '../splits.js';
+import type { LogoRef } from '../logos.js';
+import { logoOf, logoOverrides } from './logos.js';
 import { formatEuro } from '../money.js';
 import { audit, type Actor } from './audit.js';
 import { diff } from './audit-rules.js';
@@ -48,6 +50,12 @@ export type BookingSummary = Booking & {
 	canTag: boolean;
 	/** Parts of a split booking (empty if not split). */
 	parts: PartSummary[];
+	/** Company logo of the payee (null: initials or the category icon). */
+	logo: LogoRef | null;
+	/** Payee key for choosing the logo by hand (null without payee). */
+	payeeKey: string | null;
+	/** Logo chosen by hand for the payee (null = automatic). */
+	logoChosen: string | null;
 	/** False for bookings before the account's opening date. */
 	counts: boolean;
 };
@@ -82,6 +90,20 @@ function splittable(
 		canEditAccount(account.level, account.archivedAt !== null) &&
 		(booking.source === 'manual' || booking.source === 'import')
 	);
+}
+
+function keyOf(b: Pick<Booking, 'iban' | 'counterparty'>) {
+	return payeeKey({ counterpartyIban: b.iban, counterparty: b.counterparty });
+}
+
+/** Logo by the payee; provisional bookings without payee use the item's name. */
+function logoFields(b: Booking, overrides: Map<string, string>) {
+	const key = keyOf(b);
+	return {
+		logo: logoOf(overrides, key, b.counterparty ?? (b.recurringId ? b.purpose : null)),
+		payeeKey: key,
+		logoChosen: key ? (overrides.get(key) ?? null) : null
+	};
 }
 
 async function partsOf(executor: Executor, ids: string[]) {
@@ -143,10 +165,12 @@ export async function listBookingsFor(
 		db,
 		rows.slice(0, limit).map((b) => b.id)
 	);
+	const overrides = await logoOverrides(rows.map(keyOf));
 	return {
 		bookings: rows.slice(0, limit).map((b) => {
 			const account = byId.get(b.accountId)!;
 			return {
+				...logoFields(b, overrides),
 				canSplit: splittable(account, b),
 				canTag: canEditAccount(account.level, account.archivedAt !== null),
 				parts: parts
@@ -179,8 +203,10 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 	if (!account) return null;
 	const category = await categoryInfo(db);
 	const parts = await partsOf(db, [b.id]);
+	const overrides = await logoOverrides([keyOf(b)]);
 	return {
 		...b,
+		...logoFields(b, overrides),
 		canSplit: splittable(account, b),
 		canTag: canEditAccount(account.level, account.archivedAt !== null),
 		parts: parts.map((p) => ({

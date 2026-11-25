@@ -15,6 +15,7 @@ import {
 import { listGoalsFor } from '#lib/server/goals.js';
 import { TagError, listTags, readTagForm, setRecurringTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
+import { LogoError, itemLogos, setPayeeLogo } from '#lib/server/logos.js';
 import {
 	addExtra,
 	applyLoanEnd,
@@ -71,11 +72,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const goals =
 		item.kind === 'expense' ? await listGoalsFor(locals.user!, { recurringId: item.id }) : [];
 	const loan = item.kind === 'expense' ? await loanInfo(item) : null;
-	const [tagMap, allTags] = await Promise.all([tagsOf(db, [], [item.id]), listTags()]);
+	const [tagMap, allTags, logos] = await Promise.all([
+		tagsOf(db, [], [item.id]),
+		listTags(),
+		itemLogos([item])
+	]);
 	return {
 		item,
 		goals,
 		loan,
+		logo: logos[item.id],
 		tags: {
 			all: allTags.map((t) => ({ id: t.id, name: t.name })),
 			selected: tagMap.recurring.get(item.id) ?? []
@@ -201,6 +207,24 @@ export const actions: Actions = {
 			return recurringError('pause', e);
 		}
 		return { action: 'pause', success: true };
+	},
+
+	/** Logo of the payee (for all its bookings and items); '' = automatic. */
+	logo: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const item = await getRecurringFor(user, params.id);
+		if (!item) error(404, 'Dauerposten nicht gefunden.');
+		const key = (await itemLogos([item]))[item.id]?.key;
+		if (!key || !item.canEdit)
+			return fail(400, { action: 'logo', message: 'Das Logo darfst du hier nicht ändern.' });
+		const slug = formString(await request.formData(), 'slug') || null;
+		try {
+			await setPayeeLogo(user, key, item.counterparty ?? item.name, slug);
+		} catch (e) {
+			if (e instanceof LogoError) return fail(400, { action: 'logo', message: e.message });
+			throw e;
+		}
+		return { action: 'logo', success: true };
 	},
 
 	tags: async ({ request, locals, params }) => {

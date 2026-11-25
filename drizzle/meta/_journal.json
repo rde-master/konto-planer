@@ -169,6 +169,13 @@
       "when": 1795571699394,
       "tag": "0023_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795573078754,
+      "tag": "0024_payee_logos",
+      "breakpoints": true
     }
   ]
 }

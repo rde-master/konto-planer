@@ -12,6 +12,7 @@
 	import Sheet from '#lib/components/Sheet.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
+	import Logo from '#lib/components/Logo.svelte';
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay, todayBerlin } from '#lib/dates.js';
 	import {
@@ -216,12 +217,16 @@
 				(item.archivedAt || !running(item)) && 'opacity-60'
 			]}
 		>
-			<span
-				class="grid size-10 shrink-0 place-items-center rounded-full text-white"
-				style:background-color={accountColorCss(color)}
-			>
-				<Icon class="size-5" strokeWidth={2.2} />
-			</span>
+			{#if item.kind !== 'transfer'}
+				<Logo name={item.counterparty ?? item.name} logo={data.logos[item.id]?.logo ?? null} />
+			{:else}
+				<span
+					class="grid size-10 shrink-0 place-items-center rounded-full text-white"
+					style:background-color={accountColorCss(color)}
+				>
+					<Icon class="size-5" strokeWidth={2.2} />
+				</span>
+			{/if}
 			<span class="min-w-0 flex-1">
 				<span class="block truncate text-[17px]">{item.name}</span>
 				<span class="block truncate text-[13px] text-label-2">

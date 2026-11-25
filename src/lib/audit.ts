@@ -192,6 +192,7 @@ const FIELD_LABELS: Record<string, string> = {
 	rule: 'Regel',
 	split: 'Aufteilung',
 	tags: 'Tags',
+	logo: 'Logo',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

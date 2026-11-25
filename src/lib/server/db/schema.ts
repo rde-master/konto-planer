@@ -764,3 +764,13 @@ export const recurringTags = pgTable(
 		index('recurring_tags_tag_idx').on(t.tagId)
 	]
 );
+
+/**
+ * Logo chosen by hand for a payee (key as `payeeKey()`: IBAN, otherwise the name). `slug` of
+ * Simple Icons, or "-" for no logo (initials). Without a row the logo is matched by name.
+ */
+export const payeeLogos = pgTable('payee_logos', {
+	key: text('key').primaryKey(),
+	slug: text('slug').notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});

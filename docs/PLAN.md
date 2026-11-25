@@ -184,7 +184,7 @@ Der Agent arbeitet selbstständig bis zum Pull Request; auf main kommt nichts oh
 
 ## Zusatzfunktionen
 
-34 Erweiterungen sind beschlossen. Wann jede kommt, steht im Releaseplan.
+35 Erweiterungen sind beschlossen. Wann jede kommt, steht im Releaseplan.
 
 | Funktion | Was sie tut |
 | --- | --- |
@@ -197,6 +197,7 @@ Der Agent arbeitet selbstständig bis zum Pull Request; auf main kommt nichts oh
 | Regel-Editor für Kategorien | Eigene Regeln wie „Verwendungszweck enthält X, dann Kategorie Y“, die beim Import greifen |
 | Splitbuchung | Eine Buchung auf mehrere Kategorien aufteilen |
 | Tags | Frei vergebbar zusätzlich zur Kategorie, mit Jahresliste |
+| Firmenlogos | Farbige Logos (Simple Icons) je Empfänger, automatisch nach dem Namen erkannt und von Hand änderbar; sonst farbige Initialen |
 | Suche und Filter | Über alle Buchungen nach Empfänger, Betrag, Zeitraum, Kategorie und Tag |
 | Gesamtübersicht Haushalt | Eine Seite mit allen sichtbaren Konten, Summe, verfügbarem Betrag und Sparzielen |
 | 12-Monats-Vorschau | Kurve des Kontostands mit dem tiefsten Punkt des Jahres |
@@ -259,34 +260,35 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.28.0 | Regel-Editor für Kategorien |
 | 0.29.0 | Splitbuchung |
 | 0.30.0 | Tags |
-| 0.31.0 | Suche und Filter |
-| 0.32.0 | Papierkorb |
-| 0.33.0 | Ausgleich zwischen Benutzern |
-| 0.34.0 | Dashboard und Gesamtübersicht Haushalt |
-| 0.35.0 | Auswertungen: Ausgaben nach Kategorie, Fixkosten je Monat, Einnahmen gegen Ausgaben, Preisverlauf, Jahreskalender |
-| 0.36.0 | Jahresvergleich |
-| 0.37.0 | 12-Monats-Vorschau |
-| 0.38.0 | Kennzahlen |
-| 0.39.0 | Budget je Kategorie |
-| 0.40.0 | Was-wäre-wenn |
-| 0.41.0 | Benachrichtigungen: E-Mail, Home Assistant, Kündigungsfristen, Meldungsregeln |
-| 0.42.0 | Weitere Meldungen: Mindestbestand, ausgebliebene Zahlung, Dispo |
-| 0.43.0 | Push aus der Web-App, falls iOS es für diese Einrichtung unterstützt |
-| 0.44.0 | Erinnerung an manuelle Überweisungen |
-| 0.45.0 | Sparvorschlag am Gehaltstag |
-| 0.46.0 | Preis- und Abo-Wächter |
-| 0.47.0 | Import-Erinnerung |
-| 0.48.0 | Monatsbericht per E-Mail |
-| 0.49.0 | Kündigungsschreiben als PDF |
-| 0.50.0 | Kalender-Abo |
-| 0.51.0 | Lesende API und Home-Assistant-Sensoren |
-| 0.52.0 | Widget-Musterseite mit Kopier-Knopf |
-| 0.53.0 | Widget-Editor |
-| 0.54.0 | Sperrbildschirm-Widgets, falls Scriptable sie unterstützt |
-| 0.55.0 | Schnellerfassung per iOS-Kurzbefehl |
-| 0.56.0 | Systemstatus |
-| 0.57.0 | Anleitung für Einrichtung und Bedienung |
-| 0.58.0 | Demo-Modus |
+| 0.31.0 | Firmenlogos für Buchungen und Dauerposten |
+| 0.32.0 | Suche und Filter |
+| 0.33.0 | Papierkorb |
+| 0.34.0 | Ausgleich zwischen Benutzern |
+| 0.35.0 | Dashboard und Gesamtübersicht Haushalt |
+| 0.36.0 | Auswertungen: Ausgaben nach Kategorie, Fixkosten je Monat, Einnahmen gegen Ausgaben, Preisverlauf, Jahreskalender |
+| 0.37.0 | Jahresvergleich |
+| 0.38.0 | 12-Monats-Vorschau |
+| 0.39.0 | Kennzahlen |
+| 0.40.0 | Budget je Kategorie |
+| 0.41.0 | Was-wäre-wenn |
+| 0.42.0 | Benachrichtigungen: E-Mail, Home Assistant, Kündigungsfristen, Meldungsregeln |
+| 0.43.0 | Weitere Meldungen: Mindestbestand, ausgebliebene Zahlung, Dispo |
+| 0.44.0 | Push aus der Web-App, falls iOS es für diese Einrichtung unterstützt |
+| 0.45.0 | Erinnerung an manuelle Überweisungen |
+| 0.46.0 | Sparvorschlag am Gehaltstag |
+| 0.47.0 | Preis- und Abo-Wächter |
+| 0.48.0 | Import-Erinnerung |
+| 0.49.0 | Monatsbericht per E-Mail |
+| 0.50.0 | Kündigungsschreiben als PDF |
+| 0.51.0 | Kalender-Abo |
+| 0.52.0 | Lesende API und Home-Assistant-Sensoren |
+| 0.53.0 | Widget-Musterseite mit Kopier-Knopf |
+| 0.54.0 | Widget-Editor |
+| 0.55.0 | Sperrbildschirm-Widgets, falls Scriptable sie unterstützt |
+| 0.56.0 | Schnellerfassung per iOS-Kurzbefehl |
+| 0.57.0 | Systemstatus |
+| 0.58.0 | Anleitung für Einrichtung und Bedienung |
+| 0.59.0 | Demo-Modus |
 | 1.0.0 | Abschluss: Tests der gesamten Bedienung am Handy, Freigabe |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

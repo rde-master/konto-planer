@@ -21,6 +21,7 @@ import { GoalError, goalTransferForBooking, undoGoalTransfer } from '#lib/server
 import { validateSplit } from '#lib/splits.js';
 import { TagError, listTags, readTagForm, setBookingTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
+import { LogoError, setPayeeLogo } from '#lib/server/logos.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -165,6 +166,26 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	/** Logo of the payee (for all its bookings and items); '' = automatic. */
+	logo: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const booking = await getBookingFor(user, params.id);
+		if (!booking) error(404, 'Buchung nicht gefunden.');
+		if (!booking.payeeKey || !booking.canTag)
+			return fail(400, {
+				action: 'logo',
+				message: 'Das Logo dieser Buchung darfst du nicht ändern.'
+			});
+		const slug = formString(await request.formData(), 'slug') || null;
+		try {
+			await setPayeeLogo(user, booking.payeeKey, booking.counterparty ?? 'Empfänger', slug);
+		} catch (e) {
+			if (e instanceof LogoError) return fail(400, { action: 'logo', message: e.message });
+			throw e;
+		}
+		return { action: 'logo', success: true };
 	},
 
 	tags: async ({ request, locals, params }) => {
