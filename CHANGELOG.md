@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.47.0] – Kreditkarte
+
+### Neu
+
+- Neue Kontoart „Kreditkarte“ neben Girokonto und Sparbuch, mit Abrechnungskonto (Girokonto), Abrechnungstag, Abbuchungstag und Kreditrahmen
+- Am Abrechnungstag wird der Kartensaldo festgestellt und am Abbuchungstag (nächster Bankarbeitstag) automatisch vom Girokonto auf die Karte gebucht
+- Die nächste Abbuchung – Kartensaldo plus geplante Kartenzahlungen bis zum Abrechnungstag – zählt in Mindestbestand, „Verfügbar“ und 12-Monats-Vorschau des Girokontos
+- Auf der Karte: Buchungen und Schnellerfassung, Dauerposten (z. B. Abos), CSV-Import im Volksbank-Format (IBAN-Prüfung nur, wenn an der Karte eine IBAN eingetragen ist)
+- Die Kontoseite der Karte zeigt die nächsten Abrechnungen mit Betrag und Abbuchungstag sowie den freien Kreditrahmen
+- Neue Meldung „Kreditrahmen der Kreditkarte reicht nicht“, wenn der Rahmen jetzt oder nach Plan in den nächsten zwei Monaten überschritten wird
+- Nachträglich erfasste Kartenumsätze korrigieren eine schon gebuchte Abrechnung; ein Import der echten Abbuchung ersetzt sie
+- Auswertungen zählen Kreditkarten zu „Alle Girokonten und Kreditkarten“; Abrechnungen gelten als interne Umbuchung
+
 ## [0.46.0] – Sparvorschlag am Gehaltstag
 
 ### Neu

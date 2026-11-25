@@ -78,13 +78,13 @@ export async function recurringFormContext(
 	const accountOptions = accounts.map((a) => ({
 		value: a.id,
 		label: a.name,
-		giro: a.type === 'giro'
+		giro: a.type !== 'sparbuch'
 	}));
 	if (current && !accountOptions.some((a) => a.value === current.account.id))
 		accountOptions.unshift({
 			value: current.account.id,
 			label: current.account.name,
-			giro: current.account.type === 'giro'
+			giro: current.account.type !== 'sparbuch'
 		});
 	const targetOptions = targets.map((t) => ({ value: t.id, label: t.name }));
 	const currentTarget = current?.targetAccount;

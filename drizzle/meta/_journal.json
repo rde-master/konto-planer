@@ -232,6 +232,13 @@
       "when": 1795625623529,
       "tag": "0032_savings_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795630222940,
+      "tag": "0033_credit_cards",
+      "breakpoints": true
     }
   ]
 }

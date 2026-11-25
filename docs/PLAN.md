@@ -58,7 +58,7 @@ Kern sind drei Dinge: der Dauerposten (was regelmäßig passiert), die Fälligke
 | Tabelle | Wichtige Felder | Hinweis |
 | --- | --- | --- |
 | Benutzer | Name, E-Mail, Passwort-Hash, Rolle, Benachrichtigungsziele | Rollen: Admin, Benutzer |
-| Konto | Name, Typ (Giro, Sparbuch), IBAN, Dispo, Zinssatz, Zinsrhythmus, Startsaldo, Stichtag-Modus, Stichtag-Eingang, Puffer, archiviert | IBAN dient der Prüfung beim Import |
+| Konto | Name, Typ (Giro, Sparbuch, Kreditkarte), IBAN, Dispo bzw. Kreditrahmen, Abrechnungskonto, Abrechnungs- und Abbuchungstag (Kreditkarte), Zinssatz, Zinsrhythmus, Startsaldo, Stichtag-Modus, Stichtag-Eingang, Puffer, archiviert | IBAN dient der Prüfung beim Import |
 | Kontozugriff | Konto, Benutzer, Stufe (sehen, bearbeiten) | Steuert, wer was sieht |
 | Kategorie | Name, Übergeordnete Kategorie, Farbe | Global, mit Unterkategorien |
 | Dauerposten | Konto, Art (Ausgabe, Einnahme, Umbuchung), Zielkonto, Empfänger, IBAN, Mandatsreferenz, Gläubiger-ID, Kategorie, Intervall, Start, Ende, schwankend, Gehalt-Kennzeichen, Anleger, Zahlart, Pause von und bis, archiviert | Intervalle: wöchentlich, monatlich, quartalsweise, halbjährlich, jährlich, frei, einmalig |
@@ -102,6 +102,8 @@ Kern sind drei Dinge: der Dauerposten (was regelmäßig passiert), die Fälligke
 **Umbuchungen.** Eine Umbuchung ist ein Dauerposten mit Quell- und Zielkonto. Sie zählt auf dem Quellkonto als Ausgang und auf dem Zielkonto automatisch als Eingang, auch wenn die Konten verschiedenen Benutzern gehören. Als Ziel sind alle Konten der App wählbar, angezeigt wird dabei nur der Kontoname. Geld an ein Konto außerhalb der App ist immer eine Zahlung.
 
 **Sparbuch.** Sparkonten haben keine Abbuchungen und keine Mindestbestand-Planung. Eingänge sind Umbuchungen, Geld geht nur per Umbuchung wieder raus. Der Eingang wird automatisch gebucht, sobald die Umbuchung auf dem Girokonto fällig oder importiert ist. Ein Import wird für Sparbücher nicht erwartet; die Zinsen berechnet die App aus Stand und Zinssatz voraus, der Rhythmus der Gutschrift ist einstellbar. Angezeigt werden Stand, Verlauf und Zinssatz.
+
+**Kreditkarte.** Umsätze, Dauerposten und Import wie beim Girokonto, dazu ein Kreditrahmen mit Warnung. Am Abrechnungstag wird der Saldo festgestellt und am Abbuchungstag (nächster Bankarbeitstag) vom gewählten Girokonto ausgeglichen; fehlt der Tag im Monat, gilt der Monatsletzte. Die künftige Abbuchung (Saldo plus geplante Kartenzahlungen bis zum Abrechnungstag) zählt in Mindestbestand, verfügbarem Betrag und Vorschau des Girokontos. Gebuchte Abrechnungen folgen nachträglich erfassten Umsätzen, bis ein Import sie durch die echte Buchung ersetzt.
 
 **Sparziel.** Eine einmalige geplante Zahlung lässt sich mit einem Sparziel auf einem Sparbuch verknüpfen. Die App zeigt Zielbetrag, Zieldatum, Fortschritt und die nötige Sparrate. Zum Fälligkeitstag plant sie eine Umbuchung vom Sparbuch aufs Girokonto ein, sodass der Mindestbestand dort nicht belastet wird.
 
@@ -222,6 +224,7 @@ Der Agent arbeitet selbstständig bis zum Pull Request; auf main kommt nichts oh
 | Vorlagen für die Schnellerfassung | Häufige Ausgaben mit einem Tipp erfassen |
 | Papierkorb | Gelöschtes lässt sich 30 Tage wiederherstellen |
 | Push aus der Web-App | Meldungen als iOS-Mitteilung der installierten Web-App, dritter Kanal neben E-Mail und Home Assistant |
+| Kreditkarte | Dritte Kontoart; monatliche Abrechnung vom Girokonto, in dessen Planung berücksichtigt |
 | Ausgleich zwischen Benutzern | Gemeinsame Ausgaben markieren, Anteil je Ausgabe einstellbar; die App zeigt, wer wem wie viel schuldet |
 
 ## Releaseplan
@@ -276,23 +279,24 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.44.0 | Push aus der Web-App, falls iOS es für diese Einrichtung unterstützt |
 | 0.45.0 | Erinnerung an manuelle Überweisungen |
 | 0.46.0 | Sparvorschlag am Gehaltstag |
-| 0.47.0 | Preis- und Abo-Wächter |
-| 0.48.0 | Import-Erinnerung |
-| 0.49.0 | Monatsbericht per E-Mail |
-| 0.50.0 | Kündigungsschreiben als PDF |
-| 0.51.0 | Kalender-Abo |
-| 0.52.0 | Lesende API und Home-Assistant-Sensoren |
-| 0.53.0 | Widget-Musterseite mit Kopier-Knopf |
-| 0.54.0 | Widget-Editor |
-| 0.55.0 | Sperrbildschirm-Widgets, falls Scriptable sie unterstützt |
-| 0.56.0 | Schnellerfassung per iOS-Kurzbefehl |
-| 0.57.0 | Systemstatus |
-| 0.58.0 | Anleitung für Einrichtung und Bedienung |
-| 0.59.0 | Demo-Modus |
+| 0.47.0 | Kreditkarte |
+| 0.48.0 | Preis- und Abo-Wächter |
+| 0.49.0 | Import-Erinnerung |
+| 0.50.0 | Monatsbericht per E-Mail |
+| 0.51.0 | Kündigungsschreiben als PDF |
+| 0.52.0 | Kalender-Abo |
+| 0.53.0 | Lesende API und Home-Assistant-Sensoren |
+| 0.54.0 | Widget-Musterseite mit Kopier-Knopf |
+| 0.55.0 | Widget-Editor |
+| 0.56.0 | Sperrbildschirm-Widgets, falls Scriptable sie unterstützt |
+| 0.57.0 | Schnellerfassung per iOS-Kurzbefehl |
+| 0.58.0 | Systemstatus |
+| 0.59.0 | Anleitung für Einrichtung und Bedienung |
+| 0.60.0 | Demo-Modus |
 | 1.0.0 | Abschluss: Tests der gesamten Bedienung am Handy, Freigabe |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.
 
 ## Offene Punkte
 
-Alle Fragen sind geklärt. Der Agent prüft vor 0.43.0, ob iOS Push aus der Web-App in dieser Einrichtung unterstützt, und vor 0.54.0, ob Scriptable Sperrbildschirm-Widgets unterstützt.
+Alle Fragen sind geklärt. Der Agent prüft vor 0.43.0, ob iOS Push aus der Web-App in dieser Einrichtung unterstützt, und vor 0.56.0, ob Scriptable Sperrbildschirm-Widgets unterstützt.

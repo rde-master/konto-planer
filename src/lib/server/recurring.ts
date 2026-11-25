@@ -373,7 +373,7 @@ async function requireEditableAccount(viewer: Viewer, values: RecurringValues) {
 	const account = await getAccountFor(viewer, values.accountId);
 	if (
 		!account ||
-		(values.kind !== 'transfer' && account.type !== 'giro') ||
+		(values.kind !== 'transfer' && account.type === 'sparbuch') ||
 		!canEditAccount(account.level, account.archivedAt !== null)
 	)
 		throw new RecurringError('Auf diesem Konto darfst du keine Dauerposten anlegen.');
@@ -446,7 +446,7 @@ export async function updateRecurring(
 	if (values.kind !== current.kind && (values.kind === 'transfer' || current.kind === 'transfer'))
 		throw new RecurringError('Eine Umbuchung bleibt eine Umbuchung.');
 	if (values.accountId !== current.accountId) await requireEditableAccount(actor, values);
-	else if (values.kind !== 'transfer' && current.account.type !== 'giro')
+	else if (values.kind !== 'transfer' && current.account.type === 'sparbuch')
 		throw new RecurringError('Auf diesem Konto darfst du keine Dauerposten anlegen.');
 	await requireTarget(db, values, current.targetAccountId ?? undefined);
 	await db.transaction(async (tx) => {

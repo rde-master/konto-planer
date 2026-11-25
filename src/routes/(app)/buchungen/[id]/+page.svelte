@@ -46,7 +46,8 @@
 		adjustment: 'Anpassung',
 		provisional: 'Vorläufig aus Dauerposten',
 		interest: 'Zinsen (berechnet)',
-		goal: 'Umbuchung für Sparziel'
+		goal: 'Umbuchung für Sparziel',
+		settlement: 'Kreditkartenabrechnung (berechnet)'
 	};
 
 	let savePending = $state(false);
@@ -438,7 +439,7 @@
 				<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
 			</ListGroup>
 		{/if}
-		{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal'].includes(booking.source)}
+		{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal', 'settlement'].includes(booking.source)}
 			<ListGroup>
 				<ListRow
 					label="Als Vorlage sichern"

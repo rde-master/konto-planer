@@ -53,16 +53,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type StoredRow = ImportRow & { checksum: string };
 
-/** Giro account the viewer may import into (edit right, active, with IBAN). */
+/** Account the viewer may import into: giro (with IBAN) or credit card, edit right, active. */
 export async function importableAccount(viewer: Viewer, accountId: string) {
 	const account = await getAccountFor(viewer, accountId);
 	if (!account) return null;
 	const reason =
-		account.type !== 'giro'
-			? 'Importieren lassen sich nur Girokonten.'
+		account.type === 'sparbuch'
+			? 'Importieren lassen sich nur Girokonten und Kreditkarten.'
 			: !canEditAccount(account.level, account.archivedAt !== null)
 				? 'Auf dieses Konto darfst du nicht importieren.'
-				: !account.iban
+				: !account.iban && account.type === 'giro'
 					? 'Bitte erst die IBAN des Kontos eintragen; der Import prüft sie.'
 					: null;
 	return { account, reason };
@@ -89,7 +89,9 @@ export async function createDraft(
 		if (e instanceof ImportFormatError) throw new ImportError(e.message);
 		throw e;
 	}
-	const other = parsed.rows.find((r) => r.accountIban !== ctx.account.iban);
+	// Credit cards without an IBAN: the export's account column is not checked.
+	const checkIban = ctx.account.type === 'giro' || ctx.account.iban !== null;
+	const other = checkIban && parsed.rows.find((r) => r.accountIban !== ctx.account.iban);
 	if (other)
 		throw new ImportError(
 			`Die Datei gehört zum Konto ${formatIban(other.accountIban) || 'ohne IBAN'}, nicht zu ${ctx.account.name}. Der Import wurde abgebrochen.`
@@ -241,6 +243,8 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 			.filter(
 				(b) =>
 					b.source === 'manual' ||
+					// A computed credit card settlement is replaced by the real debit.
+					b.source === 'settlement' ||
 					(b.source === 'import' && b.checksum === null && b.counterBookingId !== null)
 			)
 			.map((b) => ({

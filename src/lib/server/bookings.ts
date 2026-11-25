@@ -25,6 +25,7 @@ import { categoryGroups } from './recurring-form.js';
 import type { AdjustmentValues, BookingContext, BookingValues } from './booking-rules.js';
 import { adjustmentAmount, countsToBalance } from '../balance.js';
 import { syncInterest } from './interest.js';
+import { syncSettlements } from './credit-cards.js';
 import { todayBerlin } from '../dates.js';
 
 export class BookingError extends Error {}
@@ -132,7 +133,7 @@ function categorizable(
 export async function bookingFormContext(viewer: Viewer) {
 	const [visible, cats] = await Promise.all([listAccountsFor(viewer), listCategories()]);
 	const bookingAccounts = visible
-		.filter((a) => a.type === 'giro' && canEditAccount(a.level, a.archivedAt !== null))
+		.filter((a) => a.type !== 'sparbuch' && canEditAccount(a.level, a.archivedAt !== null))
 		.map((a) => ({ value: a.id, label: a.name }));
 	return {
 		options: { bookingAccounts, categoryGroups: categoryGroups(buildTree(cats)) },
@@ -345,11 +346,11 @@ export async function createBooking(
 	const account = await getAccountFor(actor, values.accountId);
 	if (
 		!account ||
-		account.type !== 'giro' ||
+		account.type === 'sparbuch' ||
 		!canEditAccount(account.level, account.archivedAt !== null)
 	)
 		throw new BookingError('Auf diesem Konto darfst du nicht buchen.');
-	return db.transaction(async (tx) => {
+	const id = await db.transaction(async (tx) => {
 		const [created] = await tx
 			.insert(bookings)
 			.values({ ...values, source: 'manual', createdBy: actor.id })
@@ -365,6 +366,9 @@ export async function createBooking(
 		});
 		return created.id;
 	});
+	// Card bookings change the settlements computed so far.
+	if (account.type === 'kreditkarte') await syncSettlements();
+	return id;
 }
 
 async function requireEditable(viewer: Viewer, id: string) {
@@ -394,7 +398,7 @@ export async function updateBooking(
 		const account = await getAccountFor(actor, values.accountId);
 		if (
 			!account ||
-			account.type !== 'giro' ||
+			account.type === 'sparbuch' ||
 			!canEditAccount(account.level, account.archivedAt !== null)
 		)
 			throw new BookingError('Auf diesem Konto darfst du nicht buchen.');
@@ -416,6 +420,7 @@ export async function updateBooking(
 				...changes
 			});
 	});
+	await syncSettlements();
 }
 
 /**
@@ -526,6 +531,7 @@ export async function deleteBooking(actor: NonNullable<Actor> & Viewer, id: stri
 	});
 	// Deleting an adjustment on a savings account changes its interest.
 	await syncInterest([current.accountId]);
+	await syncSettlements();
 }
 
 /** Number of bookings on an account (shown on the account page). */
@@ -635,5 +641,6 @@ export async function adjustBalance(
 		return amount;
 	});
 	await syncInterest([accountId]);
+	await syncSettlements();
 	return amount;
 }
