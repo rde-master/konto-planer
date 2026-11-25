@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.41.0] – Was wäre wenn
+
+### Neu
+
+- Neue Seite „Was wäre wenn“ (unter „Mehr“ und in der Seitenleiste): benannte Szenarien je Girokonto, gespeichert und nur für dich sichtbar
+- Probeweise Änderungen sammeln: neuen Posten (Ausgabe oder Einnahme, monatlich bis jährlich oder einmalig) hinzufügen, einen Dauerposten ab einem Datum kündigen oder seinen Betrag ab einem Datum ändern
+- Die Wirkung steht direkt daneben, heute gegen mit Szenario: verfügbarer Betrag, Mindestbestand, Fixkosten im Monat, tiefster Stand in den nächsten 12 Monaten und Stand in 12 Monaten
+- An den echten Daten ändert sich nichts; Szenarien lassen sich umbenennen und löschen
+
 ## [0.40.0] – Budget je Kategorie
 
 ### Neu

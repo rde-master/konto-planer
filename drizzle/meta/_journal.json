@@ -197,6 +197,13 @@
       "when": 1795604100732,
       "tag": "0027_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795611795685,
+      "tag": "0028_scenarios",
+      "breakpoints": true
     }
   ]
 }
