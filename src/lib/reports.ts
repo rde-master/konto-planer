@@ -281,3 +281,60 @@ export function heatLevel(amount: number, max: number): number {
 	if (amount <= 0 || max <= 0) return 0;
 	return Math.min(4, Math.max(1, Math.ceil((amount / max) * 4)));
 }
+
+export type ComparisonRow = {
+	id: string | null;
+	name: string;
+	color: string;
+	now: number;
+	before: number;
+	/** now − before (positive = spent more). */
+	diff: number;
+	/** Relative change, null without spending before. */
+	ratio: number | null;
+};
+
+/** Expenses per main category of two periods side by side, largest first. */
+export function compareCategories(now: CategoryTotal[], before: CategoryTotal[]): ComparisonRow[] {
+	const rows = new Map<string | null, ComparisonRow>();
+	const row = (t: CategoryTotal) =>
+		rows.get(t.id) ?? {
+			id: t.id,
+			name: t.name,
+			color: t.color,
+			now: 0,
+			before: 0,
+			diff: 0,
+			ratio: null
+		};
+	for (const t of now) rows.set(t.id, { ...row(t), now: t.amount });
+	for (const t of before) rows.set(t.id, { ...row(t), before: t.amount });
+	return [...rows.values()]
+		.map((r) => ({
+			...r,
+			diff: r.now - r.before,
+			ratio: r.before > 0 ? r.now / r.before - 1 : null
+		}))
+		.sort((a, b) => Math.max(b.now, b.before) - Math.max(a.now, a.before));
+}
+
+/**
+ * Periods to compare: the running year up to today against the same span of the previous
+ * year; a past year against the whole previous year.
+ */
+export function comparisonPeriods(year: number, today: string) {
+	const current = Number(today.slice(0, 4));
+	if (year >= current) {
+		const lastYearDay = addMonths(today, -12);
+		return {
+			now: { from: `${current}-01-01`, to: today },
+			before: { from: `${current - 1}-01-01`, to: lastYearDay },
+			partial: true
+		};
+	}
+	return {
+		now: { from: `${year}-01-01`, to: `${year}-12-31` },
+		before: { from: `${year - 1}-01-01`, to: `${year - 1}-12-31` },
+		partial: false
+	};
+}

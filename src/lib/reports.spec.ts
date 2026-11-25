@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+	compareCategories,
+	comparisonPeriods,
 	dayHeat,
 	expensesByCategory,
 	fixedCostsByMonth,
@@ -184,5 +186,40 @@ describe('calendar', () => {
 		expect(heatLevel(40_00, 40_00)).toBe(4);
 		expect(heatLevel(5_00, 40_00)).toBe(1);
 		expect(heatLevel(0, 40_00)).toBe(0);
+	});
+});
+
+describe('year comparison', () => {
+	it('running year to date against the same span last year; past years in full', () => {
+		expect(comparisonPeriods(2026, '2026-11-25')).toEqual({
+			now: { from: '2026-01-01', to: '2026-11-25' },
+			before: { from: '2025-01-01', to: '2025-11-25' },
+			partial: true
+		});
+		expect(comparisonPeriods(2028, '2028-02-29').before.to).toBe('2027-02-28');
+		expect(comparisonPeriods(2024, '2026-11-25')).toMatchObject({
+			now: { from: '2024-01-01', to: '2024-12-31' },
+			partial: false
+		});
+	});
+
+	it('categories side by side with difference and change', () => {
+		const rows = compareCategories(
+			[
+				{ id: 'food', name: 'Lebensmittel', color: 'green', amount: 120_00, children: [] },
+				{ id: 'new', name: 'Neu', color: 'blue', amount: 10_00, children: [] }
+			],
+			[
+				{ id: 'food', name: 'Lebensmittel', color: 'green', amount: 100_00, children: [] },
+				{ id: 'gone', name: 'Weg', color: 'red', amount: 50_00, children: [] }
+			]
+		);
+		expect(rows.map((r) => [r.name, r.now, r.before, r.diff])).toEqual([
+			['Lebensmittel', 120_00, 100_00, 20_00],
+			['Weg', 0, 50_00, -50_00],
+			['Neu', 10_00, 0, 10_00]
+		]);
+		expect(rows[0].ratio).toBeCloseTo(0.2);
+		expect(rows[2].ratio).toBeNull();
 	});
 });
