@@ -223,6 +223,7 @@ const FIELD_LABELS: Record<string, string> = {
 	transferLeadDays: 'Vorlauf Überweisung (Bankarbeitstage)',
 	manualTransferDone: 'Überwiesen (Fälligkeit)',
 	savingSuggestion: 'Sparvorschlag',
+	subscriptionHint: 'Neues Abo',
 	settlementAccountId: 'Abrechnungskonto',
 	statementDay: 'Abrechnungstag',
 	debitDay: 'Abbuchungstag',

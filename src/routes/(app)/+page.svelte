@@ -10,6 +10,7 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, formatDay } from '#lib/dates.js';
+	import { INTERVAL_LABELS } from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -158,6 +159,79 @@
 									]}
 								>
 									{g.available !== null ? formatEuro(g.available) : '–'}
+								</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
+		{#if data.hints.length}
+			<section class="mb-8" aria-label="Neues Abo?">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Neues Abo?</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.hints as h (h.id)}
+						<li class="px-4 py-2.5" aria-label={h.name}>
+							<div class="flex items-center gap-3">
+								<span class="min-w-0 flex-1">
+									<span class="block truncate">{h.name}</span>
+									<span class="block truncate text-[13px] text-label-2">
+										{INTERVAL_LABELS[h.interval as keyof typeof INTERVAL_LABELS] ?? h.interval} · {h.count}
+										Zahlungen, zuletzt {formatDay(h.lastDate)} · {h.accountName}
+									</span>
+								</span>
+								<span class="tabular">{formatEuro(h.amount)}</span>
+							</div>
+							{#if h.canEdit}
+								<div class="mt-2 flex gap-4">
+									<form method="POST" action="?/hintCreate" use:enhance>
+										<input type="hidden" name="id" value={h.id} />
+										<button type="submit" class="text-[15px] text-accent">
+											Als Dauerposten anlegen
+										</button>
+									</form>
+									<form method="POST" action="?/hintDismiss" use:enhance>
+										<input type="hidden" name="id" value={h.id} />
+										<button type="submit" class="text-[15px] text-label-2">Ignorieren</button>
+									</form>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Regelmäßige Abbuchungen aus dem Import ohne Dauerposten.
+				</p>
+			</section>
+		{/if}
+
+		{#if data.increases.length}
+			<section class="mb-8" aria-label="Teurer geworden">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Teurer geworden</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.increases as x (`${x.recurringId}:${x.from}:${x.source}`)}
+						<li>
+							<a
+								href={resolve(`dauerposten/${x.recurringId}`)}
+								class="flex min-h-11 items-center gap-3 px-4 py-2 active:bg-fill"
+								aria-label={x.name}
+							>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate">{x.name}</span>
+									<span class="block truncate text-[13px] text-label-2">
+										{x.source === 'paid' ? 'abgebucht am' : 'ab'}
+										{formatDay(x.from)}: {formatEuro(x.before)} → {formatEuro(x.after)}
+									</span>
+								</span>
+								<span class="text-right text-danger tabular">
+									+{x.percent} %
+									<span class="block text-[13px]">+{formatEuro(x.perYear)}/Jahr</span>
 								</span>
 								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 							</a>
