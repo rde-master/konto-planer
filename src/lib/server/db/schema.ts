@@ -307,6 +307,9 @@ export const appSettings = pgTable(
 		/** Home Assistant base URL and long-lived access token (encrypted). */
 		haUrl: text('ha_url'),
 		haTokenEnc: text('ha_token_enc'),
+		// Web push: VAPID key pair, created on first use; the private key is encrypted.
+		vapidPublicKey: text('vapid_public_key'),
+		vapidPrivateKeyEnc: text('vapid_private_key_enc'),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [check('app_settings_single_row', sql`${t.id} = 1`)]
@@ -940,6 +943,7 @@ export const notificationRules = pgTable('notification_rules', {
 	enabled: boolean('enabled').notNull().default(true),
 	email: boolean('email').notNull().default(true),
 	homeAssistant: boolean('home_assistant').notNull().default(false),
+	push: boolean('push').notNull().default(false),
 	recipients: jsonb('recipients').$type<string[] | null>(),
 	repeat: text('repeat').notNull().default('once'),
 	toleranceDays: integer('tolerance_days').notNull().default(3),
@@ -964,3 +968,23 @@ export const notificationLog = pgTable(
 	},
 	(t) => [index('notification_log_lookup_idx').on(t.type, t.key, t.userId, t.channel)]
 );
+
+/** Web push subscription of one device (browser) of a user. */
+export const pushSubscriptions = pgTable(
+	'push_subscriptions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		endpoint: text('endpoint').notNull().unique(),
+		p256dh: text('p256dh').notNull(),
+		auth: text('auth').notNull(),
+		label: text('label').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		lastSentAt: timestamp('last_sent_at', { withTimezone: true })
+	},
+	(t) => [index('push_subscriptions_user_idx').on(t.userId)]
+);
+
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;

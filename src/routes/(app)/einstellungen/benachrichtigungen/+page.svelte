@@ -175,6 +175,12 @@
 						name="homeAssistant"
 						initial={rule.homeAssistant}
 					/>
+					<ToggleField
+						label="Push aus der Web-App"
+						name="push"
+						initial={rule.push}
+						hint="An die Geräte, die jeder unter „Meine Benachrichtigungen“ anmeldet"
+					/>
 					<SegmentedField
 						name="repeat"
 						label="Wiederholung"
@@ -246,8 +252,11 @@
 					<li class="px-4 py-2.5">
 						<span class="block truncate">{l.title}</span>
 						<span class={['block truncate text-[13px]', l.ok ? 'text-label-2' : 'text-danger']}>
-							{formatDateTime(l.sentAt)} · {l.channel === 'email' ? 'E-Mail' : 'Home Assistant'} · {l.userName ??
-								'–'}{l.ok ? '' : ` · Fehler: ${l.error}`}
+							{formatDateTime(l.sentAt)} · {l.channel === 'email'
+								? 'E-Mail'
+								: l.channel === 'push'
+									? 'Push'
+									: 'Home Assistant'} · {l.userName ?? '–'}{l.ok ? '' : ` · Fehler: ${l.error}`}
 						</span>
 					</li>
 				{/each}

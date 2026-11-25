@@ -1,6 +1,6 @@
 {
 	"name": "konto-planer",
-	"version": "0.43.0",
+	"version": "0.44.0",
 	"private": true,
 	"type": "module",
 	"imports": {
@@ -37,6 +37,7 @@
 		"@types/node": "^24",
 		"@types/nodemailer": "6.4.17",
 		"@types/smtp-server": "3.5.10",
+		"@types/web-push": "^3.6.4",
 		"drizzle-kit": "^0.31.11",
 		"eslint": "^10.15.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -67,6 +68,7 @@
 		"echarts": "^6.1.0",
 		"nodemailer": "6.10.1",
 		"postgres": "^4.1.1",
-		"simple-icons": "16.37.0"
+		"simple-icons": "16.37.0",
+		"web-push": "^4.0.0"
 	}
 }

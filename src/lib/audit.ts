@@ -218,6 +218,8 @@ const FIELD_LABELS: Record<string, string> = {
 	repeat: 'Wiederholung',
 	notifyTargets: 'Geräte',
 	toleranceDays: 'Toleranz (Tage)',
+	push: 'Push',
+	pushDevice: 'Push-Gerät',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
