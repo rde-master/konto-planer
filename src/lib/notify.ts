@@ -5,7 +5,8 @@ export const NOTIFICATION_TYPES = [
 	'payment_missing',
 	'overdraft_reached',
 	'overdraft_risk',
-	'manual_transfer'
+	'manual_transfer',
+	'savings_suggestion'
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -15,7 +16,8 @@ export const NOTIFICATION_LABELS: Record<NotificationType, string> = {
 	payment_missing: 'Erwartete Zahlung ausgeblieben',
 	overdraft_reached: 'Dispo erreicht',
 	overdraft_risk: 'Dispo könnte bis zum Stichtag überschritten werden',
-	manual_transfer: 'Manuelle Überweisung fällig'
+	manual_transfer: 'Manuelle Überweisung fällig',
+	savings_suggestion: 'Sparvorschlag am Gehaltstag'
 };
 
 /**

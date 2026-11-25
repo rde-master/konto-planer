@@ -20,6 +20,14 @@ import {
 	remindersFor
 } from '#lib/server/manual-transfers.js';
 import { formString } from '#lib/server/validation.js';
+import {
+	SuggestionError,
+	dismissSaving,
+	savingsTargets,
+	suggestionsFor,
+	transferSaving
+} from '#lib/server/savings-suggestion.js';
+import { parseEuro, formatEuro } from '#lib/money.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Start page: household totals, available per giro account, next payments, cancel soon. */
@@ -92,8 +100,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 				accounts.map((a) => a.id)
 			)
 		: [];
+	const suggestions = await suggestionsFor(user, today);
+	const targets = suggestions.length ? await savingsTargets(user) : [];
 	return {
 		today,
+		suggestions,
+		targets,
 		metrics: metrics ? { fixedRatio: metrics.fixedRatio, savingsRate: metrics.savingsRate } : null,
 		household: {
 			total: accounts.reduce((s, a) => s + (balances.get(a.id) ?? a.openingBalance), 0),
@@ -132,6 +144,43 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	saveTransfer: async ({ request, locals }) => {
+		const data = await request.formData();
+		const accountId = formString(data, 'accountId');
+		try {
+			const result = await transferSaving(locals.user!, {
+				accountId,
+				salaryDueDate: formString(data, 'salaryDueDate'),
+				targetId: formString(data, 'targetId'),
+				amount: parseEuro(formString(data, 'amount')),
+				goalId: formString(data, 'goalId')
+			});
+			if (result.errors)
+				return fail(400, { action: 'saving' as const, accountId, errors: result.errors });
+			return {
+				success: `${formatEuro(result.amount)} auf ${result.target} umgebucht${result.goal ? ` und „${result.goal}“ zugeteilt` : ''}.`
+			};
+		} catch (e) {
+			if (e instanceof SuggestionError) return fail(400, { message: e.message });
+			throw e;
+		}
+	},
+
+	saveDismiss: async ({ request, locals }) => {
+		const data = await request.formData();
+		try {
+			await dismissSaving(
+				locals.user!,
+				formString(data, 'accountId'),
+				formString(data, 'salaryDueDate')
+			);
+			return { success: 'Sparvorschlag ausgeblendet.' };
+		} catch (e) {
+			if (e instanceof SuggestionError) return fail(400, { message: e.message });
+			throw e;
+		}
+	},
+
 	transferred: async ({ request, locals }) => {
 		const data = await request.formData();
 		try {

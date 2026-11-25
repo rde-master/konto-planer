@@ -6,6 +6,7 @@
 	import Landmark from '@lucide/svelte/icons/landmark';
 	import Page from '#lib/components/Page.svelte';
 	import Logo from '#lib/components/Logo.svelte';
+	import SavingsSuggestion from '#lib/components/SavingsSuggestion.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, formatDay } from '#lib/dates.js';
@@ -14,6 +15,16 @@
 	let { data, form }: PageProps = $props();
 	const firstName = $derived(data.user.name.split(' ')[0]);
 	const h = $derived(data.household);
+
+	type SavingErrors = {
+		action: 'saving';
+		accountId: string;
+		errors: Partial<Record<string, string>>;
+	};
+	const savingErrors = $derived.by(() => {
+		const f = form as Partial<SavingErrors> | null | undefined;
+		return f?.action === 'saving' ? (f as SavingErrors) : null;
+	});
 
 	function signed(amount: number) {
 		return `${amount > 0 ? '+' : ''}${formatEuro(amount)}`;
@@ -47,6 +58,14 @@
 			</p>
 		</div>
 	{:else}
+		{#each data.suggestions as suggestion (suggestion.accountId)}
+			<SavingsSuggestion
+				{suggestion}
+				targets={data.targets}
+				errors={savingErrors?.accountId === suggestion.accountId ? savingErrors.errors : undefined}
+			/>
+		{/each}
+
 		<section class="mb-8 rounded-[var(--radius-card)] bg-card p-5" aria-label="Haushalt">
 			<p class="text-[13px] text-label-2">
 				Haushalt · {h.accountCount}

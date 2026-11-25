@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.46.0] – Sparvorschlag am Gehaltstag
+
+### Neu
+
+- Sobald das Gehalt gebucht ist (vorläufig oder per Import), schlägt die Übersicht vor, wie viel aufs Sparbuch kann: der frei verfügbare Betrag, abgerundet auf volle 10 €; der Mindestbestand bis zum nächsten Gehalt bleibt gedeckt
+- „Umbuchen“ bucht den Betrag (änderbar) heute vom Girokonto aufs gewählte Sparbuch und teilt ihn auf Wunsch einem Sparziel zu; „Nicht jetzt“ blendet den Vorschlag bis zum nächsten Gehalt aus
+- Neue Meldung „Sparvorschlag am Gehaltstag“ per E-Mail, Home Assistant oder Push
+- Gilt für Girokonten mit Stichtag „Gehalt“
+
 ## [0.45.0] – Erinnerung an manuelle Überweisungen
 
 ### Neu

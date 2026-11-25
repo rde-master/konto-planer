@@ -23,6 +23,7 @@ import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import { pushToUser, pushUsers } from './push.js';
 import { remindersFor } from './manual-transfers.js';
+import { suggestionsFor } from './savings-suggestion.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
 	NOTIFICATION_TYPES,
@@ -512,6 +513,18 @@ async function manualTransferEvents(today: string, lead: number): Promise<Event[
 	});
 }
 
+/** Payday: what can go to the savings account without touching the minimum balance. */
+async function savingsEvents(today: string): Promise<Event[]> {
+	return (await suggestionsFor(SYSTEM, today)).map((s) => ({
+		type: 'savings_suggestion' as const,
+		key: `${s.accountId}:${s.salaryDueDate}`,
+		accountId: s.accountId,
+		url: '',
+		title: `Sparvorschlag: ${formatEuro(s.amount)} von ${s.accountName}`,
+		message: `Das Gehalt ist auf ${s.accountName} gebucht. ${formatEuro(s.amount)} können aufs Sparbuch, ohne den Mindestbestand bis zum ${formatDay(s.cutoff)} zu gefährden. Umbuchen kannst du in der Übersicht.`
+	}));
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -546,7 +559,8 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 			: []),
 		...(on('manual_transfer')
 			? await manualTransferEvents(today, rules.get('manual_transfer')!.leadDays)
-			: [])
+			: []),
+		...(on('savings_suggestion') ? await savingsEvents(today) : [])
 	].filter((e) => on(e.type));
 	if (!events.length) return 0;
 	const people = await db
