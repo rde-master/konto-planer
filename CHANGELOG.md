@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.36.0] – Auswertungen
+
+### Neu
+
+- Seite „Auswertungen“ mit fünf Ansichten und Kontoauswahl (Standard: alle Girokonten)
+- Kategorien: Ausgaben je Haupt- und Unterkategorie für einen Monat oder ein Jahr, mit Anteil in Prozent; aufgeteilte Buchungen zählen nach ihren Teilen
+- Ein/Aus: Einnahmen gegen Ausgaben der letzten 12 Monate als Balkengrafik, mit Summen und dem Anteil, der übrig bleibt
+- Fixkosten: regelmäßige Ausgaben auf den Monat umgerechnet (Jahresbeiträge ÷ 12), für die letzten 12 und die nächsten 11 Monate, dazu die Aufteilung nach Kategorie
+- Preise: Dauerposten mit Preisänderungen, gesamt und pro Jahr
+- Kalender: fällige Zahlungen je Monat des Jahres mit den größten Posten; je Monat eine Tages-Heatmap (bisherige Ausgaben und geplante Zahlungen) mit den Einzelposten des gewählten Tags
+- Umbuchungen zwischen eigenen Konten zählen nicht als Einnahme oder Ausgabe
+
 ## [0.35.0] – Dashboard und Gesamtübersicht Haushalt
 
 ### Neu
