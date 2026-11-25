@@ -15,6 +15,7 @@ import { listCategories } from '#lib/server/categories.js';
 import { buildTree } from '#lib/server/category-rules.js';
 import { categoryGroups } from '#lib/server/recurring-form.js';
 import { listTags } from '#lib/server/tags.js';
+import { budgetHint } from '#lib/server/budgets.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const PAGE = 100;
@@ -72,9 +73,15 @@ async function create(request: Request, user: NonNullable<App.Locals['user']>) {
 	}
 	const account = (await listAccountsFor(user)).find((a) => a.id === values.accountId);
 	const balance = account ? ` Neuer Stand: ${formatEuro(await balanceOf(account))}.` : '';
+	const hint = await budgetHint(
+		user,
+		values.categoryId,
+		values.accountId,
+		values.bookingDate.slice(0, 7)
+	);
 	return {
 		action: 'create',
-		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.${balance}`
+		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.${balance}${hint ? ` ${hint}.` : ''}`
 	};
 }
 

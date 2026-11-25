@@ -851,3 +851,28 @@ export const settlements = pgTable(
 );
 
 export type Settlement = typeof settlements.$inferSelect;
+
+/**
+ * Monthly budget of a category ("Budget je Kategorie"): for one account (visible to its viewers)
+ * or for all accounts of one user (`accountId` null, `ownerId` set).
+ */
+export const budgets = pgTable(
+	'budgets',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+		accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+		ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'cascade' }),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		unique('budgets_scope').on(t.categoryId, t.accountId, t.ownerId).nullsNotDistinct(),
+		check('budgets_amount_positive', sql`${t.amount} > 0`),
+		check('budgets_scope_check', sql`(${t.accountId} is null) = (${t.ownerId} is not null)`)
+	]
+);
+
+export type Budget = typeof budgets.$inferSelect;

@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.40.0] – Budget je Kategorie
+
+### Neu
+
+- Neue Seite „Budgets“ (unter „Mehr“ und in der Seitenleiste): eine Monatsgrenze je Kategorie, für ein Konto oder für alle Konten (dann nur für dich)
+- Fortschritt je Budget mit Balken, Rest bzw. Überschreitung und einem Strich, wie weit der Monat ist; Monat wählbar, jeden Monat beginnt das Budget neu
+- Es zählen echte und vorläufige Ausgaben; eine Hauptkategorie umfasst ihre Unterkategorien, aufgeteilte Buchungen zählen nach ihren Teilen, Umbuchungen zwischen eigenen Konten nicht
+- Nach dem Buchen zeigt die Meldung, was im Budget noch übrig ist („Lebensmittel: noch 15,00 € diesen Monat“) oder um wie viel es überschritten ist
+- Die Übersicht zeigt Budgets ab 80 % Verbrauch
+- Konto-Budgets ändern alle mit Recht „bearbeiten“ am Konto; alles steht im Protokoll
+
 ## [0.39.0] – Kennzahlen
 
 ### Neu
