@@ -21,6 +21,8 @@ import {
 	recurringItems,
 	recurringTags,
 	savingsGoals,
+	sharedExpenseShares,
+	sharedExpenses,
 	tags,
 	trash,
 	users,
@@ -50,6 +52,8 @@ const TABLES = {
 	bookings,
 	bookingParts,
 	bookingTags,
+	sharedExpenses,
+	sharedExpenseShares,
 	savingsGoals,
 	bookingTemplates,
 	categoryRules
@@ -122,7 +126,12 @@ export async function snapshotBooking(executor: Executor, id: string): Promise<S
 		rows: [
 			{ table: 'bookings', rows: await rowsOf(executor, bookings, 'id', [id]) },
 			{ table: 'bookingParts', rows: await rowsOf(executor, bookingParts, 'bookingId', [id]) },
-			{ table: 'bookingTags', rows: await rowsOf(executor, bookingTags, 'bookingId', [id]) }
+			{ table: 'bookingTags', rows: await rowsOf(executor, bookingTags, 'bookingId', [id]) },
+			{ table: 'sharedExpenses', rows: await rowsOf(executor, sharedExpenses, 'bookingId', [id]) },
+			{
+				table: 'sharedExpenseShares',
+				rows: await rowsOf(executor, sharedExpenseShares, 'bookingId', [id])
+			}
 		],
 		links: []
 	};

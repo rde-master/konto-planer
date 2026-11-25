@@ -22,6 +22,14 @@ import { validateSplit } from '#lib/splits.js';
 import { TagError, listTags, readTagForm, setBookingTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
 import { LogoError, setPayeeLogo } from '#lib/server/logos.js';
+import {
+	SettleError,
+	setShared,
+	settleUsers,
+	sharedOf,
+	unsetShared,
+	validateShares
+} from '#lib/server/settle.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -42,7 +50,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		tagsOf(db, [booking.id], booking.recurringId ? [booking.recurringId] : []),
 		listTags()
 	]);
+	const [shared, settleUsersList] = await Promise.all([
+		sharedOf(booking.id, booking.amount),
+		settleUsers()
+	]);
 	return {
+		shared,
+		settleUsers: settleUsersList,
+		canShare:
+			booking.canTag &&
+			booking.amount < 0 &&
+			(booking.source === 'manual' || booking.source === 'import'),
 		tags: {
 			all: allTags.map((t) => ({ id: t.id, name: t.name })),
 			selected: tagMap.booking.get(booking.id) ?? [],
@@ -166,6 +184,41 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	share: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const data = await request.formData();
+		const participants = data
+			.getAll('participant')
+			.filter((v): v is string => typeof v === 'string');
+		const percents: Record<string, string> = {};
+		for (const [k, v] of data.entries())
+			if (k.startsWith('percent-') && typeof v === 'string') percents[k.slice(8)] = v;
+		const userIds = new Set((await settleUsers()).map((u) => u.id));
+		const { values, errors } = validateShares(
+			{ payerId: formString(data, 'payerId'), participants, percents },
+			userIds
+		);
+		if (!values) return fail(400, { action: 'share', shareErrors: errors });
+		try {
+			await setShared(user, params.id, values);
+		} catch (e) {
+			if (e instanceof SettleError)
+				return fail(400, { action: 'share', shareErrors: { shares: e.message } });
+			throw e;
+		}
+		return { action: 'share', success: true };
+	},
+
+	unshare: async ({ locals, params }) => {
+		try {
+			await unsetShared(locals.user!, params.id);
+		} catch (e) {
+			if (e instanceof SettleError) return fail(400, { action: 'unshare', message: e.message });
+			throw e;
+		}
+		return { action: 'unshare', success: true };
 	},
 
 	/** Logo of the payee (for all its bookings and items); '' = automatic. */

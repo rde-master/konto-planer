@@ -795,3 +795,59 @@ export const trash = pgTable(
 );
 
 export type TrashEntry = typeof trash.$inferSelect;
+
+/** Shared expense ("gemeinsame Ausgabe"): a booking paid by one user for several. */
+export const sharedExpenses = pgTable('shared_expenses', {
+	bookingId: uuid('booking_id')
+		.primaryKey()
+		.references(() => bookings.id, { onDelete: 'cascade' }),
+	payerId: uuid('payer_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+/** Share of each participant in basis points (10000 = 100 %). */
+export const sharedExpenseShares = pgTable(
+	'shared_expense_shares',
+	{
+		bookingId: uuid('booking_id')
+			.notNull()
+			.references(() => sharedExpenses.bookingId, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		share: integer('share').notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.bookingId, t.userId] }),
+		index('shared_expense_shares_user_idx').on(t.userId),
+		check('shared_expense_shares_range', sql`${t.share} between 0 and 10000`)
+	]
+);
+
+/** A settlement between two users ("Ausgleich"): `fromUserId` paid `toUserId`. */
+export const settlements = pgTable(
+	'settlements',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		fromUserId: uuid('from_user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		toUserId: uuid('to_user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		date: date('date', { mode: 'string' }).notNull(),
+		note: text('note'),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		check('settlements_amount_positive', sql`${t.amount} > 0`),
+		check('settlements_two_users', sql`${t.fromUserId} <> ${t.toUserId}`)
+	]
+);
+
+export type Settlement = typeof settlements.$inferSelect;

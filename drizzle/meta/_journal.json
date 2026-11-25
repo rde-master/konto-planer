@@ -183,6 +183,13 @@
       "when": 1795585904844,
       "tag": "0025_trash",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795590630707,
+      "tag": "0026_settle_up",
+      "breakpoints": true
     }
   ]
 }

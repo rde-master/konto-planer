@@ -107,6 +107,10 @@
 	const moreQuery = $derived(query(data.filter, { anzahl: String(data.limit + 100) }));
 
 	let text = $derived(data.filter.text);
+	/** Active filters except the text, as form fields. */
+	const hiddenParams = $derived([
+		...new URLSearchParams(query({ ...data.filter, text: '' })).entries()
+	]);
 	function search(e: SubmitEvent) {
 		e.preventDefault();
 		go({ ...data.filter, text: text.trim() });
@@ -180,12 +184,23 @@
 		</p>
 	{/if}
 
-	<form role="search" class="mb-3 flex gap-2" onsubmit={search}>
+	<form
+		role="search"
+		method="GET"
+		action={resolve('buchungen')}
+		class="mb-3 flex gap-2"
+		onsubmit={search}
+	>
+		<!-- Without JavaScript the form submits the other filters, too. -->
+		{#each hiddenParams as [name, value] (name)}
+			<input type="hidden" {name} {value} />
+		{/each}
 		<label class="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-row)] bg-card px-4">
 			<SearchIcon class="size-5 shrink-0 text-label-3" />
 			<span class="sr-only">Suchen</span>
 			<input
 				type="search"
+				name="q"
 				bind:value={text}
 				placeholder="Empfänger, Zweck oder IBAN"
 				enterkeyhint="search"
