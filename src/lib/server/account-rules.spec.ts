@@ -14,7 +14,10 @@ const valid: AccountInput = {
 	openingBalance: '1.234,56',
 	openingDate: '2026-11-01',
 	overdraftLimit: '1.000',
-	buffer: ''
+	buffer: '',
+	settlementAccountId: '',
+	statementDay: '',
+	debitDay: ''
 };
 
 describe('validateAccount', () => {
@@ -29,7 +32,10 @@ describe('validateAccount', () => {
 				openingBalance: 123456,
 				openingDate: '2026-11-01',
 				overdraftLimit: 100000,
-				buffer: 0
+				buffer: 0,
+				settlementAccountId: null,
+				statementDay: null,
+				debitDay: null
 			}
 		});
 	});
@@ -55,7 +61,10 @@ describe('validateAccount', () => {
 			openingBalance: 'viel',
 			openingDate: '2026-02-30',
 			overdraftLimit: '-5',
-			buffer: ''
+			buffer: '',
+			settlementAccountId: '',
+			statementDay: '',
+			debitDay: ''
 		});
 		expect(Object.keys(r.errors ?? {}).sort()).toEqual(
 			['color', 'iban', 'name', 'openingBalance', 'openingDate', 'type'].sort()
@@ -89,5 +98,43 @@ describe('access', () => {
 		expect(canEditAccount('edit', false)).toBe(true);
 		expect(canEditAccount('edit', true)).toBe(false);
 		expect(canEditAccount('view', false)).toBe(false);
+	});
+});
+
+describe('credit cards', () => {
+	const card = {
+		...valid,
+		type: 'kreditkarte',
+		iban: '',
+		settlementAccountId: '7b0e6f3c-1d2a-4c5b-8e9f-0a1b2c3d4e5f',
+		statementDay: '20',
+		debitDay: '28',
+		buffer: '50'
+	};
+	it('keeps limit and settlement, no buffer', () => {
+		expect(validateAccount(card).values).toMatchObject({
+			type: 'kreditkarte',
+			overdraftLimit: 100_000,
+			buffer: 0,
+			statementDay: 20,
+			debitDay: 28,
+			settlementAccountId: card.settlementAccountId
+		});
+	});
+	it('needs the giro account and valid days', () => {
+		const r = validateAccount({
+			...card,
+			settlementAccountId: '',
+			statementDay: '0',
+			debitDay: '32'
+		});
+		expect(Object.keys(r.errors ?? {}).sort()).toEqual([
+			'debitDay',
+			'settlementAccountId',
+			'statementDay'
+		]);
+	});
+	it('other types drop the card fields', () => {
+		expect(validateAccount({ ...valid, statementDay: '20' }).values?.statementDay).toBeNull();
 	});
 });

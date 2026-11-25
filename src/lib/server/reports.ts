@@ -20,18 +20,23 @@ import {
 	type ReportBooking
 } from '../reports.js';
 
-/** Account choice: "giro" (default, all giro accounts), "alle" or one account id. */
+/** Account choice: "giro" (default, giro accounts and credit cards), "alle" or one account id. */
 export async function reportAccounts(viewer: Viewer, choice: string | null) {
 	const all = await listAccountsFor(viewer);
 	const options = [
-		{ value: 'giro', label: 'Alle Girokonten' },
+		{
+			value: 'giro',
+			label: all.some((a) => a.type === 'kreditkarte')
+				? 'Alle Girokonten und Kreditkarten'
+				: 'Alle Girokonten'
+		},
 		{ value: 'alle', label: 'Alle Konten' },
 		...all.map((a) => ({ value: a.id, label: a.name }))
 	];
 	const value = options.some((o) => o.value === choice) ? choice! : 'giro';
 	const ids =
 		value === 'giro'
-			? all.filter((a) => a.type === 'giro').map((a) => a.id)
+			? all.filter((a) => a.type !== 'sparbuch').map((a) => a.id)
 			: value === 'alle'
 				? all.map((a) => a.id)
 				: [value];
@@ -128,7 +133,7 @@ export type Metrics = {
 /** Household metrics over all accounts the viewer sees (giro: income and costs; savings: saved). */
 export async function metricsFor(viewer: Viewer, today: string): Promise<Metrics> {
 	const all = (await listAccountsFor(viewer)).filter((a) => !a.archivedAt);
-	const giro = all.filter((a) => a.type === 'giro').map((a) => a.id);
+	const giro = all.filter((a) => a.type !== 'sparbuch').map((a) => a.id);
 	const savings = all.filter((a) => a.type === 'sparbuch').map((a) => a.id);
 	const thisMonth = today.slice(0, 7);
 	const months = monthsBack(thisMonth, 12);

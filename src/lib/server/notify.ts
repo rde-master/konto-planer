@@ -24,6 +24,8 @@ import { plansFor } from './minimum.js';
 import { pushToUser, pushUsers } from './push.js';
 import { remindersFor } from './manual-transfers.js';
 import { suggestionsFor } from './savings-suggestion.js';
+import { forecastFor } from './forecast.js';
+import { addMonths } from '../recurring.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
 	NOTIFICATION_TYPES,
@@ -525,6 +527,38 @@ async function savingsEvents(today: string): Promise<Event[]> {
 	}));
 }
 
+/** Credit cards whose limit is exceeded now or by the plan within the next two months. */
+async function creditLimitEvents(today: string): Promise<Event[]> {
+	const cards = (await listAccountsFor(SYSTEM)).filter(
+		(a) => a.type === 'kreditkarte' && !a.archivedAt && a.overdraftLimit > 0
+	);
+	if (!cards.length) return [];
+	const balances = await balancesOf(cards);
+	const out: Event[] = [];
+	for (const card of cards) {
+		const balance = balances.get(card.id) ?? card.openingBalance;
+		const f = await forecastFor(SYSTEM, card, balance, today);
+		const soon = addMonths(today, 2);
+		const low = [
+			[today, balance] as [string, number],
+			...f.series.filter(([d]) => d <= soon)
+		].reduce((a, b) => (b[1] < a[1] ? b : a));
+		if (low[1] >= -card.overdraftLimit) continue;
+		out.push({
+			type: 'credit_limit',
+			key: `${card.id}:${today.slice(0, 7)}`,
+			accountId: card.id,
+			url: `konten/${card.id}`,
+			title: `Kreditrahmen: ${card.name}`,
+			message:
+				low[0] === today
+					? `${card.name} steht mit ${formatEuro(balance)} über dem Kreditrahmen von ${formatEuro(card.overdraftLimit)}.`
+					: `Nach Plan erreicht ${card.name} am ${formatDay(low[0])} ${formatEuro(low[1])} und damit mehr als den Kreditrahmen von ${formatEuro(card.overdraftLimit)}.`
+		});
+	}
+	return out;
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -560,7 +594,8 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 		...(on('manual_transfer')
 			? await manualTransferEvents(today, rules.get('manual_transfer')!.leadDays)
 			: []),
-		...(on('savings_suggestion') ? await savingsEvents(today) : [])
+		...(on('savings_suggestion') ? await savingsEvents(today) : []),
+		...(on('credit_limit') ? await creditLimitEvents(today) : [])
 	].filter((e) => on(e.type));
 	if (!events.length) return 0;
 	const people = await db

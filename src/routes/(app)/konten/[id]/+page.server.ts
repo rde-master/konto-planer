@@ -24,6 +24,7 @@ import { requireAdmin } from '#lib/server/guards.js';
 import {
 	AccountError,
 	accountHasData,
+	listAccountsFor,
 	deleteAccount,
 	getAccountFor,
 	listAccess,
@@ -34,6 +35,7 @@ import {
 import { ACCESS_LEVELS, validateAccount, type AccessLevel } from '#lib/server/account-rules.js';
 import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError, formString } from '#lib/server/validation.js';
+import { nextSettlements } from '#lib/server/credit-cards.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -45,7 +47,21 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const goals =
 		account.type === 'sparbuch' ? await listGoalsFor(user, { accountId: account.id }) : null;
 	const forecast = account.archivedAt ? null : await forecastFor(user, account, balance);
+	const isCard = account.type === 'kreditkarte';
+	const visible = isCard ? await listAccountsFor(user) : [];
+	const card = isCard
+		? {
+				settlements: account.archivedAt ? [] : await nextSettlements(account.id),
+				giroName: visible.find((a) => a.id === account.settlementAccountId)?.name ?? null,
+				giroAccounts: visible
+					.filter(
+						(a) => a.type === 'giro' && (!a.archivedAt || a.id === account.settlementAccountId)
+					)
+					.map((a) => ({ value: a.id, label: a.name }))
+			}
+		: null;
 	return {
+		card,
 		forecast,
 		goals,
 		account,

@@ -36,8 +36,24 @@ function auditFields(a: Pick<Account, keyof AccountValues>) {
 		openingBalance: a.openingBalance,
 		openingDate: a.openingDate,
 		overdraftLimit: a.overdraftLimit,
-		buffer: a.buffer
+		buffer: a.buffer,
+		settlementAccountId: a.settlementAccountId,
+		statementDay: a.statementDay,
+		debitDay: a.debitDay
 	};
+}
+
+/** Credit cards are settled from an active giro account; other types keep no card data. */
+async function checkCardFields(values: AccountValues, selfId?: string): Promise<AccountValues> {
+	if (values.type !== 'kreditkarte')
+		return { ...values, settlementAccountId: null, statementDay: null, debitDay: null };
+	const [giro] = await db
+		.select({ type: accounts.type, archivedAt: accounts.archivedAt })
+		.from(accounts)
+		.where(eq(accounts.id, values.settlementAccountId ?? ''));
+	if (!giro || giro.type !== 'giro' || giro.archivedAt || values.settlementAccountId === selfId)
+		throw new AccountError('Bitte ein aktives Girokonto für die Abbuchung wählen.');
+	return { ...values, buffer: 0 };
 }
 
 function isUniqueViolation(e: unknown): boolean {
@@ -110,6 +126,7 @@ export async function createAccount(
 	actor: NonNullable<Actor>,
 	values: AccountValues
 ): Promise<string> {
+	values = await checkCardFields(values);
 	try {
 		return await db.transaction(async (tx) => {
 			const [created] = await tx.insert(accounts).values(values).returning();
@@ -140,8 +157,8 @@ export async function updateAccount(
 		throw new AccountError('Du darfst dieses Konto nicht bearbeiten.');
 	}
 	// The type is fixed after creation: savings and giro accounts behave differently.
-	const next = { ...values, type: current.type };
-	if (next.type !== 'giro') {
+	const next = await checkCardFields({ ...values, type: current.type }, id);
+	if (next.type === 'sparbuch') {
 		next.overdraftLimit = 0;
 		next.buffer = 0;
 	}

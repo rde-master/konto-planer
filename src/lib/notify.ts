@@ -6,7 +6,8 @@ export const NOTIFICATION_TYPES = [
 	'overdraft_reached',
 	'overdraft_risk',
 	'manual_transfer',
-	'savings_suggestion'
+	'savings_suggestion',
+	'credit_limit'
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -17,7 +18,8 @@ export const NOTIFICATION_LABELS: Record<NotificationType, string> = {
 	overdraft_reached: 'Dispo erreicht',
 	overdraft_risk: 'Dispo könnte bis zum Stichtag überschritten werden',
 	manual_transfer: 'Manuelle Überweisung fällig',
-	savings_suggestion: 'Sparvorschlag am Gehaltstag'
+	savings_suggestion: 'Sparvorschlag am Gehaltstag',
+	credit_limit: 'Kreditrahmen der Kreditkarte reicht nicht'
 };
 
 /**

@@ -34,7 +34,9 @@
 		manual_transfer:
 			'Für Dauerposten mit Zahlart „manuell“ (Ausgaben und Umbuchungen), den Vorlauf vor dem Bankarbeitstag; 0 = am Fälligkeitstag. Erledigt mit „Überwiesen“ in der Übersicht oder durch den Import.',
 		savings_suggestion:
-			'Wenn das Gehalt gebucht ist (Stichtag „Gehalt“ am Girokonto) und mindestens 10 € frei verfügbar sind.'
+			'Wenn das Gehalt gebucht ist (Stichtag „Gehalt“ am Girokonto) und mindestens 10 € frei verfügbar sind.',
+		credit_limit:
+			'Wenn eine Kreditkarte ihren Kreditrahmen jetzt oder nach Plan in den nächsten zwei Monaten überschreitet.'
 	};
 </script>
 

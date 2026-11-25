@@ -3,7 +3,7 @@ import { isValidIban, normalizeIban } from '../iban.js';
 import { isAccountColor } from '../colors.js';
 import type { FieldErrors } from './validation.js';
 
-export const ACCOUNT_TYPES = ['giro', 'sparbuch'] as const;
+export const ACCOUNT_TYPES = ['giro', 'sparbuch', 'kreditkarte'] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 export const ACCESS_LEVELS = ['view', 'edit'] as const;
 export type AccessLevel = (typeof ACCESS_LEVELS)[number];
@@ -17,6 +17,9 @@ export type AccountInput = {
 	openingDate: string;
 	overdraftLimit: string;
 	buffer: string;
+	settlementAccountId: string;
+	statementDay: string;
+	debitDay: string;
 };
 
 export type AccountValues = {
@@ -29,6 +32,10 @@ export type AccountValues = {
 	overdraftLimit: number;
 	/** Added to the minimum balance (giro only). */
 	buffer: number;
+	/** Credit cards: giro account, statement and debit day of month. */
+	settlementAccountId: string | null;
+	statementDay: number | null;
+	debitDay: number | null;
 };
 
 function validDate(value: string): boolean {
@@ -47,7 +54,7 @@ export function validateAccount(
 	else if (name.length > 60) errors.name = 'Höchstens 60 Zeichen.';
 
 	const type = ACCOUNT_TYPES.find((t) => t === input.type);
-	if (!type) errors.type = 'Bitte Girokonto oder Sparbuch wählen.';
+	if (!type) errors.type = 'Bitte Girokonto, Sparbuch oder Kreditkarte wählen.';
 
 	if (!isAccountColor(input.color)) errors.color = 'Bitte eine Farbe wählen.';
 
@@ -60,7 +67,7 @@ export function validateAccount(
 	if (!validDate(input.openingDate)) errors.openingDate = 'Bitte ein Datum wählen.';
 
 	let overdraftLimit = 0;
-	if (type === 'giro' && input.overdraftLimit.trim()) {
+	if ((type === 'giro' || type === 'kreditkarte') && input.overdraftLimit.trim()) {
 		const parsed = parseEuro(input.overdraftLimit);
 		if (parsed === null || parsed < 0)
 			errors.overdraftLimit = 'Bitte einen positiven Betrag eingeben.';
@@ -74,6 +81,22 @@ export function validateAccount(
 		else buffer = parsed;
 	}
 
+	let settlementAccountId: string | null = null;
+	let statementDay: number | null = null;
+	let debitDay: number | null = null;
+	if (type === 'kreditkarte') {
+		const day = (v: string) => (/^\d{1,2}$/.test(v.trim()) ? Number(v) : NaN);
+		statementDay = day(input.statementDay);
+		debitDay = day(input.debitDay);
+		if (!(statementDay >= 1 && statementDay <= 31))
+			errors.statementDay = 'Bitte einen Tag von 1 bis 31 eingeben.';
+		if (!(debitDay >= 1 && debitDay <= 31))
+			errors.debitDay = 'Bitte einen Tag von 1 bis 31 eingeben.';
+		if (!/^[0-9a-f-]{36}$/i.test(input.settlementAccountId))
+			errors.settlementAccountId = 'Bitte das Girokonto für die Abbuchung wählen.';
+		else settlementAccountId = input.settlementAccountId;
+	}
+
 	if (Object.keys(errors).length || !type || openingBalance === null)
 		return { values: null, errors };
 	return {
@@ -85,7 +108,10 @@ export function validateAccount(
 			openingBalance,
 			openingDate: input.openingDate,
 			overdraftLimit,
-			buffer
+			buffer,
+			settlementAccountId,
+			statementDay,
+			debitDay
 		},
 		errors: null
 	};

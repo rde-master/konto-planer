@@ -5,6 +5,7 @@ import type { Viewer } from './account-rules.js';
 import type { AccountWithLevel } from './accounts.js';
 import { listRecurringFor, type RecurringSummary } from './recurring.js';
 import { goalEvents } from './goals.js';
+import { settlementEvents } from './credit-cards.js';
 import { openPayments } from '../due.js';
 import { forecast, type Forecast } from '../forecast.js';
 import type { PlanEvent } from '../minimum.js';
@@ -39,7 +40,9 @@ export async function forecastFor(
 			label: p.name
 		})),
 		...later.map((b) => ({ date: b.date, amount: b.amount, label: b.purpose ?? 'Buchung' })),
-		...goals
+		...goals,
+		// Credit card settlements: out of the giro account, into the card.
+		...((await settlementEvents([account.id], today, until)).get(account.id) ?? [])
 	];
 	return { ...forecast(balance, events, today, until), until };
 }

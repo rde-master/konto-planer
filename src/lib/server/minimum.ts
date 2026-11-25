@@ -6,6 +6,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type Viewer } from './account-rules.js';
 import { getAccountFor, type AccountWithLevel } from './accounts.js';
 import { listRecurringFor, type RecurringSummary } from './recurring.js';
+import { settlementEvents } from './credit-cards.js';
 import { goalEvents } from './goals.js';
 import { isValidDate } from './recurring-rules.js';
 import { duesBetween, openPayments } from '../due.js';
@@ -90,6 +91,12 @@ export async function plansFor(
 		giro.map((a) => a.id),
 		today
 	);
+	// Credit card statements debited from these accounts.
+	const settlements = await settlementEvents(
+		giro.map((a) => a.id),
+		today,
+		addMonths(today, 13)
+	);
 	for (const account of giro) {
 		const candidates = candidatesOf(items, account.id);
 		const chosen = candidates.find((i) => i.id === account.cutoffRecurringId);
@@ -117,7 +124,8 @@ export async function plansFor(
 					amount: b.amount,
 					label: b.purpose ?? b.counterparty ?? 'Buchung'
 				})),
-			...(goals.get(account.id) ?? [])
+			...(goals.get(account.id) ?? []),
+			...(settlements.get(account.id) ?? []).filter((e) => e.date <= cutoff.date)
 		];
 		const plannedLater = openPayments(
 			items.filter((i) => i.interval === 'once'),

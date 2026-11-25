@@ -3,18 +3,22 @@
 	import FormField from './FormField.svelte';
 	import SegmentedField from './SegmentedField.svelte';
 	import ColorPicker from './ColorPicker.svelte';
+	import SelectField from './SelectField.svelte';
 	import { formatEuroInput } from '#lib/money.js';
 	import { formatIban } from '#lib/iban.js';
 
 	type Values = {
 		name: string;
-		type: 'giro' | 'sparbuch';
+		type: 'giro' | 'sparbuch' | 'kreditkarte';
 		color: string;
 		iban: string | null;
 		openingBalance: number | string;
 		openingDate: string;
 		overdraftLimit: number | string;
 		buffer: number | string;
+		settlementAccountId?: string | null;
+		statementDay?: number | string | null;
+		debitDay?: number | string | null;
 	};
 
 	/**
@@ -25,9 +29,12 @@
 		values,
 		errors,
 		typeEditable = false,
-		disabled = false
+		disabled = false,
+		giroAccounts = []
 	}: {
 		values: Values;
+		/** Giro accounts a credit card can be settled from. */
+		giroAccounts?: { value: string; label: string }[];
 		errors?: Partial<Record<string, string>>;
 		typeEditable?: boolean;
 		disabled?: boolean;
@@ -84,7 +91,8 @@
 					error={errors?.type}
 					options={[
 						{ value: 'giro', label: 'Girokonto' },
-						{ value: 'sparbuch', label: 'Sparbuch' }
+						{ value: 'sparbuch', label: 'Sparbuch' },
+						{ value: 'kreditkarte', label: 'Kreditkarte' }
 					]}
 				/>
 			</div>
@@ -125,6 +133,55 @@
 			Kontostand laut Bank an diesem Tag. Buchungen ab diesem Tag kommen dazu, ältere zählen nicht.
 		</p>
 	</section>
+
+	{#if type === 'kreditkarte'}
+		<section class="mb-6">
+			<h3 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Abrechnung</h3>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<SelectField
+					label="Abbuchung von"
+					name="settlementAccountId"
+					value={values.settlementAccountId ?? ''}
+					options={[{ value: '', label: 'Bitte wählen' }, ...giroAccounts]}
+					error={errors?.settlementAccountId}
+				/>
+				<FormField
+					label="Abrechnungstag (1–31)"
+					name="statementDay"
+					value={values.statementDay ? String(values.statementDay) : ''}
+					inputmode="numeric"
+					autocomplete="off"
+					placeholder="z. B. 20"
+					error={errors?.statementDay}
+				/>
+				<FormField
+					label="Abbuchungstag (1–31)"
+					name="debitDay"
+					value={values.debitDay ? String(values.debitDay) : ''}
+					inputmode="numeric"
+					autocomplete="off"
+					placeholder="z. B. 28"
+					error={errors?.debitDay}
+				/>
+				<FormField
+					label="Kreditrahmen in € (optional)"
+					name="overdraftLimit"
+					value={values.overdraftLimit ? amount(values.overdraftLimit) : ''}
+					inputmode="decimal"
+					autocomplete="off"
+					placeholder="0,00"
+					error={errors?.overdraftLimit}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Am Abrechnungstag wird der Saldo festgestellt und am Abbuchungstag (nächster Bankarbeitstag)
+				vom Girokonto ausgeglichen. Fehlt der Tag im Monat, gilt der Monatsletzte. Die Abbuchung
+				fließt in Mindestbestand und Vorschau des Girokontos ein.
+			</p>
+		</section>
+	{/if}
 
 	{#if type === 'giro'}
 		<section class="mb-6">

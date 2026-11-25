@@ -4,6 +4,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import Landmark from '@lucide/svelte/icons/landmark';
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Page from '#lib/components/Page.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -12,6 +13,7 @@
 	import { formatEuro } from '#lib/money.js';
 	import { shortIban } from '#lib/iban.js';
 	import { todayBerlin } from '#lib/dates.js';
+	import { ACCOUNT_TYPE_LABELS } from '#lib/account-types.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -21,11 +23,19 @@
 	let formKey = $state(0);
 
 	const active = $derived(data.accounts.filter((a) => !a.archivedAt));
+	const giroAccounts = $derived(
+		active.filter((a) => a.type === 'giro').map((a) => ({ value: a.id, label: a.name }))
+	);
 	const groups = $derived([
 		{ title: 'Girokonten', items: active.filter((a) => a.type === 'giro') },
 		{ title: 'Sparbücher', items: active.filter((a) => a.type === 'sparbuch') },
+		{ title: 'Kreditkarten', items: active.filter((a) => a.type === 'kreditkarte') },
 		{ title: 'Archiviert', items: data.accounts.filter((a) => a.archivedAt) }
 	]);
+
+	function accountType(t: string): 'giro' | 'sparbuch' | 'kreditkarte' {
+		return t === 'sparbuch' || t === 'kreditkarte' ? t : 'giro';
+	}
 
 	const emptyValues = () => ({
 		name: '',
@@ -35,13 +45,16 @@
 		openingBalance: '',
 		openingDate: todayBerlin(),
 		overdraftLimit: '',
-		buffer: ''
+		buffer: '',
+		settlementAccountId: '',
+		statementDay: '',
+		debitDay: ''
 	});
 	const formValues = $derived(
 		form && 'input' in form && form.input
 			? {
 					...form.input,
-					type: form.input.type === 'sparbuch' ? ('sparbuch' as const) : ('giro' as const)
+					type: accountType(form.input.type)
 				}
 			: emptyValues()
 	);
@@ -90,7 +103,12 @@
 					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 				>
 					{#each group.items as account (account.id)}
-						{@const Icon = account.type === 'giro' ? Landmark : PiggyBank}
+						{@const Icon =
+							account.type === 'giro'
+								? Landmark
+								: account.type === 'kreditkarte'
+									? CreditCard
+									: PiggyBank}
 						<li>
 							<a
 								href={resolve(`konten/${account.id}`)}
@@ -116,7 +134,7 @@
 											account.level === 'view' ? 'Nur ansehen' : null
 										]
 											.filter(Boolean)
-											.join(' · ') || (account.type === 'giro' ? 'Girokonto' : 'Sparbuch')}
+											.join(' · ') || ACCOUNT_TYPE_LABELS[account.type]}
 									</span>
 								</span>
 								<span
@@ -156,7 +174,7 @@
 			}}
 		>
 			{#key formKey}
-				<AccountFields values={formValues} errors={formErrors} typeEditable />
+				<AccountFields values={formValues} errors={formErrors} typeEditable {giroAccounts} />
 			{/key}
 		</form>
 	</Sheet>

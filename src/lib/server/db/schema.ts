@@ -88,7 +88,7 @@ export const auditLog = pgTable(
 	]
 );
 
-export const accountType = pgEnum('account_type', ['giro', 'sparbuch']);
+export const accountType = pgEnum('account_type', ['giro', 'sparbuch', 'kreditkarte']);
 export const accessLevel = pgEnum('access_level', ['view', 'edit']);
 
 export const cutoffMode = pgEnum('cutoff_mode', ['salary', 'month_end', 'date']);
@@ -105,7 +105,7 @@ export const accounts = pgTable('accounts', {
 	/** Balance on `openingDate`; bookings from that day on are added. */
 	openingBalance: bigint('opening_balance', { mode: 'number' }).notNull().default(0),
 	openingDate: date('opening_date', { mode: 'string' }).notNull(),
-	/** Overdraft limit as a positive amount; 0 = none. Only for giro accounts. */
+	/** Overdraft limit as a positive amount; 0 = none. Giro: Dispo; credit card: Kreditrahmen. */
 	overdraftLimit: bigint('overdraft_limit', { mode: 'number' }).notNull().default(0),
 	/** Safety amount always added to the minimum balance; giro accounts only. */
 	buffer: bigint('buffer', { mode: 'number' }).notNull().default(0),
@@ -119,6 +119,14 @@ export const accounts = pgTable('accounts', {
 	cutoffDate: date('cutoff_date', { mode: 'string' }),
 	/** Savings accounts: interest is credited at the end of each period. */
 	interestRhythm: interestRhythm('interest_rhythm').notNull().default('yearly'),
+	/** Credit cards: giro account the statement balance is debited from. */
+	settlementAccountId: uuid('settlement_account_id').references((): AnyPgColumn => accounts.id, {
+		onDelete: 'set null'
+	}),
+	/** Credit cards: day of month the statement is made (missing day = last of month). */
+	statementDay: integer('statement_day'),
+	/** Credit cards: day of month the statement balance is debited (next bank day). */
+	debitDay: integer('debit_day'),
 	archivedAt: timestamp('archived_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -341,7 +349,8 @@ export const bookingSource = pgEnum('booking_source', [
 	'adjustment',
 	'provisional',
 	'interest',
-	'goal'
+	'goal',
+	'settlement'
 ]);
 
 /**
@@ -1030,4 +1039,26 @@ export const savingsSuggestions = pgTable(
 		uniqueIndex('savings_suggestions_account_salary_idx').on(t.accountId, t.salaryDueDate),
 		check('savings_suggestions_status', sql`${t.status} in ('transferred', 'dismissed')`)
 	]
+);
+
+/**
+ * Monthly settlement of a credit card: the statement balance is debited from the giro account on
+ * the debit day (two linked bookings, `source = 'settlement'`). Future ones are computed.
+ */
+export const cardSettlements = pgTable(
+	'card_settlements',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		cardAccountId: uuid('card_account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		statementDate: date('statement_date', { mode: 'string' }).notNull(),
+		debitDate: date('debit_date', { mode: 'string' }).notNull(),
+		/** Positive cents moved from the giro account to the card; 0 = nothing to settle. */
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		giroBookingId: uuid('giro_booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+		cardBookingId: uuid('card_booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('card_settlements_card_statement_idx').on(t.cardAccountId, t.statementDate)]
 );

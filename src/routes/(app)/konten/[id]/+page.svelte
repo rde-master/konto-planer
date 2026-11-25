@@ -11,6 +11,9 @@
 	import Button from '#lib/components/Button.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
 	import AccountFields from '#lib/components/AccountFields.svelte';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import { ACCOUNT_TYPE_LABELS } from '#lib/account-types.js';
+	import { settlementText } from '#lib/credit-card.js';
 	import FormField from '#lib/components/FormField.svelte';
 	import GoalRow from '#lib/components/GoalRow.svelte';
 	import BalanceChart from '#lib/components/BalanceChart.svelte';
@@ -27,7 +30,9 @@
 	const account = $derived(data.account);
 	const archived = $derived(account.archivedAt !== null);
 	const canEdit = $derived(account.level === 'edit' && !archived);
-	const Icon = $derived(account.type === 'giro' ? Landmark : PiggyBank);
+	const Icon = $derived(
+		account.type === 'giro' ? Landmark : account.type === 'kreditkarte' ? CreditCard : PiggyBank
+	);
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
@@ -144,7 +149,7 @@
 		</span>
 		<div class="min-w-0">
 			<p class="text-[13px] text-label-2">
-				{account.type === 'giro' ? 'Girokonto' : 'Sparbuch'}{archived ? ' · archiviert' : ''}
+				{ACCOUNT_TYPE_LABELS[account.type]}{archived ? ' · archiviert' : ''}
 			</p>
 			<p
 				class={['text-[28px] font-bold tabular', data.balance < 0 && 'text-danger']}
@@ -157,6 +162,65 @@
 			</p>
 		</div>
 	</section>
+
+	{#if data.card}
+		{@const limit = account.overdraftLimit}
+		{#if limit && data.balance < -limit}
+			<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
+				<p class="text-[17px] font-semibold">Kreditrahmen überschritten</p>
+				<p class="mt-1 text-[15px]">
+					Der Saldo liegt {formatEuro(-data.balance - limit)} über dem Kreditrahmen von {formatEuro(
+						limit
+					)}.
+				</p>
+			</div>
+		{/if}
+		<section class="mb-8" aria-label="Abrechnung">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Abrechnung</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1">Abbuchung von</span>
+					<span class="text-label-2">{data.card.giroName ?? 'nicht festgelegt'}</span>
+				</li>
+				{#if account.statementDay && account.debitDay}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1">Rhythmus</span>
+						<span class="text-label-2">
+							{settlementText(account.statementDay, account.debitDay)}
+						</span>
+					</li>
+				{/if}
+				{#if limit}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1">Kreditrahmen frei</span>
+						<span class={['tabular', limit + data.balance < 0 ? 'text-danger' : 'text-label-2']}>
+							{formatEuro(limit + data.balance)} von {formatEuro(limit)}
+						</span>
+					</li>
+				{/if}
+				{#each data.card.settlements as s (s.statementDate)}
+					<li
+						class="flex min-h-11 items-center gap-3 px-4 py-2.5"
+						aria-label="Abrechnung {formatDay(s.statementDate)}"
+					>
+						<span class="min-w-0 flex-1">
+							<span class="block">Abrechnung {formatDay(s.statementDate)}</span>
+							<span class="block text-[13px] text-label-2">
+								Abbuchung {formatDay(s.debitDate)} von {s.giroName}
+							</span>
+						</span>
+						<span class="tabular">{s.amount ? formatEuro(s.amount) : 'nichts'}</span>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Beträge nach Plan: Saldo am Abrechnungstag samt erwarteter Zahlungen. Am Abbuchungstag wird
+				die Abrechnung auf beiden Konten gebucht; der Import ersetzt sie durch die echte Buchung.
+			</p>
+		</section>
+	{/if}
 
 	{#if data.plan}
 		{@const p = data.plan.plan}
@@ -521,7 +585,7 @@
 					Kontostand korrigieren
 				</button>
 			</li>
-			{#if account.type === 'giro'}
+			{#if account.type !== 'sparbuch'}
 				<li class="border-t-[0.5px] border-separator">
 					<a
 						href={resolve(`konten/${account.id}/import`)}
@@ -547,7 +611,11 @@
 				};
 			}}
 		>
-			<AccountFields values={fieldValues} errors={updateErrors} />
+			<AccountFields
+				values={fieldValues}
+				errors={updateErrors}
+				giroAccounts={data.card?.giroAccounts ?? []}
+			/>
 			<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
 		</form>
 	{:else}
