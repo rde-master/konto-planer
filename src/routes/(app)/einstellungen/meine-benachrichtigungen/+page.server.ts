@@ -9,13 +9,17 @@ import {
 	setNotifyTargets,
 	testHomeAssistant
 } from '#lib/server/notify.js';
+import { PushError, listDevices, pushToUser, unsubscribe, vapidKeys } from '#lib/server/push.js';
+import { formString } from '#lib/server/validation.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
-	const [{ smtp, ha }, [me]] = await Promise.all([
+	const [{ smtp, ha }, [me], devices, vapid] = await Promise.all([
 		notifySettings(),
-		db.select({ targets: users.notifyTargets }).from(users).where(eq(users.id, user.id))
+		db.select({ targets: users.notifyTargets }).from(users).where(eq(users.id, user.id)),
+		listDevices(user.id),
+		vapidKeys()
 	]);
 	let services: string[] = [];
 	let haError: string | null = null;
@@ -33,7 +37,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		haError,
 		// Saved devices stay selectable even if Home Assistant does not list them right now.
 		services: [...new Set([...services, ...targets])].sort(),
-		targets
+		targets,
+		vapidPublicKey: vapid.publicKey,
+		devices
 	};
 };
 
@@ -44,6 +50,27 @@ export const actions: Actions = {
 			.filter((v): v is string => typeof v === 'string' && /^[a-z0-9_]+$/.test(v));
 		await setNotifyTargets(locals.user!, chosen);
 		return { success: 'Geräte gesichert.' };
+	},
+
+	removeDevice: async ({ request, locals }) => {
+		const id = formString(await request.formData(), 'id');
+		await unsubscribe(locals.user!, { id });
+		return { success: 'Gerät entfernt.' };
+	},
+
+	testPush: async ({ locals }) => {
+		try {
+			await pushToUser(
+				locals.user!.id,
+				'Konto Planer',
+				'Test: Push-Mitteilungen kommen an.',
+				'einstellungen/meine-benachrichtigungen'
+			);
+		} catch (e) {
+			if (e instanceof PushError) return fail(400, { message: e.message });
+			throw e;
+		}
+		return { success: 'Push-Testnachricht verschickt.' };
 	},
 
 	test: async ({ locals }) => {

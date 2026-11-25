@@ -4,6 +4,8 @@
 	import Button from '#lib/components/Button.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
+	import PushSetup from '#lib/components/PushSetup.svelte';
+	import { formatDateTime } from '#lib/dates.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -31,6 +33,47 @@
 	>
 		<ListRow label="Adresse" value={data.email ?? 'keine'} />
 	</ListGroup>
+
+	<section class="mb-8" aria-label="Push">
+		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Push aus der Web-App</h2>
+		<PushSetup publicKey={data.vapidPublicKey} />
+		{#if data.devices.length}
+			<ul
+				class="mt-4 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				aria-label="Meine Push-Geräte"
+			>
+				{#each data.devices as d (d.id)}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2">
+						<span class="min-w-0 flex-1">
+							<span class="block truncate">{d.label}</span>
+							<span class="block truncate text-[13px] text-label-2">
+								angemeldet {formatDateTime(d.createdAt)}{d.lastSentAt
+									? ` · zuletzt ${formatDateTime(d.lastSentAt)}`
+									: ''}
+							</span>
+						</span>
+						<form method="POST" action="?/removeDevice" use:enhance>
+							<input type="hidden" name="id" value={d.id} />
+							<button
+								type="submit"
+								class="text-[15px] text-danger"
+								aria-label="{d.label} entfernen"
+							>
+								Entfernen
+							</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+			<form method="POST" action="?/testPush" use:enhance class="mt-3">
+				<Button type="submit" variant="tinted">Push-Test an meine Geräte</Button>
+			</form>
+		{/if}
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Welche Meldungen per Push kommen, legt der Admin je Meldungsregel fest. Antippen öffnet die
+			passende Seite.
+		</p>
+	</section>
 
 	<section class="mb-8" aria-label="Home Assistant">
 		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Home Assistant</h2>

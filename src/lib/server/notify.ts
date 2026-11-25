@@ -21,6 +21,7 @@ import { toContract } from './recurring.js';
 import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
+import { pushToUser, pushUsers } from './push.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
 	NOTIFICATION_TYPES,
@@ -283,6 +284,7 @@ export type Rule = {
 	enabled: boolean;
 	email: boolean;
 	homeAssistant: boolean;
+	push: boolean;
 	/** null = everyone with edit right on the account. */
 	recipients: string[] | null;
 	repeat: Repeat;
@@ -299,6 +301,7 @@ export async function listRules(): Promise<Rule[]> {
 			enabled: r?.enabled ?? true,
 			email: r?.email ?? true,
 			homeAssistant: r?.homeAssistant ?? false,
+			push: r?.push ?? false,
 			recipients: r?.recipients ?? null,
 			repeat: (r?.repeat as Repeat) ?? 'once',
 			toleranceDays: r?.toleranceDays ?? 3
@@ -326,6 +329,7 @@ export async function saveRule(actor: NonNullable<Actor>, rule: Rule) {
 				enabled: rule.enabled,
 				email: rule.email,
 				homeAssistant: rule.homeAssistant,
+				push: rule.push,
 				repeat: rule.repeat,
 				toleranceDays: rule.toleranceDays
 			}
@@ -359,6 +363,8 @@ type Event = {
 	accountId: string;
 	title: string;
 	message: string;
+	/** Page to open from a push message, relative to the app. */
+	url: string;
 };
 
 /** Contracts whose notice deadline is near ("bald kündbar"). */
@@ -380,6 +386,7 @@ async function cancelDeadlineEvents(today: string): Promise<Event[]> {
 			type: 'cancel_deadline',
 			key: `${r.item.id}:${status.deadline}`,
 			accountId: r.item.accountId,
+			url: `dauerposten/${r.item.id}`,
 			title: `Kündigungsfrist: ${r.item.name}`,
 			message: `${r.item.name} (${r.accountName}) lässt sich bis ${formatDay(status.deadline)} kündigen; sonst läuft der Vertrag über den ${formatDay(status.end)} hinaus.`
 		});
@@ -407,6 +414,7 @@ async function accountEvents(): Promise<Event[]> {
 				type: 'minimum_shortfall',
 				key: `${a.id}:${until}`,
 				accountId: a.id,
+				url: `konten/${a.id}`,
 				title: `Mindestbestand unterschritten: ${a.name}`,
 				message: `Auf ${a.name} fehlen ${formatEuro(-plan.plan.available)} bis zum ${formatDay(until)} (Stand ${formatEuro(balance)}, Mindestbestand ${formatEuro(plan.plan.minimum)}).`
 			});
@@ -415,6 +423,7 @@ async function accountEvents(): Promise<Event[]> {
 				type: 'overdraft_reached',
 				key: `${a.id}:${until}`,
 				accountId: a.id,
+				url: `konten/${a.id}`,
 				title: `Dispo erreicht: ${a.name}`,
 				message: `${a.name} steht mit ${formatEuro(balance)} im Minus${a.overdraftLimit ? ` (Dispo ${formatEuro(a.overdraftLimit)})` : ''}.`
 			});
@@ -423,6 +432,7 @@ async function accountEvents(): Promise<Event[]> {
 				type: 'overdraft_risk',
 				key: `${a.id}:${until}`,
 				accountId: a.id,
+				url: `konten/${a.id}`,
 				title: `Dispo in Gefahr: ${a.name}`,
 				message: `Nach Plan sinkt ${a.name} am ${formatDay(plan.plan.lowest.date)} auf ${formatEuro(plan.plan.lowest.balance)}${a.overdraftLimit ? ` und damit unter den Dispo von ${formatEuro(a.overdraftLimit)}` : ''}.`
 			});
@@ -470,6 +480,7 @@ async function missingEvents(today: string, tolerance: number): Promise<Event[]>
 		type: 'payment_missing' as const,
 		key: r.dueId,
 		accountId: r.accountId,
+		url: `buchungen/${r.bookingId}`,
 		title: `Zahlung ausgeblieben: ${r.name}`,
 		message: `${r.name} (${formatEuro(Math.abs(r.amount))}) war am ${formatDay(r.bookingDate)} auf ${r.accountName} fällig, ist aber im Import nicht aufgetaucht. Behalten, verschieben oder zurücknehmen kannst du die vorläufige Buchung in der App.`
 	}));
@@ -495,7 +506,8 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 	if (!force && berlinHour(now) < SEND_HOUR) return 0;
 	const today = todayBerlin(now);
 	const { smtp, ha } = await notifySettings();
-	if (!smtp && !ha) return 0;
+	const pushers = await pushUsers();
+	if (!smtp && !ha && !pushers.size) return 0;
 	const rules = new Map((await listRules()).map((r) => [r.type, r]));
 	const on = (t: NotificationType) => rules.get(t)?.enabled ?? false;
 	const events = [
@@ -525,9 +537,10 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 			for (const userId of recipients) {
 				const person = byId.get(userId);
 				if (!person) continue;
-				const channels: ('email' | 'ha')[] = [];
+				const channels: ('email' | 'ha' | 'push')[] = [];
 				if (rule.email && smtp && person.email) channels.push('email');
 				if (rule.homeAssistant && ha && person.targets.length) channels.push('ha');
+				if (rule.push && pushers.has(userId)) channels.push('push');
 				for (const channel of channels) {
 					const [last] = await tx
 						.select({ sentAt: notificationLog.sentAt })
@@ -548,6 +561,7 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 					try {
 						if (channel === 'email')
 							await sendEmail(smtp!, person.email!, `Konto Planer: ${e.title}`, e.message);
+						else if (channel === 'push') await pushToUser(userId, e.title, e.message, e.url);
 						else for (const t of person.targets) await haNotify(ha!, t, e.title, e.message);
 						sent++;
 					} catch (err) {

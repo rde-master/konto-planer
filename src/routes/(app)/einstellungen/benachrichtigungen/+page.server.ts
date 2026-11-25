@@ -97,6 +97,7 @@ export const actions: Actions = {
 			enabled: formString(data, 'enabled') === 'on',
 			email: formString(data, 'email') === 'on',
 			homeAssistant: formString(data, 'homeAssistant') === 'on',
+			push: formString(data, 'push') === 'on',
 			repeat: REPEATS.find((r) => r === formString(data, 'repeat')) ?? 'once',
 			recipients: formString(data, 'recipientMode') === 'chosen' ? chosen : null,
 			toleranceDays: tolerance

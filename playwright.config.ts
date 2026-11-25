@@ -34,7 +34,9 @@ export default defineConfig({
 			PORT: String(PORT),
 			ORIGIN: `http://localhost:${PORT}`,
 			BODY_SIZE_LIMIT: '12M',
-			ATTACHMENT_DIR: 'test-results/attachments'
+			ATTACHMENT_DIR: 'test-results/attachments',
+			// Local stand-in for the browser push services (zustellung.e2e.ts).
+			PUSH_TEST_ORIGIN: 'http://127.0.0.1:18124'
 		}
 	}
 });

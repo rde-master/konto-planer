@@ -1,3 +1,4 @@
+import { createECDH, randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { SMTPServer } from 'smtp-server';
 import { expect, test, type Page } from '@playwright/test';
@@ -11,12 +12,15 @@ const ADMIN = { username: 'erika', password: 'sehr-geheim-123', name: 'Erika Mus
 const ACCOUNT = 'Meldekonto';
 const HA_PORT = 18123;
 const SMTP_PORT = 12525;
+const PUSH = 'http://127.0.0.1:18124';
 const today = todayBerlin();
 
 const mails: { to: string; data: string }[] = [];
 const haCalls: { path: string; auth: string | undefined; body: string }[] = [];
 let ha: Server;
 let smtp: SMTPServer;
+let push: Server;
+const pushCalls: { path: string; encoding?: string; auth?: string; size: number }[] = [];
 
 test.beforeAll(async () => {
 	ha = createServer((req, res) => {
@@ -50,11 +54,27 @@ test.beforeAll(async () => {
 		}
 	});
 	await new Promise<void>((resolve) => smtp.listen(SMTP_PORT, '127.0.0.1', resolve));
+	// Push service: accepts everything, except a device it no longer knows ("gone").
+	push = createServer((req, res) => {
+		let size = 0;
+		req.on('data', (c: Buffer) => (size += c.length));
+		req.on('end', () => {
+			pushCalls.push({
+				path: req.url ?? '',
+				encoding: req.headers['content-encoding'],
+				auth: req.headers.authorization,
+				size
+			});
+			res.writeHead(req.url?.endsWith('/gone') ? 410 : 201).end();
+		});
+	});
+	await new Promise<void>((resolve) => push.listen(18124, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {
 	await new Promise<void>((resolve) => ha.close(() => resolve()));
 	await new Promise<void>((resolve) => smtp.close(() => resolve()));
+	await new Promise<void>((resolve) => push.close(() => resolve()));
 });
 
 async function login(page: Page) {
@@ -177,4 +197,79 @@ test('an account in the red is reported', async ({ page }) => {
 	expect(mails.some((m) => m.data.includes('Mindestbestand unterschritten: Meldekonto'))).toBe(
 		true
 	);
+});
+
+function subscription(path: string) {
+	const ecdh = createECDH('prime256v1');
+	ecdh.generateKeys();
+	return {
+		endpoint: `${PUSH}/push/${path}`,
+		expirationTime: null,
+		keys: {
+			p256dh: ecdh.getPublicKey().toString('base64url'),
+			auth: randomBytes(16).toString('base64url')
+		}
+	};
+}
+
+const IPHONE =
+	'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1';
+
+test('a device gets push messages from the web app', async ({ page }) => {
+	await login(page);
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await expect(page.getByRole('region', { name: 'Push' })).toBeVisible();
+
+	// Only known push services are accepted.
+	const bad = await page.request.post('/api/push', {
+		data: { ...subscription('x'), endpoint: 'https://evil.example/x' }
+	});
+	expect(bad.status()).toBe(400);
+
+	// The browser hands its subscription to the app (here without a real push service).
+	const ok = await page.request.post('/api/push', {
+		data: subscription('phone'),
+		headers: { 'user-agent': IPHONE }
+	});
+	expect(ok.ok()).toBe(true);
+	await page.reload();
+	const devices = page.getByRole('list', { name: 'Meine Push-Geräte' });
+	await expect(devices).toContainText('iPhone · Safari');
+
+	await page.getByRole('button', { name: 'Push-Test an meine Geräte' }).click();
+	await expect(page.getByRole('status')).toHaveText('Push-Testnachricht verschickt.');
+	const call = pushCalls.find((c) => c.path === '/push/phone');
+	expect(call?.encoding).toBe('aes128gcm');
+	expect(call?.auth).toMatch(/^vapid t=.+, k=.+/);
+	expect(call?.size).toBeGreaterThan(0);
+
+	// A rule sends by push, too.
+	await page.goto('/einstellungen/benachrichtigungen');
+	const rule = page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' });
+	await rule.getByRole('switch', { name: /^Push aus der Web-App/ }).check();
+	await rule.getByRole('button', { name: 'Regel sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
+	const before = pushCalls.length;
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText(/verschickt/);
+	expect(pushCalls.length).toBeGreaterThan(before);
+	await expect(page.getByRole('list', { name: 'Zuletzt verschickt' })).toContainText(
+		/Dispo erreicht: Meldekonto.*Push/s
+	);
+});
+
+test('devices the push service no longer knows are removed', async ({ page }) => {
+	await login(page);
+	const gone = await page.request.post('/api/push', { data: subscription('gone') });
+	expect(gone.ok()).toBe(true);
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	const devices = page.getByRole('list', { name: 'Meine Push-Geräte' });
+	await expect(devices.getByRole('listitem')).toHaveCount(2);
+	await page.getByRole('button', { name: 'Push-Test an meine Geräte' }).click();
+	await expect(page.getByRole('status')).toHaveText('Push-Testnachricht verschickt.');
+	await expect(devices.getByRole('listitem')).toHaveCount(1);
+
+	await devices.getByRole('button', { name: 'iPhone · Safari entfernen' }).click();
+	await expect(page.getByRole('status')).toHaveText('Gerät entfernt.');
+	await expect(devices).toBeHidden();
 });

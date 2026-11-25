@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.44.0] – Push aus der Web-App
+
+### Neu
+
+- Meldungen kommen auf Wunsch als Mitteilung der installierten Web-App, als dritter Kanal neben E-Mail und Home Assistant
+- Einstellungen › Meine Benachrichtigungen: „Push auf diesem Gerät einschalten“, Liste der eigenen Geräte zum Entfernen und ein Push-Test
+- Jede Meldungsregel hat den Schalter „Push aus der Web-App“
+- Antippen der Mitteilung öffnet die passende Seite: Dauerposten, Buchung oder Konto
+- Geräte, die der Push-Dienst nicht mehr kennt, werden automatisch entfernt
+
+### Hinweis
+
+- Auf dem iPhone und iPad funktioniert Push nur in der App vom Home-Bildschirm (ab iOS 16.4) und über HTTPS; der Server braucht Zugang zum Internet (Push-Dienst von Apple)
+
 ## [0.43.0] – Weitere Meldungen
 
 ### Neu
