@@ -1005,3 +1005,29 @@ export const manualTransfersDone = pgTable(
 	},
 	(t) => [uniqueIndex('manual_transfers_done_item_date_idx').on(t.recurringId, t.dueDate)]
 );
+
+/**
+ * A savings suggestion that was dealt with, per giro account and salary due date: "transferred"
+ * (with amount and savings account) or "dismissed". Open suggestions are computed.
+ */
+export const savingsSuggestions = pgTable(
+	'savings_suggestions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => accounts.id, { onDelete: 'cascade' }),
+		salaryDueDate: date('salary_due_date', { mode: 'string' }).notNull(),
+		status: text('status').notNull(),
+		amount: bigint('amount', { mode: 'number' }),
+		targetAccountId: uuid('target_account_id').references(() => accounts.id, {
+			onDelete: 'set null'
+		}),
+		doneBy: uuid('done_by').references(() => users.id, { onDelete: 'set null' }),
+		doneAt: timestamp('done_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		uniqueIndex('savings_suggestions_account_salary_idx').on(t.accountId, t.salaryDueDate),
+		check('savings_suggestions_status', sql`${t.status} in ('transferred', 'dismissed')`)
+	]
+);

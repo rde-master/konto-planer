@@ -32,7 +32,9 @@
 		overdraft_reached: 'Sobald ein Girokonto im Minus steht.',
 		overdraft_risk: 'Wenn der Dispo bis zum Stichtag nach Plan nicht reicht.',
 		manual_transfer:
-			'Für Dauerposten mit Zahlart „manuell“ (Ausgaben und Umbuchungen), den Vorlauf vor dem Bankarbeitstag; 0 = am Fälligkeitstag. Erledigt mit „Überwiesen“ in der Übersicht oder durch den Import.'
+			'Für Dauerposten mit Zahlart „manuell“ (Ausgaben und Umbuchungen), den Vorlauf vor dem Bankarbeitstag; 0 = am Fälligkeitstag. Erledigt mit „Überwiesen“ in der Übersicht oder durch den Import.',
+		savings_suggestion:
+			'Wenn das Gehalt gebucht ist (Stichtag „Gehalt“ am Girokonto) und mindestens 10 € frei verfügbar sind.'
 	};
 </script>
 

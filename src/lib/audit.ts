@@ -222,6 +222,7 @@ const FIELD_LABELS: Record<string, string> = {
 	pushDevice: 'Push-Gerät',
 	transferLeadDays: 'Vorlauf Überweisung (Bankarbeitstage)',
 	manualTransferDone: 'Überwiesen (Fälligkeit)',
+	savingSuggestion: 'Sparvorschlag',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

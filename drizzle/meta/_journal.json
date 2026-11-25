@@ -225,6 +225,13 @@
       "when": 1795622788109,
       "tag": "0031_manual_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795625623529,
+      "tag": "0032_savings_suggestions",
+      "breakpoints": true
     }
   ]
 }
