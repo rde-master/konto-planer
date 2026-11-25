@@ -9,6 +9,7 @@ import {
 	bookingTags,
 	bookingTemplates,
 	bookings,
+	budgets,
 	categories,
 	categoryRules,
 	contracts,
@@ -62,6 +63,7 @@ type TableName = keyof typeof TABLES;
 
 /** Tables whose references are set again on restore (only where still empty). */
 const LINK_TABLES = {
+	budgets,
 	bookings,
 	recurringItems,
 	bookingParts,
@@ -199,7 +201,8 @@ export async function snapshotCategory(executor: Executor, id: string): Promise<
 		['bookingParts', bookingParts, 'id'],
 		['categoryRules', categoryRules, 'id'],
 		['bookingTemplates', bookingTemplates, 'id'],
-		['counterpartyCategories', counterpartyCategories, 'key']
+		['counterpartyCategories', counterpartyCategories, 'key'],
+		['budgets', budgets, 'id']
 	];
 	for (const c of own)
 		for (const [name, table, key] of refs) {

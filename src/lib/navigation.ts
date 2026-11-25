@@ -16,6 +16,7 @@ import Tags from '@lucide/svelte/icons/tags';
 import Hash from '@lucide/svelte/icons/hash';
 import Trash2 from '@lucide/svelte/icons/trash-2';
 import HandCoins from '@lucide/svelte/icons/hand-coins';
+import Gauge from '@lucide/svelte/icons/gauge';
 
 /**
  * `resolve()` for a value of the whole `Path` union. TypeScript cannot check a union of more
@@ -47,6 +48,7 @@ export const MORE: (NavItem & { color: string })[] = [
 	{ path: 'geplant', label: 'Geplante Zahlungen', icon: CalendarPlus, color: 'bg-[#34c759]' },
 	{ path: 'sparziele', label: 'Sparziele', icon: PiggyBank, color: 'bg-[#ff2d55]' },
 	{ path: 'ruecklagen', label: 'Rücklagen', icon: Vault, color: 'bg-[#5856d6]' },
+	{ path: 'budgets', label: 'Budgets', icon: Gauge, color: 'bg-[#ff9500]' },
 	{ path: 'ausgleich', label: 'Ausgleich', icon: HandCoins, color: 'bg-[#34c759]' },
 	{ path: 'kategorien', label: 'Kategorien', icon: Tags, color: 'bg-[#ff9500]' },
 	{ path: 'tags', label: 'Tags', icon: Hash, color: 'bg-[#30b0c7]' },

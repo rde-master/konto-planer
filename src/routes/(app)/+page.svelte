@@ -134,6 +134,30 @@
 			</section>
 		{/if}
 
+		{#if data.budgetAlerts.length}
+			<section class="mb-8" aria-label="Budgets">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Budgets</span>
+					<a href={resolve('budgets')} class="text-accent normal-case">Alle</a>
+				</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.budgetAlerts as b (b.id)}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+							<span class="min-w-0 flex-1">
+								<span class="block truncate">{b.categoryName}</span>
+								<span class="block truncate text-[13px] text-label-2">{b.accountName}</span>
+							</span>
+							<span class={['tabular', b.state === 'over' ? 'text-danger' : 'text-[#c93400]']}>
+								{Math.round((b.spent / b.limit) * 100)} %
+							</span>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
 		<section class="mb-8" aria-label="Nächste 7 Tage">
 			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
 				<span class="flex-1">Nächste 7 Tage</span>

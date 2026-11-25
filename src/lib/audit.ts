@@ -19,6 +19,7 @@ export const ENTITY_TYPES = [
 	'rule',
 	'tag',
 	'settlement',
+	'budget',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -69,6 +70,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	rule: 'Kategorie-Regel',
 	tag: 'Tag',
 	settlement: 'Ausgleich',
+	budget: 'Budget',
 	settings: 'Einstellungen'
 };
 
@@ -199,6 +201,7 @@ const FIELD_LABELS: Record<string, string> = {
 	logo: 'Logo',
 	fromTrash: 'Aus dem Papierkorb',
 	sharedExpense: 'Gemeinsame Ausgabe',
+	budgetFor: 'Budget für',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

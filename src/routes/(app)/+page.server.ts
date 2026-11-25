@@ -6,6 +6,7 @@ import { listGoalsFor } from '#lib/server/goals.js';
 import { getSettings } from '#lib/server/settings.js';
 import { itemLogos } from '#lib/server/logos.js';
 import { metricsFor } from '#lib/server/reports.js';
+import { budgetsFor } from '#lib/server/budgets.js';
 import { openPayments } from '#lib/due.js';
 import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
@@ -68,6 +69,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
 
 	const metrics = accounts.length ? await metricsFor(user, today) : null;
+	// Budgets from 80 % on.
+	const budgetAlerts = (await budgetsFor(user, today.slice(0, 7))).filter((b) => b.state !== 'ok');
 	return {
 		today,
 		metrics: metrics ? { fixedRatio: metrics.fixedRatio, savingsRate: metrics.savingsRate } : null,
@@ -81,6 +84,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			accountCount: accounts.length
 		},
 		giro,
+		budgetAlerts,
 		upcoming,
 		logos,
 		soon

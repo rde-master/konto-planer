@@ -190,6 +190,13 @@
       "when": 1795590630707,
       "tag": "0026_settle_up",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795604100732,
+      "tag": "0027_budgets",
+      "breakpoints": true
     }
   ]
 }
