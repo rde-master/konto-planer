@@ -19,7 +19,8 @@
 		{ value: 'einaus', label: 'Ein/Aus' },
 		{ value: 'fixkosten', label: 'Fixkosten' },
 		{ value: 'preise', label: 'Preise' },
-		{ value: 'kalender', label: 'Kalender' }
+		{ value: 'kalender', label: 'Kalender' },
+		{ value: 'vergleich', label: 'Vergleich' }
 	] as const;
 
 	/** Query string from pairs (empty values left out). */
@@ -232,6 +233,103 @@
 				</ul>
 			</section>
 		{/if}
+	{:else if data.comparison && data.periods && data.totals && data.compareYear}
+		{@const y = data.compareYear}
+		{@const t = data.totals}
+		<nav aria-label="Jahr" class="mb-4 flex items-center gap-3">
+			<a
+				href={resolve(`auswertungen?${q({ ansicht: 'vergleich', jahr: y - 1 })}`)}
+				class="text-accent"
+				aria-label="Vorjahr"
+			>
+				‹ {y - 1}
+			</a>
+			<span class="flex-1 text-center text-[17px] font-semibold">{y} gegen {y - 1}</span>
+			{#if y < (data.currentYear ?? y)}
+				<a
+					href={resolve(`auswertungen?${q({ ansicht: 'vergleich', jahr: y + 1 })}`)}
+					class="text-accent"
+					aria-label="Folgejahr"
+				>
+					{y + 1} ›
+				</a>
+			{:else}<span class="w-12"></span>{/if}
+		</nav>
+		<section class="mb-6 rounded-[var(--radius-card)] bg-card p-5" aria-label="Summen im Vergleich">
+			<p class="text-[13px] text-label-2">
+				{data.periods.partial
+					? `1.1. bis ${formatDay(data.periods.now.to)} gegen den gleichen Zeitraum ${y - 1}`
+					: `Ganzes Jahr ${y} gegen ${y - 1}`}
+			</p>
+			<dl class="mt-2 grid grid-cols-2 gap-3">
+				<div>
+					<dt class="text-[13px] text-label-2">Ausgaben</dt>
+					<dd class="tabular" aria-label="Ausgaben im Vergleich">
+						{formatEuro(t.now.expenses)}
+						<span
+							class={[
+								'block text-[13px]',
+								t.now.expenses > t.before.expenses ? 'text-danger' : 'text-income'
+							]}
+						>
+							{t.now.expenses >= t.before.expenses ? '+' : '−'}{formatEuro(
+								Math.abs(t.now.expenses - t.before.expenses)
+							)} gegenüber {formatEuro(t.before.expenses)}
+						</span>
+					</dd>
+				</div>
+				<div>
+					<dt class="text-[13px] text-label-2">Einnahmen</dt>
+					<dd class="tabular">
+						{formatEuro(t.now.income)}
+						<span class="block text-[13px] text-label-2">vorher {formatEuro(t.before.income)}</span>
+					</dd>
+				</div>
+			</dl>
+		</section>
+		<section class="mb-8" aria-label="Vergleich je Kategorie">
+			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+				<span class="flex-1">Je Kategorie</span><span class="w-24 text-right">{y}</span><span
+					class="w-24 text-right"
+				>
+					{y - 1}
+				</span>
+			</h2>
+			{#if data.comparison.length}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.comparison as r (r.id ?? 'none')}
+						<li class="px-4 py-2.5" aria-label={r.name}>
+							<div class="flex items-baseline gap-2">
+								<span
+									class="size-2.5 shrink-0 rounded-full"
+									style:background-color={accountColorCss(r.color)}
+								></span>
+								<span class="flex-1 truncate">{r.name}</span>
+								<span class="w-24 text-right tabular">{formatEuro(r.now)}</span>
+								<span class="w-24 text-right text-label-2 tabular">{formatEuro(r.before)}</span>
+							</div>
+							<p
+								class={[
+									'text-right text-[13px] tabular',
+									r.diff > 0 ? 'text-danger' : r.diff < 0 ? 'text-income' : 'text-label-2'
+								]}
+							>
+								{r.diff === 0
+									? 'gleich'
+									: `${r.diff > 0 ? '+' : '−'}${formatEuro(Math.abs(r.diff))}${r.ratio !== null ? ` (${percent(r.ratio)})` : ''}`}
+							</p>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-label-2">
+					Keine Ausgaben in beiden Zeiträumen.
+				</p>
+			{/if}
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">Mehr ausgegeben ist rot, weniger grün.</p>
+		</section>
 	{:else if data.prices}
 		<section class="mb-8" aria-label="Preisverlauf">
 			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Preisänderungen</h2>

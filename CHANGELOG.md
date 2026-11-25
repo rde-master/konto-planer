@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.37.0] – Jahresvergleich
+
+### Neu
+
+- Neue Ansicht „Vergleich“ in den Auswertungen: dieses Jahr gegen das Vorjahr, je Kategorie mit Differenz in Euro und Prozent (mehr ausgegeben rot, weniger grün)
+- Im laufenden Jahr wird fair verglichen: 1. Januar bis heute gegen den gleichen Zeitraum im Vorjahr; frühere Jahre jeweils als ganzes Jahr
+- Dazu Ausgaben und Einnahmen beider Zeiträume im Überblick; Kontoauswahl wie bei den anderen Auswertungen
+
 ## [0.36.0] – Auswertungen
 
 ### Neu

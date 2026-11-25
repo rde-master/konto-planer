@@ -110,3 +110,16 @@ test('the calendar shows months and a day heat map', async ({ page }) => {
 		'Supermarkt Statistik'
 	);
 });
+
+test('this year against last year, per category', async ({ page }) => {
+	await login(page);
+	await open(page, 'Vergleich');
+	await expect(page.getByRole('region', { name: 'Summen im Vergleich' })).toContainText(
+		'gegen den gleichen Zeitraum'
+	);
+	const food = page
+		.getByRole('region', { name: 'Vergleich je Kategorie' })
+		.getByRole('listitem', { name: 'Lebensmittel' });
+	await expect(food).toContainText(/30,00\s€/);
+	await expect(food).toContainText(/\+30,00\s€/);
+});

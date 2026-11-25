@@ -5,6 +5,8 @@ import {
 	reportItems
 } from '#lib/server/reports.js';
 import {
+	compareCategories,
+	comparisonPeriods,
 	dayHeat,
 	expensesByCategory,
 	fixedCostsByMonth,
@@ -18,7 +20,7 @@ import { addMonths } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import type { PageServerLoad } from './$types';
 
-const VIEWS = ['kategorien', 'einaus', 'fixkosten', 'preise', 'kalender'] as const;
+const VIEWS = ['kategorien', 'einaus', 'fixkosten', 'preise', 'kalender', 'vergleich'] as const;
 type View = (typeof VIEWS)[number];
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -71,6 +73,37 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			byCategory: [...now.byCategory]
 				.map(([id, amount]) => ({ name: id ? (names.get(id) ?? '–') : 'Ohne Kategorie', amount }))
 				.sort((a, b) => b.amount - a.amount)
+		};
+	}
+	if (view === 'vergleich') {
+		const current = Number(today.slice(0, 4));
+		const asked = Number(url.searchParams.get('jahr'));
+		const year = Number.isInteger(asked) && asked > 1990 && asked <= current ? asked : current;
+		const periods = comparisonPeriods(year, today);
+		const [now, before] = await Promise.all([
+			reportBookings(accounts.ids, periods.now.from, periods.now.to),
+			reportBookings(accounts.ids, periods.before.from, periods.before.to)
+		]);
+		const sum = (rows: typeof now) => {
+			let income = 0;
+			let expenses = 0;
+			for (const b of rows)
+				if (!b.internal) {
+					if (b.amount > 0) income += b.amount;
+					else expenses -= b.amount;
+				}
+			return { income, expenses };
+		};
+		return {
+			...base,
+			compareYear: year,
+			currentYear: current,
+			periods,
+			totals: { now: sum(now), before: sum(before) },
+			comparison: compareCategories(
+				expensesByCategory(now, categories),
+				expensesByCategory(before, categories)
+			)
 		};
 	}
 	if (view === 'preise') {
