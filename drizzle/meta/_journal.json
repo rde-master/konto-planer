@@ -204,6 +204,13 @@
       "when": 1795611795685,
       "tag": "0028_scenarios",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795614720068,
+      "tag": "0029_notifications",
+      "breakpoints": true
     }
   ]
 }

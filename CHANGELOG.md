@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.42.0] – Benachrichtigungen
+
+### Neu
+
+- Einstellungen › Benachrichtigungen (Admin): SMTP-Zugang für E-Mails (Server, Port, SSL/TLS, Benutzer, Passwort, Absender) und Home Assistant (Adresse, Zugriffstoken), jeweils mit Test-Knopf; Passwort und Token werden verschlüsselt gespeichert und nie wieder angezeigt
+- Meldung „Kündigungsfrist endet bald“: sobald die Kündigungsfrist abzüglich Vorlauf erreicht ist, per E-Mail und/oder Home Assistant
+- Meldungsregel je Meldung: aktiv, Kanäle, Empfänger (alle mit „bearbeiten“ am Konto oder ausgewählte Benutzer) und Wiederholung (einmal oder täglich bis erledigt)
+- Versand einmal täglich ab 8 Uhr; „Jetzt prüfen und senden“ für den Admin; eine Liste zeigt die zuletzt verschickten Meldungen samt Fehlern
+- Einstellungen › Meine Benachrichtigungen: jeder wählt seine Home-Assistant-Geräte (z. B. die Home-Assistant-App auf dem Handy) und kann eine Testnachricht senden
+
+### Hinweis
+
+- Der Schlüssel für die gespeicherten Zugangsdaten kommt aus `APP_SECRET` oder wird beim ersten Speichern als `secret.key` im Datenvolume angelegt
+
 ## [0.41.0] – Was wäre wenn
 
 ### Neu

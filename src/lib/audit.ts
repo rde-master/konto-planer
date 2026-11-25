@@ -205,6 +205,18 @@ const FIELD_LABELS: Record<string, string> = {
 	sharedExpense: 'Gemeinsame Ausgabe',
 	budgetFor: 'Budget für',
 	scenarioChange: 'Probeweise Änderung',
+	smtpHost: 'SMTP-Server',
+	smtpPort: 'SMTP-Port',
+	smtpUser: 'SMTP-Benutzer',
+	smtpFrom: 'Absender',
+	passwordChanged: 'Passwort geändert',
+	haUrl: 'Home-Assistant-Adresse',
+	tokenChanged: 'Token geändert',
+	notificationType: 'Meldung',
+	enabled: 'Aktiv',
+	homeAssistant: 'Home Assistant',
+	repeat: 'Wiederholung',
+	notifyTargets: 'Geräte',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
@@ -216,6 +228,8 @@ export function fieldLabel(field: string): string {
 
 const VALUE_LABELS: Record<string, Record<string, string>> = {
 	scenarioChange: { add: 'Neuer Posten', cancel: 'Kündigen', amount: 'Neuer Betrag' },
+	notificationType: { cancel_deadline: 'Kündigungsfrist endet bald' },
+	repeat: { once: 'einmalig', daily: 'täglich bis erledigt' },
 	role: { admin: 'Admin', user: 'Benutzer' },
 	type: { giro: 'Girokonto', sparbuch: 'Sparbuch' },
 	kind: KIND_LABELS,
