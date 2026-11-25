@@ -275,7 +275,8 @@
 <Sheet bind:open={deleteOpen} title="Vorlage löschen">
 	{#if editing}
 		<p class="mb-6 px-4 text-center text-[15px]">
-			„{editing.name}“ wird endgültig gelöscht. Bereits erfasste Buchungen bleiben erhalten.
+			„{editing.name}“ wird gelöscht und liegt 30 Tage im Papierkorb. Bereits erfasste Buchungen
+			bleiben erhalten.
 		</p>
 		<form
 			method="POST"

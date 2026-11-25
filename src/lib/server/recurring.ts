@@ -18,6 +18,7 @@ import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.j
 import { getAccountFor, listAccountsFor, type AccountWithLevel } from './accounts.js';
 import { categoryInfo } from './categories.js';
 import { deleteDuesOf, syncDues } from './due.js';
+import { snapshotRecurring, toTrash, trashFiles } from './trash.js';
 import type { RecurringValues } from './recurring-rules.js';
 import { addDays, amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
@@ -502,8 +503,16 @@ export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: st
 	if (!item.canManage) throw new RecurringError('Du darfst diesen Dauerposten nicht bearbeiten.');
 	if (await recurringHasData(id))
 		throw new RecurringError('Der Dauerposten hat Buchungen und kann nur archiviert werden.');
-	await db.transaction(async (tx) => {
+	const snapshot = await db.transaction(async (tx) => {
 		const before = await auditFields(tx, valuesOf(item), item.contract);
+		const snap = await snapshotRecurring(tx, id);
+		await toTrash(tx, actor, {
+			type: 'recurring',
+			id,
+			label: item.name,
+			accountId: item.accountId,
+			snapshot: snap
+		});
 		await deleteDuesOf(tx, id);
 		await tx.delete(recurringItems).where(eq(recurringItems.id, id));
 		await audit(tx, {
@@ -514,7 +523,9 @@ export async function deleteRecurring(actor: NonNullable<Actor> & Viewer, id: st
 			entityLabel: item.name,
 			before: { ...before, amount: item.amount }
 		});
+		return snap;
 	});
+	await trashFiles(snapshot);
 }
 
 const DATE_TAKEN = 'Für dieses Datum gibt es schon einen Betrag.';

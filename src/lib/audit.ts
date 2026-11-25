@@ -50,7 +50,8 @@ export const ACTIONS = [
 	'goal_transfer',
 	'loan_extra',
 	'undo',
-	'apply'
+	'apply',
+	'purge'
 ] as const;
 export type AuditAction = (typeof ACTIONS)[number];
 
@@ -97,7 +98,8 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
 	goal_transfer: 'Sparziel umgebucht',
 	loan_extra: 'Sondertilgung geändert',
 	undo: 'Import rückgängig gemacht',
-	apply: 'Regeln angewendet'
+	apply: 'Regeln angewendet',
+	purge: 'Endgültig gelöscht'
 };
 
 /** Short title for a log row, e.g. "Benutzer angelegt" or "Anmeldung fehlgeschlagen". */
@@ -193,6 +195,7 @@ const FIELD_LABELS: Record<string, string> = {
 	split: 'Aufteilung',
 	tags: 'Tags',
 	logo: 'Logo',
+	fromTrash: 'Aus dem Papierkorb',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.33.0] – Papierkorb
+
+### Neu
+
+- Gelöschte Buchungen, Dauerposten, Kategorien, Sparziele, Vorlagen, Tags und Kategorie-Regeln landen im Papierkorb (unter „Mehr“ und in der Seitenleiste) und lassen sich 30 Tage lang wiederherstellen
+- Wiederhergestellt wird vollständig: Dauerposten mit Betragsverlauf, Vertrag, PDF-Anhängen, Tags und Darlehensdaten (Fälligkeiten werden neu berechnet), Buchungen mit Aufteilung und Tags, Kategorien mit Unterkategorien und ihren Zuordnungen an Buchungen, Dauerposten, Regeln und Vorlagen
+- Jeder sieht, was er selbst gelöscht hat; der Admin sieht alles, kann einzelne Einträge endgültig löschen und den Papierkorb leeren
+- Nach 30 Tagen werden Einträge automatisch endgültig entfernt
+- Wiederherstellen und endgültiges Löschen stehen im Protokoll
+
 ## [0.32.0] – Suche und Filter
 
 ### Neu

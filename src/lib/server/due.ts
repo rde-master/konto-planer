@@ -17,6 +17,7 @@ import { todayBerlin } from '../dates.js';
 import { isValidDate } from './recurring-rules.js';
 import { syncInterest } from './interest.js';
 import { syncGoals } from './goals.js';
+import { purgeExpired } from './trash.js';
 
 export class DueError extends Error {}
 
@@ -221,8 +222,14 @@ let timer: ReturnType<typeof setInterval> | undefined;
 /** Background job: sync at start and every hour (the day changes at midnight in Berlin). */
 export function startDueScheduler() {
 	if (timer) return;
-	const run = () =>
-		syncDues().catch((e: unknown) => console.error('Fälligkeiten: Abgleich fehlgeschlagen', e));
+	const run = () => {
+		void syncDues().catch((e: unknown) =>
+			console.error('Fälligkeiten: Abgleich fehlgeschlagen', e)
+		);
+		void purgeExpired().catch((e: unknown) =>
+			console.error('Papierkorb: Aufräumen fehlgeschlagen', e)
+		);
+	};
 	void run();
 	timer = setInterval(() => void run(), 60 * 60 * 1000);
 	timer.unref?.();

@@ -116,7 +116,7 @@ test('admin deletes a main category together with its subcategories', async ({ p
 		.getByRole('button', { name: 'Kategorie löschen' })
 		.click();
 	const confirm = page.getByRole('dialog', { name: 'Kategorie löschen' });
-	await expect(confirm).toContainText('und ihre 5 Unterkategorien werden endgültig gelöscht');
+	await expect(confirm).toContainText('und ihre 5 Unterkategorien werden gelöscht');
 	await confirm.getByRole('button', { name: 'Löschen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Kategorie „Wohnen“ wurde gelöscht.');
 	await expect(group(page, 'Wohnen')).toHaveCount(0);

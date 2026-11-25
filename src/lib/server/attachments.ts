@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { recurringAttachments, users, type RecurringAttachment } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -114,21 +114,6 @@ export async function deleteAttachment(
 		});
 	});
 	await rm(filePath(attachmentId), { force: true });
-}
-
-/** Removes the files of attachments whose rows are already gone (item deleted). */
-export async function removeAttachmentFiles(ids: string[]) {
-	await Promise.all(ids.map((id) => rm(filePath(id), { force: true })));
-}
-
-/** Ids of all attachments of the given items. */
-export async function attachmentIdsOf(recurringIds: string[]): Promise<string[]> {
-	if (!recurringIds.length) return [];
-	const rows = await db
-		.select({ id: recurringAttachments.id })
-		.from(recurringAttachments)
-		.where(inArray(recurringAttachments.recurringId, recurringIds));
-	return rows.map((r) => r.id);
 }
 
 /** The file for download, if the viewer may see the item; otherwise null (404). */

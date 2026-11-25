@@ -449,7 +449,7 @@
 		<p class="mb-6 px-4 text-center text-[15px]">
 			Die {booking.source === 'adjustment' ? 'Anpassung' : 'Buchung'} über {formatEuro(
 				booking.amount
-			)} wird endgültig gelöscht.
+			)} wird gelöscht. Im Papierkorb lässt sie sich 30 Tage lang wiederherstellen.
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
 			<Button type="submit" variant="destructive">Löschen</Button>

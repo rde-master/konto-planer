@@ -9,6 +9,7 @@ import { categoryInfo } from './categories.js';
 import { moveInOrder } from './template-rules.js';
 import type { RuleValues } from './rule-rules.js';
 import { categoryByRules, ruleLabel, type Rule } from '../rules.js';
+import { snapshotRule, toTrash } from './trash.js';
 
 export class RuleError extends Error {}
 
@@ -111,6 +112,12 @@ export async function deleteRule(actor: NonNullable<Actor> & Viewer, id: string)
 	await db.transaction(async (tx) => {
 		const current = await getRule(tx, id);
 		if (!current) throw new RuleError('Regel nicht gefunden.');
+		await toTrash(tx, actor, {
+			type: 'rule',
+			id,
+			label: ruleLabel(current),
+			snapshot: await snapshotRule(tx, id)
+		});
 		await tx.delete(categoryRules).where(eq(categoryRules.id, id));
 		await audit(tx, {
 			actor,

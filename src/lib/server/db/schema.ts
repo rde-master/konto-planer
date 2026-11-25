@@ -774,3 +774,24 @@ export const payeeLogos = pgTable('payee_logos', {
 	slug: text('slug').notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+/**
+ * Trash ("Papierkorb"): snapshot of a deleted object (its rows across tables and the references
+ * that became empty), restorable for 30 days. `accountId` limits who may restore it.
+ */
+export const trash = pgTable(
+	'trash',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		entityType: text('entity_type').notNull(),
+		entityId: uuid('entity_id').notNull(),
+		label: text('label').notNull(),
+		accountId: uuid('account_id'),
+		snapshot: jsonb('snapshot').notNull(),
+		deletedBy: uuid('deleted_by').references(() => users.id, { onDelete: 'set null' }),
+		deletedAt: timestamp('deleted_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('trash_deleted_at_idx').on(t.deletedAt)]
+);
+
+export type TrashEntry = typeof trash.$inferSelect;

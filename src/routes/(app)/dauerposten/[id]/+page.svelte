@@ -774,8 +774,8 @@
 {#if canManage}
 	<Sheet bind:open={deleteOpen} title="Dauerposten löschen">
 		<p class="mb-6 px-4 text-center text-[15px]">
-			„{item.name}“ wird mit Betragsverlauf und Dokumenten endgültig gelöscht. Hat er schon
-			Buchungen, kann er nur archiviert werden.
+			„{item.name}“ wird mit Betragsverlauf und Dokumenten gelöscht und liegt 30 Tage im Papierkorb.
+			Hat er schon Buchungen, kann er nur archiviert werden.
 		</p>
 		<form method="POST" action="?/delete" use:enhance>
 			{#if item.interval === 'once'}<input type="hidden" name="once" value="on" />{/if}

@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { accounts, bookingTemplates, categories, type BookingTemplate } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
+import { snapshotTemplate, toTrash } from './trash.js';
 import { diff } from './audit-rules.js';
 import type { Viewer } from './account-rules.js';
 import { listAccountsFor } from './accounts.js';
@@ -264,6 +265,12 @@ export async function deleteTemplate(
 		if (!current) throw new TemplateError('Vorlage nicht gefunden.');
 		if (!canDeleteTemplate(actor, current))
 			throw new TemplateError('Gemeinsame Vorlagen löscht nur der Admin.');
+		await toTrash(tx, actor, {
+			type: 'template',
+			id,
+			label: current.name,
+			snapshot: await snapshotTemplate(tx, id)
+		});
 		await tx.delete(bookingTemplates).where(eq(bookingTemplates.id, id));
 		await audit(tx, {
 			actor,
