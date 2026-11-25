@@ -16,6 +16,7 @@
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import GoalRow from '#lib/components/GoalRow.svelte';
 	import LoanSection from '#lib/components/LoanSection.svelte';
+	import TagEditor from '#lib/components/TagEditor.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput, parseEuro } from '#lib/money.js';
 	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
@@ -132,7 +133,8 @@
 			loanDelete: 'Darlehensdaten entfernt.',
 			extra: 'Sondertilgung gesichert.',
 			extraDelete: 'Sondertilgung gelöscht.',
-			loanEnd: 'Ende übernommen.'
+			loanEnd: 'Ende übernommen.',
+			tags: 'Tags gesichert.'
 		}[form.action];
 	});
 
@@ -232,6 +234,13 @@
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
 	{/if}
+
+	<TagEditor
+		allTags={data.tags.all}
+		selected={data.tags.selected}
+		canEdit={item.canEdit}
+		error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
+	/>
 
 	{#if item.kind === 'expense' && (data.loan || item.canEdit)}
 		<LoanSection

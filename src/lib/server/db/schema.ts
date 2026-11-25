@@ -716,3 +716,51 @@ export const bookingParts = pgTable(
 );
 
 export type BookingPart = typeof bookingParts.$inferSelect;
+
+/** Tags (global), in addition to the category; on bookings and recurring items. */
+export const tags = pgTable(
+	'tags',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		name: text('name').notNull(),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('tags_name_idx').on(sql`lower(${t.name})`)]
+);
+
+export type Tag = typeof tags.$inferSelect;
+
+export const bookingTags = pgTable(
+	'booking_tags',
+	{
+		bookingId: uuid('booking_id')
+			.notNull()
+			.references(() => bookings.id, { onDelete: 'cascade' }),
+		tagId: uuid('tag_id')
+			.notNull()
+			.references(() => tags.id, { onDelete: 'cascade' })
+	},
+	(t) => [
+		primaryKey({ columns: [t.bookingId, t.tagId] }),
+		index('booking_tags_tag_idx').on(t.tagId)
+	]
+);
+
+/** Tags of a recurring item apply to all its bookings. */
+export const recurringTags = pgTable(
+	'recurring_tags',
+	{
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		tagId: uuid('tag_id')
+			.notNull()
+			.references(() => tags.id, { onDelete: 'cascade' })
+	},
+	(t) => [
+		primaryKey({ columns: [t.recurringId, t.tagId] }),
+		index('recurring_tags_tag_idx').on(t.tagId)
+	]
+);

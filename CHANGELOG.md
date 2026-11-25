@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.30.0] – Tags
+
+### Neu
+
+- Tags ergänzen die Kategorie, z. B. „Urlaub Italien“: neue Seite „Tags“ (unter „Mehr“ und in der Seitenleiste)
+- An Buchungen und Dauerposten lassen sich Tags vergeben, auch direkt einen neuen Tag anlegen; Buchungen tragen automatisch die Tags ihres Dauerpostens (grau angezeigt)
+- Jahresliste je Tag: Jahr wählen, Summe der Ausgaben und Einnahmen, Aufteilung nach Kategorie (aufgeteilte Buchungen nach ihren Teilen) und alle Buchungen nach Monat; dazu die Dauerposten mit diesem Tag
+- Tags gelten für alle Benutzer; anlegen, umbenennen und vergeben darf jeder (Buchungen und Dauerposten mit Recht „bearbeiten“), löschen nur der Admin
+- Tags und ihre Zuordnungen stehen im Protokoll
+
 ## [0.29.0] – Splitbuchung
 
 ### Neu

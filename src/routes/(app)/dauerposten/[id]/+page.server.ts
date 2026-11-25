@@ -13,6 +13,8 @@ import {
 	updateRecurring
 } from '#lib/server/recurring.js';
 import { listGoalsFor } from '#lib/server/goals.js';
+import { TagError, listTags, readTagForm, setRecurringTags, tagsOf } from '#lib/server/tags.js';
+import { db } from '#lib/server/db/index.js';
 import {
 	addExtra,
 	applyLoanEnd,
@@ -69,10 +71,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const goals =
 		item.kind === 'expense' ? await listGoalsFor(locals.user!, { recurringId: item.id }) : [];
 	const loan = item.kind === 'expense' ? await loanInfo(item) : null;
+	const [tagMap, allTags] = await Promise.all([tagsOf(db, [], [item.id]), listTags()]);
 	return {
 		item,
 		goals,
 		loan,
+		tags: {
+			all: allTags.map((t) => ({ id: t.id, name: t.name })),
+			selected: tagMap.recurring.get(item.id) ?? []
+		},
 		defaultLeadDays: settings.defaultLeadDays,
 		attachments,
 		...options,
@@ -194,6 +201,19 @@ export const actions: Actions = {
 			return recurringError('pause', e);
 		}
 		return { action: 'pause', success: true };
+	},
+
+	tags: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const { ids, error: invalid } = await readTagForm(user, await request.formData());
+		if (invalid !== null) return fail(400, { action: 'tags', tagError: invalid });
+		try {
+			await setRecurringTags(user, params.id, ids);
+		} catch (e) {
+			if (e instanceof TagError) return fail(400, { action: 'tags', tagError: e.message });
+			throw e;
+		}
+		return { action: 'tags', success: true };
 	},
 
 	loan: async ({ request, locals, params }) => {

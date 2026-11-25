@@ -13,6 +13,7 @@ import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
 import PiggyBank from '@lucide/svelte/icons/piggy-bank';
 import Vault from '@lucide/svelte/icons/vault';
 import Tags from '@lucide/svelte/icons/tags';
+import Hash from '@lucide/svelte/icons/hash';
 
 /**
  * `resolve()` for a value of the whole `Path` union. TypeScript cannot check a union of more
@@ -45,6 +46,7 @@ export const MORE: (NavItem & { color: string })[] = [
 	{ path: 'sparziele', label: 'Sparziele', icon: PiggyBank, color: 'bg-[#ff2d55]' },
 	{ path: 'ruecklagen', label: 'Rücklagen', icon: Vault, color: 'bg-[#5856d6]' },
 	{ path: 'kategorien', label: 'Kategorien', icon: Tags, color: 'bg-[#ff9500]' },
+	{ path: 'tags', label: 'Tags', icon: Hash, color: 'bg-[#30b0c7]' },
 	{ path: 'auswertungen', label: 'Auswertungen', icon: ChartPie, color: 'bg-[#af52de]' },
 	{ path: 'einstellungen', label: 'Einstellungen', icon: Settings, color: 'bg-[#8e8e93]' }
 ];
