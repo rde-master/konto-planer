@@ -12,7 +12,15 @@ import { openPayments } from '#lib/due.js';
 import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
-import type { PageServerLoad } from './$types';
+import { formatIban } from '#lib/iban.js';
+import { fail } from '@sveltejs/kit';
+import {
+	ManualTransferError,
+	markTransferred,
+	remindersFor
+} from '#lib/server/manual-transfers.js';
+import { formString } from '#lib/server/validation.js';
+import type { Actions, PageServerLoad } from './$types';
 
 /** Start page: household totals, available per giro account, next payments, cancel soon. */
 export const load: PageServerLoad = async ({ locals }) => {
@@ -73,8 +81,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Budgets from 80 % on.
 	const budgetAlerts = (await budgetsFor(user, today.slice(0, 7))).filter((b) => b.state !== 'ok');
 	// Expected payments not confirmed by an import (tolerance from the notification rule).
-	const tolerance =
-		(await listRules()).find((r) => r.type === 'payment_missing')?.toleranceDays ?? 3;
+	const rules = await listRules();
+	const tolerance = rules.find((r) => r.type === 'payment_missing')?.toleranceDays ?? 3;
+	const lead = rules.find((r) => r.type === 'manual_transfer')?.leadDays ?? 1;
+	const transfers = (await remindersFor(user, today, lead)).filter((t) => ids.has(t.accountId));
 	const missing = accounts.length
 		? await missingPayments(
 				today,
@@ -103,8 +113,37 @@ export const load: PageServerLoad = async ({ locals }) => {
 			date: m.bookingDate,
 			amount: m.amount
 		})),
+		transfers: transfers.map((t) => ({
+			recurringId: t.recurringId,
+			dueDate: t.dueDate,
+			bookingDate: t.bookingDate,
+			name: t.name,
+			amount: t.amount,
+			accountName: t.accountName,
+			to: t.targetName ?? t.payee,
+			iban: t.iban ? formatIban(t.iban) : null,
+			overdue: t.overdue,
+			canEdit: t.canEdit
+		})),
 		upcoming,
 		logos,
 		soon
 	};
+};
+
+export const actions: Actions = {
+	transferred: async ({ request, locals }) => {
+		const data = await request.formData();
+		try {
+			const name = await markTransferred(
+				locals.user!,
+				formString(data, 'recurringId'),
+				formString(data, 'dueDate')
+			);
+			return { success: `${name}: als überwiesen abgehakt.` };
+		} catch (e) {
+			if (e instanceof ManualTransferError) return fail(400, { message: e.message });
+			throw e;
+		}
+	}
 };

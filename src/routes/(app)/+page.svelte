@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
@@ -10,7 +11,7 @@
 	import { dayLabel, formatDay } from '#lib/dates.js';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	const firstName = $derived(data.user.name.split(' ')[0]);
 	const h = $derived(data.household);
 
@@ -21,6 +22,19 @@
 
 <Page title="Übersicht">
 	<p class="mb-6 text-[17px] text-label-2">Hallo {firstName}!</p>
+
+	{#if form && 'message' in form && form.message}
+		<p
+			role="alert"
+			class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-danger"
+		>
+			{form.message}
+		</p>
+	{:else if form && 'success' in form}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			{form.success}
+		</p>
+	{/if}
 
 	{#if h.accountCount === 0}
 		<div class="rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">
@@ -131,6 +145,43 @@
 						</li>
 					{/each}
 				</ul>
+			</section>
+		{/if}
+
+		{#if data.transfers.length}
+			<section class="mb-8" aria-label="Zu überweisen">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zu überweisen</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.transfers as t (`${t.recurringId}:${t.dueDate}`)}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2" aria-label={t.name}>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate">{t.name}</span>
+								<span
+									class={['block truncate text-[13px]', t.overdue ? 'text-danger' : 'text-label-2']}
+								>
+									{t.overdue ? 'war fällig' : 'fällig'}
+									{formatDay(t.bookingDate)} · {t.accountName}{t.to ? ` → ${t.to}` : ''}
+								</span>
+								{#if t.iban}
+									<span class="block truncate text-[13px] text-label-2 tabular">{t.iban}</span>
+								{/if}
+							</span>
+							<span class="tabular">{formatEuro(t.amount)}</span>
+							{#if t.canEdit}
+								<form method="POST" action="?/transferred" use:enhance>
+									<input type="hidden" name="recurringId" value={t.recurringId} />
+									<input type="hidden" name="dueDate" value={t.dueDate} />
+									<button type="submit" class="text-[15px] text-accent">Überwiesen</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Dauerposten mit Zahlart „manuell“. Ein Import mit der Zahlung hakt sie ebenfalls ab.
+				</p>
 			</section>
 		{/if}
 

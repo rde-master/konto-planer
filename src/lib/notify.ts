@@ -4,7 +4,8 @@ export const NOTIFICATION_TYPES = [
 	'minimum_shortfall',
 	'payment_missing',
 	'overdraft_reached',
-	'overdraft_risk'
+	'overdraft_risk',
+	'manual_transfer'
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -13,7 +14,8 @@ export const NOTIFICATION_LABELS: Record<NotificationType, string> = {
 	minimum_shortfall: 'Mindestbestand unterschritten',
 	payment_missing: 'Erwartete Zahlung ausgeblieben',
 	overdraft_reached: 'Dispo erreicht',
-	overdraft_risk: 'Dispo könnte bis zum Stichtag überschritten werden'
+	overdraft_risk: 'Dispo könnte bis zum Stichtag überschritten werden',
+	manual_transfer: 'Manuelle Überweisung fällig'
 };
 
 /**

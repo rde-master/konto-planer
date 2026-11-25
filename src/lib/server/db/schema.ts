@@ -947,6 +947,8 @@ export const notificationRules = pgTable('notification_rules', {
 	recipients: jsonb('recipients').$type<string[] | null>(),
 	repeat: text('repeat').notNull().default('once'),
 	toleranceDays: integer('tolerance_days').notNull().default(3),
+	/** Bank days before the bank day a manual transfer is reminded. */
+	leadDays: integer('lead_days').notNull().default(1),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
@@ -988,3 +990,18 @@ export const pushSubscriptions = pgTable(
 );
 
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+
+/** A manual transfer marked as done ("Überwiesen"), per item and due date. */
+export const manualTransfersDone = pgTable(
+	'manual_transfers_done',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		dueDate: date('due_date', { mode: 'string' }).notNull(),
+		doneBy: uuid('done_by').references(() => users.id, { onDelete: 'set null' }),
+		doneAt: timestamp('done_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('manual_transfers_done_item_date_idx').on(t.recurringId, t.dueDate)]
+);

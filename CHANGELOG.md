@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.45.0] – Erinnerung an manuelle Überweisungen
+
+### Neu
+
+- Meldung „Manuelle Überweisung fällig“ für Dauerposten mit Zahlart „manuell“ (Ausgaben und Umbuchungen), per E-Mail, Home Assistant oder Push
+- Vorlauf in der Meldungsregel einstellbar: Standard 1 Bankarbeitstag vor der Fälligkeit, 0 = am Fälligkeitstag
+- Die Übersicht zeigt „Zu überweisen“ mit Betrag, Empfänger und IBAN; „Überwiesen“ hakt die Zahlung ab
+- Erledigt ist eine Überweisung mit „Überwiesen“, durch einen Import mit der Zahlung oder wenn die Fälligkeit zurückgenommen wird; bis dahin wiederholt „Täglich bis erledigt“ die Meldung
+
 ## [0.44.0] – Push aus der Web-App
 
 ### Neu

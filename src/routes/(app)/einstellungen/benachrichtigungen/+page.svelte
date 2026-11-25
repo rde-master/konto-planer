@@ -30,7 +30,9 @@
 		payment_missing:
 			'Wenn eine vorläufige Buchung nach der Toleranz nicht durch einen Import bestätigt ist (nur Konten mit Import).',
 		overdraft_reached: 'Sobald ein Girokonto im Minus steht.',
-		overdraft_risk: 'Wenn der Dispo bis zum Stichtag nach Plan nicht reicht.'
+		overdraft_risk: 'Wenn der Dispo bis zum Stichtag nach Plan nicht reicht.',
+		manual_transfer:
+			'Für Dauerposten mit Zahlart „manuell“ (Ausgaben und Umbuchungen), den Vorlauf vor dem Bankarbeitstag; 0 = am Fälligkeitstag. Erledigt mit „Überwiesen“ in der Übersicht oder durch den Import.'
 	};
 </script>
 
@@ -190,6 +192,15 @@
 							{ value: 'daily', label: 'Täglich bis erledigt' }
 						]}
 					/>
+					{#if rule.type === 'manual_transfer'}
+						<FormField
+							label="Vorlauf (Bankarbeitstage)"
+							name="leadDays"
+							value={String(rule.leadDays)}
+							inputmode="numeric"
+							autocomplete="off"
+						/>
+					{/if}
 					{#if rule.type === 'payment_missing'}
 						<FormField
 							label="Als ausgeblieben nach (Tagen)"

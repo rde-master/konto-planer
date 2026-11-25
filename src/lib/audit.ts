@@ -220,6 +220,8 @@ const FIELD_LABELS: Record<string, string> = {
 	toleranceDays: 'Toleranz (Tage)',
 	push: 'Push',
 	pushDevice: 'Push-Gerät',
+	transferLeadDays: 'Vorlauf Überweisung (Bankarbeitstage)',
+	manualTransferDone: 'Überwiesen (Fälligkeit)',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'
