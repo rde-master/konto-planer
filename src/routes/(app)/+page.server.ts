@@ -5,6 +5,7 @@ import { listRecurringFor } from '#lib/server/recurring.js';
 import { listGoalsFor } from '#lib/server/goals.js';
 import { getSettings } from '#lib/server/settings.js';
 import { itemLogos } from '#lib/server/logos.js';
+import { metricsFor } from '#lib/server/reports.js';
 import { openPayments } from '#lib/due.js';
 import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
@@ -66,8 +67,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		})
 		.sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
 
+	const metrics = accounts.length ? await metricsFor(user, today) : null;
 	return {
 		today,
+		metrics: metrics ? { fixedRatio: metrics.fixedRatio, savingsRate: metrics.savingsRate } : null,
 		household: {
 			total: accounts.reduce((s, a) => s + (balances.get(a.id) ?? a.openingBalance), 0),
 			available: giro.reduce((s, g) => s + (g.available ?? 0), 0),

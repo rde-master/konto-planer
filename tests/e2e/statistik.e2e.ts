@@ -123,3 +123,15 @@ test('this year against last year, per category', async ({ page }) => {
 	await expect(food).toContainText(/30,00\s€/);
 	await expect(food).toContainText(/\+30,00\s€/);
 });
+
+test('metrics: fixed cost ratio, savings rate and price increases', async ({ page }) => {
+	await login(page);
+	// Household metrics: on the start page and as a view of the evaluations.
+	await expect(page.getByRole('link', { name: 'Kennzahlen' })).toContainText('Fixkostenquote');
+	await page.getByRole('link', { name: 'Kennzahlen' }).click();
+	await expect(page).toHaveURL(/ansicht=kennzahlen/);
+	await expect(page.getByLabel('Fixkostenquote', { exact: true })).toHaveText(/^(\d+ %|–)$/);
+	await expect(page.getByLabel('Sparquote', { exact: true })).toHaveText(/^(-?\d+ %|–)$/);
+	await expect(page.getByRole('img', { name: 'Sparquote je Monat' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Preissteigerung' })).toBeVisible();
+});

@@ -338,3 +338,42 @@ export function comparisonPeriods(year: number, today: string) {
 		partial: false
 	};
 }
+
+/** Regular income per month from recurring items (monthly equivalent), like the fixed costs. */
+export function regularIncomeByMonth(items: FixedItem[], months: string[]): number[] {
+	return months.map((month) => {
+		const end = monthRange(month).to;
+		let amount = 0;
+		for (const item of items) {
+			if (item.kind !== 'income' || item.interval === 'once' || !runsIn(item, month)) continue;
+			const value = amountOn(item.amounts, end) ?? amountOn(item.amounts, item.startDate);
+			if (value) amount += monthlyEquivalent(value, item);
+		}
+		return amount;
+	});
+}
+
+/** A ratio, null without a base. */
+export function ratio(part: number, whole: number): number | null {
+	return whole > 0 ? part / whole : null;
+}
+
+/**
+ * Net amount moved to savings accounts per month: internal bookings on savings accounts
+ * (transfers in minus transfers and goal transfers out).
+ */
+export function savedByMonth(savingsBookings: ReportBooking[], months: string[]): number[] {
+	const sums = new Map(months.map((m) => [m, 0]));
+	for (const b of savingsBookings) {
+		if (!b.internal) continue;
+		const m = b.bookingDate.slice(0, 7);
+		if (sums.has(m)) sums.set(m, sums.get(m)! + b.amount);
+	}
+	return months.map((m) => sums.get(m)!);
+}
+
+/** Mean yearly price change over the items with a known yearly change. */
+export function averageIncrease(changes: PriceChange[]): number | null {
+	const values = changes.map((c) => c.perYear).filter((v): v is number => v !== null);
+	return values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
+}
