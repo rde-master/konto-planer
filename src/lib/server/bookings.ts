@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
+import { isFiltered, type BookingFilter } from '../search.js';
 import { db } from './db/index.js';
 import {
 	accounts,
@@ -146,19 +147,89 @@ export async function bookingFormContext(viewer: Viewer) {
  * Bookings on accounts the viewer may see, newest first. `limit + 1` rows are read to know
  * whether there are more.
  */
+/** SQL conditions of a search filter (text, period, amount, direction, category, tag). */
+async function filterConditions(f: BookingFilter): Promise<SQL[]> {
+	const out: SQL[] = [];
+	if (f.text) {
+		const like = `%${f.text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+		const compact = `%${f.text.replace(/\s+/g, '').replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+		out.push(
+			or(
+				ilike(bookings.counterparty, like),
+				ilike(bookings.purpose, like),
+				ilike(bookings.bookingText, like),
+				ilike(bookings.iban, compact)
+			)!
+		);
+	}
+	if (f.from) out.push(gte(bookings.bookingDate, f.from));
+	if (f.to) out.push(lte(bookings.bookingDate, f.to));
+	if (f.min !== null) out.push(sql`abs(${bookings.amount}) >= ${f.min}`);
+	if (f.max !== null) out.push(sql`abs(${bookings.amount}) <= ${f.max}`);
+	if (f.direction === 'out') out.push(sql`${bookings.amount} < 0`);
+	if (f.direction === 'in') out.push(sql`${bookings.amount} > 0`);
+	if (f.categoryId) {
+		// A main category includes its subcategories; split parts count, too.
+		const cats = (
+			await db
+				.select({ id: categories.id })
+				.from(categories)
+				.where(or(eq(categories.id, f.categoryId), eq(categories.parentId, f.categoryId)))
+		).map((c) => c.id);
+		out.push(
+			or(
+				inArray(bookings.categoryId, cats),
+				sql`exists (select 1 from booking_parts bp where bp.booking_id = ${bookings.id} and bp.category_id in (${sql.join(
+					cats.map((c) => sql`${c}`),
+					sql`, `
+				)}))`
+			)!
+		);
+	}
+	if (f.tagId)
+		out.push(
+			or(
+				sql`exists (select 1 from booking_tags bt where bt.booking_id = ${bookings.id} and bt.tag_id = ${f.tagId})`,
+				sql`exists (select 1 from recurring_tags rt where rt.recurring_id = ${bookings.recurringId} and rt.tag_id = ${f.tagId})`
+			)!
+		);
+	return out;
+}
+
 export async function listBookingsFor(
 	viewer: Viewer,
-	{ accountId, limit }: { accountId?: string | null; limit: number }
-): Promise<{ bookings: BookingSummary[]; more: boolean }> {
+	{ accountId, limit, filter }: { accountId?: string | null; limit: number; filter?: BookingFilter }
+): Promise<{
+	bookings: BookingSummary[];
+	more: boolean;
+	/** Number and sum of all matches (with a filter). */
+	total: { count: number; sum: number } | null;
+}> {
 	const visible = await listAccountsFor(viewer);
 	const ids = visible.map((a) => a.id).filter((id) => !accountId || id === accountId);
-	if (!ids.length) return { bookings: [], more: false };
-	const rows = await db
-		.select()
-		.from(bookings)
-		.where(inArray(bookings.accountId, ids))
-		.orderBy(desc(bookings.bookingDate), desc(bookings.createdAt))
-		.limit(limit + 1);
+	if (!ids.length) return { bookings: [], more: false, total: null };
+	const where = and(
+		inArray(bookings.accountId, ids),
+		...(filter ? await filterConditions(filter) : [])
+	);
+	const [rows, totals] = await Promise.all([
+		db
+			.select()
+			.from(bookings)
+			.where(where)
+			.orderBy(desc(bookings.bookingDate), desc(bookings.createdAt))
+			.limit(limit + 1),
+		filter && isFiltered(filter)
+			? db
+					.select({
+						count: sql<number>`count(*)::int`,
+						sum: sql<string | null>`sum(${bookings.amount})`
+					})
+					.from(bookings)
+					.where(where)
+			: Promise.resolve(null)
+	]);
+	const total = totals?.[0] ? { count: totals[0].count, sum: Number(totals[0].sum ?? 0) } : null;
 	const byId = new Map(visible.map((a) => [a.id, a]));
 	const category = await categoryInfo(db);
 	const parts = await partsOf(
@@ -190,7 +261,8 @@ export async function listBookingsFor(
 				counts: countsToBalance(account.openingDate, b.bookingDate)
 			};
 		}),
-		more: rows.length > limit
+		more: rows.length > limit,
+		total
 	};
 }
 

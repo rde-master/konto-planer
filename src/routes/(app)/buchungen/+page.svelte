@@ -7,6 +7,20 @@
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ReceiptText from '@lucide/svelte/icons/receipt-text';
+	import SearchIcon from '@lucide/svelte/icons/search';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import X from '@lucide/svelte/icons/x';
+	import FormField from '#lib/components/FormField.svelte';
+	import SegmentedField from '#lib/components/SegmentedField.svelte';
+	import Button from '#lib/components/Button.svelte';
+	import {
+		filterChips,
+		filterQuery,
+		isFiltered,
+		EMPTY_FILTER,
+		type BookingFilter
+	} from '#lib/search.js';
+	import { formatEuroInput } from '#lib/money.js';
 	import Page from '#lib/components/Page.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
@@ -73,17 +87,74 @@
 	const formErrors = $derived(form && 'errors' in form ? form.errors : undefined);
 	const created = $derived(form && 'created' in form ? form.created : undefined);
 
-	function filter(accountId: string) {
-		void goto(accountId ? resolve(`buchungen?konto=${accountId}`) : resolve('buchungen'), {
-			replace: true
+	/** Query without the leading "?" ('' = none). */
+	function query(f: BookingFilter, extra: Record<string, string> = {}) {
+		return filterQuery(f, extra).slice(1);
+	}
+
+	function go(f: BookingFilter) {
+		const q = query(f);
+		void goto(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), {
+			replace: true,
+			reset: false
 		});
 	}
 
-	const moreHref = $derived(
-		resolve(
-			`buchungen?anzahl=${data.limit + 100}${data.accountId ? `&konto=${data.accountId}` : ''}`
-		)
+	function filter(accountId: string) {
+		go({ ...data.filter, accountId: accountId || null });
+	}
+
+	const moreQuery = $derived(query(data.filter, { anzahl: String(data.limit + 100) }));
+
+	let text = $derived(data.filter.text);
+	function search(e: SubmitEvent) {
+		e.preventDefault();
+		go({ ...data.filter, text: text.trim() });
+	}
+
+	const chips = $derived(
+		filterChips(data.filter, {
+			category: (id) => data.categoryNames[id] ?? 'Kategorie',
+			tag: (id) => data.tags.find((t) => t.value === id)?.label ?? 'Tag'
+		})
 	);
+	const filtered = $derived(isFiltered(data.filter));
+
+	let filterOpen = $state(false);
+	let filterKey = $state(0);
+	let filterForm: HTMLFormElement | undefined = $state();
+	function openFilter() {
+		filterKey++;
+		filterOpen = true;
+	}
+	function applyFilter(e: SubmitEvent) {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget as HTMLFormElement);
+		const v = (k: string) => {
+			const x = fd.get(k);
+			return typeof x === 'string' && x ? x : null;
+		};
+		const pairs: string[] = [];
+		for (const [k, val] of [
+			['q', data.filter.text],
+			['konto', data.filter.accountId],
+			['von', v('von')],
+			['bis', v('bis')],
+			['min', v('min')],
+			['max', v('max')],
+			['richtung', v('richtung')],
+			['kategorie', v('kategorie')],
+			['tag', v('tag')]
+		] as const)
+			if (val && !(k === 'richtung' && val === 'all'))
+				pairs.push(`${k}=${encodeURIComponent(val)}`);
+		filterOpen = false;
+		const q = pairs.join('&');
+		void goto(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), {
+			replace: true,
+			reset: false
+		});
+	}
 </script>
 
 <Page title="Buchungen">
@@ -109,6 +180,56 @@
 		</p>
 	{/if}
 
+	<form role="search" class="mb-3 flex gap-2" onsubmit={search}>
+		<label class="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-row)] bg-card px-4">
+			<SearchIcon class="size-5 shrink-0 text-label-3" />
+			<span class="sr-only">Suchen</span>
+			<input
+				type="search"
+				bind:value={text}
+				placeholder="Empfänger, Zweck oder IBAN"
+				enterkeyhint="search"
+				class="min-w-0 flex-1 bg-transparent py-2.5 text-[17px] outline-none placeholder:text-label-3"
+			/>
+		</label>
+		<button
+			type="button"
+			onclick={openFilter}
+			class="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-row)] bg-card px-4 text-[17px] text-accent active:opacity-60"
+		>
+			<SlidersHorizontal class="size-5" />
+			Filter{#if chips.length - (data.filter.text ? 1 : 0) > 0}
+				<span class="tabular">({chips.length - (data.filter.text ? 1 : 0)})</span>
+			{/if}
+		</button>
+	</form>
+
+	{#if chips.length}
+		<ul class="mb-3 flex flex-wrap gap-2" aria-label="Aktive Filter">
+			{#each chips as chip (chip.label)}
+				{@const q = query(chip.without)}
+				<li>
+					<a
+						href={q ? resolve(`buchungen?${q}`) : resolve('buchungen')}
+						aria-label="Filter {chip.label} entfernen"
+						data-sveltekit-replacestate
+						data-sveltekit-noscroll
+						class="inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1 text-[15px] text-accent"
+					>
+						{chip.label}
+						<X class="size-4" />
+					</a>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+
+	{#if data.total}
+		<p class="mb-3 px-4 text-[15px] text-label-2 tabular" aria-label="Treffer">
+			{`${data.total.count} ${data.total.count === 1 ? 'Buchung' : 'Buchungen'} · Summe ${formatEuro(data.total.sum)}`}
+		</p>
+	{/if}
+
 	{#if data.accountFilter.length > 1}
 		<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
 			<SelectField
@@ -121,7 +242,13 @@
 		</ul>
 	{/if}
 
-	{#if data.bookings.length === 0}
+	{#if data.bookings.length === 0 && filtered}
+		<div class="rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">
+			<SearchIcon class="mx-auto mb-3 size-10 text-label-3" />
+			<p class="text-[17px] font-semibold">Keine Buchungen gefunden</p>
+			<p class="mt-1 text-[15px] text-label-2">Ändere die Suche oder entferne einen Filter.</p>
+		</div>
+	{:else if data.bookings.length === 0}
 		<div class="rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">
 			<ReceiptText class="mx-auto mb-3 size-10 text-label-3" />
 			<p class="text-[17px] font-semibold">Noch keine Buchungen</p>
@@ -175,7 +302,7 @@
 
 	{#if data.more}
 		<a
-			href={moreHref}
+			href={resolve(`buchungen?${moreQuery}`)}
 			class="block rounded-[var(--radius-row)] bg-card px-4 py-3 text-center text-accent"
 			data-sveltekit-noscroll
 		>
@@ -217,3 +344,71 @@
 		</form>
 	</Sheet>
 {/if}
+
+<Sheet bind:open={filterOpen} title="Filter" confirmLabel="Anwenden" formId="filter-form">
+	<form id="filter-form" bind:this={filterForm} onsubmit={applyFilter}>
+		{#key filterKey}
+			<ul
+				class="mb-6 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<SegmentedField
+					name="richtung"
+					label="Art"
+					initial={data.filter.direction}
+					options={[
+						{ value: 'all', label: 'Alle' },
+						{ value: 'out', label: 'Ausgaben' },
+						{ value: 'in', label: 'Einnahmen' }
+					]}
+				/>
+				<FormField label="Von (Datum)" name="von" type="date" value={data.filter.from ?? ''} />
+				<FormField label="Bis (Datum)" name="bis" type="date" value={data.filter.to ?? ''} />
+				<FormField
+					label="Betrag ab in €"
+					name="min"
+					inputmode="decimal"
+					autocomplete="off"
+					placeholder="0,00"
+					value={data.filter.min !== null ? formatEuroInput(data.filter.min) : ''}
+				/>
+				<FormField
+					label="Betrag bis in €"
+					name="max"
+					inputmode="decimal"
+					autocomplete="off"
+					placeholder="0,00"
+					value={data.filter.max !== null ? formatEuroInput(data.filter.max) : ''}
+				/>
+				<SelectField
+					label="Kategorie"
+					name="kategorie"
+					options={[{ value: '', label: 'Alle' }]}
+					groups={data.categoryGroups}
+					value={data.filter.categoryId ?? ''}
+				/>
+				<SelectField
+					label="Tag"
+					name="tag"
+					options={[{ value: '', label: 'Alle' }, ...data.tags]}
+					value={data.filter.tagId ?? ''}
+				/>
+			</ul>
+		{/key}
+		<p class="mb-4 px-4 text-[13px] text-label-2">
+			Beträge ohne Vorzeichen; eine Hauptkategorie umfasst ihre Unterkategorien und Teile
+			aufgeteilter Buchungen.
+		</p>
+	</form>
+	{#if filtered}
+		<Button
+			type="button"
+			variant="tinted"
+			onclick={() => {
+				filterOpen = false;
+				go({ ...EMPTY_FILTER, accountId: data.filter.accountId });
+			}}
+		>
+			Alle Filter entfernen
+		</Button>
+	{/if}
+</Sheet>
