@@ -13,6 +13,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import SplitSection from '#lib/components/SplitSection.svelte';
 	import TagEditor from '#lib/components/TagEditor.svelte';
+	import SharedSection from '#lib/components/SharedSection.svelte';
 	import Logo from '#lib/components/Logo.svelte';
 	import LogoPicker from '#lib/components/LogoPicker.svelte';
 	import { formatIban } from '#lib/iban.js';
@@ -135,6 +136,9 @@
 	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
 	const tagsSaved = $derived(form?.action === 'tags' && 'success' in form);
 	const logoSaved = $derived(form?.action === 'logo' && 'success' in form);
+	const sharedSaved = $derived(
+		(form?.action === 'share' || form?.action === 'unshare') && 'success' in form
+	);
 
 	const values = $derived(
 		updateInput ?? {
@@ -160,6 +164,10 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if sharedSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Gemeinsame Ausgabe gesichert.
 		</p>
 	{:else if logoSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -250,6 +258,13 @@
 			canEdit={booking.canTag}
 			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
 		/>
+		<SharedSection
+			shared={data.shared}
+			users={data.settleUsers}
+			me={data.user.id}
+			canEdit={data.canShare}
+			errors={form?.action === 'share' && 'shareErrors' in form ? form.shareErrors : undefined}
+		/>
 		{#if booking.payeeKey && booking.canTag}
 			<LogoPicker
 				name={booking.counterparty ?? booking.purpose ?? '?'}
@@ -320,6 +335,13 @@
 			inherited={data.tags.inherited}
 			canEdit={booking.canTag}
 			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
+		/>
+		<SharedSection
+			shared={data.shared}
+			users={data.settleUsers}
+			me={data.user.id}
+			canEdit={data.canShare}
+			errors={form?.action === 'share' && 'shareErrors' in form ? form.shareErrors : undefined}
 		/>
 		{#if booking.payeeKey && booking.canTag}
 			<LogoPicker

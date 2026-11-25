@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.34.0] – Ausgleich zwischen Benutzern
+
+### Neu
+
+- Ausgaben lassen sich als gemeinsam markieren: wer bezahlt hat und wer beteiligt ist, zu gleichen Teilen oder mit Anteilen in Prozent (zusammen 100 %); jeder Anteil wird auf den Cent genau berechnet
+- Neue Seite „Ausgleich“ (unter „Mehr“ und in der Seitenleiste): wie viel du bekommst oder schuldest, wer wem wie viel zahlen sollte (mit möglichst wenigen Zahlungen) und alle gemeinsamen Ausgaben mit deinem Anteil
+- Beteiligte sehen nur die gemeinsame Ausgabe selbst, nicht das Konto oder dessen andere Buchungen
+- „Ausgleich erfassen“ hält fest, dass Geld geflossen ist (Vorschlag: der offene Betrag); gebucht wird dabei nichts
+- Markieren und Ändern darf, wer das Konto bearbeiten darf; Ausgleiche löscht, wer sie erfasst hat, oder der Admin
+- Alles steht im Protokoll; eine gelöschte Buchung kommt aus dem Papierkorb mit ihren Anteilen zurück
+
 ## [0.33.0] – Papierkorb
 
 ### Neu
