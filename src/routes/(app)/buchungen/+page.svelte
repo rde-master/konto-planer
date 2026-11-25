@@ -12,6 +12,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import BookingFields from '#lib/components/BookingFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
+	import Logo from '#lib/components/Logo.svelte';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, todayBerlin } from '#lib/dates.js';
 	import type { PageProps } from './$types';
@@ -147,12 +148,16 @@
 							href={resolve(`buchungen/${b.id}`)}
 							class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
 						>
-							<span
-								class="grid size-9 shrink-0 place-items-center rounded-full text-white"
-								style:background-color={accountColorCss(b.category?.color ?? 'gray')}
-							>
-								<Icon class="size-5" strokeWidth={2.2} />
-							</span>
+							{#if b.logo || b.counterparty || (b.recurringId && b.purpose)}
+								<Logo name={b.counterparty ?? b.purpose ?? '?'} logo={b.logo} />
+							{:else}
+								<span
+									class="grid size-9 shrink-0 place-items-center rounded-full text-white"
+									style:background-color={accountColorCss(b.category?.color ?? 'gray')}
+								>
+									<Icon class="size-5" strokeWidth={2.2} />
+								</span>
+							{/if}
 							<span class="min-w-0 flex-1">
 								<span class="block truncate text-[17px]">{title(b)}</span>
 								<span class="block truncate text-[13px] text-label-2">{subtitle(b)}</span>

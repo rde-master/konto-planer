@@ -17,6 +17,8 @@
 	import GoalRow from '#lib/components/GoalRow.svelte';
 	import LoanSection from '#lib/components/LoanSection.svelte';
 	import TagEditor from '#lib/components/TagEditor.svelte';
+	import Logo from '#lib/components/Logo.svelte';
+	import LogoPicker from '#lib/components/LogoPicker.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput, parseEuro } from '#lib/money.js';
 	import { amountBefore, changeDelta, formatDiff, formatPercent } from '#lib/planned.js';
@@ -134,7 +136,8 @@
 			extra: 'Sondertilgung gesichert.',
 			extraDelete: 'Sondertilgung gelöscht.',
 			loanEnd: 'Ende übernommen.',
-			tags: 'Tags gesichert.'
+			tags: 'Tags gesichert.',
+			logo: 'Logo gesichert.'
 		}[form.action];
 	});
 
@@ -180,12 +183,16 @@
 	{/if}
 
 	<section class="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5">
-		<span
-			class="grid size-14 shrink-0 place-items-center rounded-full text-white"
-			style:background-color={accountColorCss(iconColor)}
-		>
-			<Icon class="size-7" strokeWidth={2} />
-		</span>
+		{#if item.kind !== 'transfer'}
+			<Logo name={item.counterparty ?? item.name} logo={data.logo.logo} size="lg" />
+		{:else}
+			<span
+				class="grid size-14 shrink-0 place-items-center rounded-full text-white"
+				style:background-color={accountColorCss(iconColor)}
+			>
+				<Icon class="size-7" strokeWidth={2} />
+			</span>
+		{/if}
 		<div class="min-w-0">
 			<p class="text-[13px] text-label-2">
 				{[KIND_LABELS[item.kind], intervalLabel(item), item.archivedAt ? 'archiviert' : pauseText]
@@ -233,6 +240,14 @@
 				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
 				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 		</p>
+	{/if}
+
+	{#if data.logo.key && item.canEdit}
+		<LogoPicker
+			name={item.counterparty ?? item.name}
+			logo={data.logo.logo}
+			chosen={data.logo.chosen}
+		/>
 	{/if}
 
 	<TagEditor

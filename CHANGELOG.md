@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.31.0] – Firmenlogos
+
+### Neu
+
+- Buchungen und Dauerposten zeigen vorne das farbige Logo des Empfängers, z. B. PayPal, Netflix, Spotify, Telekom, Vodafone, DHL, Lidl, Rewe oder dm (aus der freien Sammlung Simple Icons, liegt in der App, nichts geht ins Internet)
+- Das Logo wird automatisch am Empfängernamen erkannt; Rechtsformen wie „GmbH“ oder „S.A.R.L.“ stören dabei nicht
+- Ohne passendes Logo erscheinen farbige Initialen statt des bisherigen Pfeils, damit sich Empfänger leichter unterscheiden lassen
+- „Logo ändern“ an Buchung oder Dauerposten: Logo suchen und wählen, „Kein Logo (Initialen)“ oder zurück zu „Automatisch erkennen“; die Wahl gilt für alle Buchungen und Dauerposten dieses Empfängers, auch künftige
+- Die Wahl steht im Protokoll
+
+### Geändert
+
+- Releaseplan: Firmenlogos sind als 0.31.0 eingeschoben, die folgenden Versionen rücken um eins nach hinten
+
 ## [0.30.0] – Tags
 
 ### Neu

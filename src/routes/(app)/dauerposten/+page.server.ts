@@ -12,6 +12,7 @@ import {
 } from '#lib/server/recurring-form.js';
 import { getSettings } from '#lib/server/settings.js';
 import { formString } from '#lib/server/validation.js';
+import { itemLogos } from '#lib/server/logos.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -22,8 +23,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		getSettings()
 	]);
 	// One-off payments live under „Geplant“.
+	const shown = items.filter((i) => i.interval !== 'once');
 	return {
-		items: items.filter((i) => i.interval !== 'once'),
+		items: shown,
+		logos: await itemLogos(shown),
 		plannedCount: items.filter((i) => i.interval === 'once' && !i.archivedAt).length,
 		...form.options,
 		defaultLeadDays: settings.defaultLeadDays

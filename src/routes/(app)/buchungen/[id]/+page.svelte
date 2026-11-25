@@ -13,6 +13,8 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import SplitSection from '#lib/components/SplitSection.svelte';
 	import TagEditor from '#lib/components/TagEditor.svelte';
+	import Logo from '#lib/components/Logo.svelte';
+	import LogoPicker from '#lib/components/LogoPicker.svelte';
 	import { formatIban } from '#lib/iban.js';
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
@@ -132,6 +134,7 @@
 	const saved = $derived(form?.action === 'update' && 'success' in form);
 	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
 	const tagsSaved = $derived(form?.action === 'tags' && 'success' in form);
+	const logoSaved = $derived(form?.action === 'logo' && 'success' in form);
 
 	const values = $derived(
 		updateInput ?? {
@@ -158,6 +161,10 @@
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
 		</p>
+	{:else if logoSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Logo gesichert.
+		</p>
 	{:else if tagsSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Tags gesichert.
@@ -177,12 +184,16 @@
 	{/if}
 
 	<section class="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5">
-		<span
-			class="grid size-14 shrink-0 place-items-center rounded-full text-white"
-			style:background-color={accountColorCss(booking.category?.color ?? 'gray')}
-		>
-			<Icon class="size-7" strokeWidth={2} />
-		</span>
+		{#if booking.logo || booking.counterparty || (booking.recurringId && booking.purpose)}
+			<Logo name={booking.counterparty ?? booking.purpose ?? '?'} logo={booking.logo} size="lg" />
+		{:else}
+			<span
+				class="grid size-14 shrink-0 place-items-center rounded-full text-white"
+				style:background-color={accountColorCss(booking.category?.color ?? 'gray')}
+			>
+				<Icon class="size-7" strokeWidth={2} />
+			</span>
+		{/if}
 		<div class="min-w-0">
 			<p class="text-[13px] text-label-2">
 				{formatDay(booking.bookingDate)} · {booking.account.name}
@@ -239,6 +250,13 @@
 			canEdit={booking.canTag}
 			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
 		/>
+		{#if booking.payeeKey && booking.canTag}
+			<LogoPicker
+				name={booking.counterparty ?? booking.purpose ?? '?'}
+				logo={booking.logo}
+				chosen={booking.logoChosen}
+			/>
+		{/if}
 		<ListGroup header="Verwaltung">
 			<ListRow
 				label="Als Vorlage sichern"
@@ -303,6 +321,13 @@
 			canEdit={booking.canTag}
 			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
 		/>
+		{#if booking.payeeKey && booking.canTag}
+			<LogoPicker
+				name={booking.counterparty ?? booking.purpose ?? '?'}
+				logo={booking.logo}
+				chosen={booking.logoChosen}
+			/>
+		{/if}
 		{#if credit}
 			<ListGroup
 				header="Zinsgutschrift"

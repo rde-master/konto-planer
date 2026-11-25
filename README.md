@@ -61,4 +61,4 @@ pnpm dev
 
 ## Lizenz
 
-[MIT](LICENSE). Symbole: [Lucide](https://lucide.dev) (ISC).
+[MIT](LICENSE). Symbole: [Lucide](https://lucide.dev) (ISC). Firmenlogos: [Simple Icons](https://simpleicons.org) (CC0); Markennamen und Logos gehören ihren Inhabern und werden nur zur Kennzeichnung von Zahlungen angezeigt.
