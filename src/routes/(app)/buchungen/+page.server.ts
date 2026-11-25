@@ -10,23 +10,50 @@ import { validateBooking } from '#lib/server/booking-rules.js';
 import { readBookingForm } from '#lib/server/booking-form.js';
 import { listAccountsFor } from '#lib/server/accounts.js';
 import { formatEuro } from '#lib/money.js';
+import { parseFilter } from '#lib/search.js';
+import { listCategories } from '#lib/server/categories.js';
+import { buildTree } from '#lib/server/category-rules.js';
+import { categoryGroups } from '#lib/server/recurring-form.js';
+import { listTags } from '#lib/server/tags.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const PAGE = 100;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const user = locals.user!;
-	const accounts = await listAccountsFor(user);
-	const filter = url.searchParams.get('konto');
-	const accountId = accounts.some((a) => a.id === filter) ? filter : null;
+	const [accounts, cats, allTags] = await Promise.all([
+		listAccountsFor(user),
+		listCategories(),
+		listTags()
+	]);
+	const filter = parseFilter(url.searchParams, {
+		accountIds: new Set(accounts.map((a) => a.id)),
+		categoryIds: new Set(cats.map((c) => c.id)),
+		tagIds: new Set(allTags.map((t) => t.id))
+	});
 	const limit = Math.min(Math.max(Number(url.searchParams.get('anzahl')) || PAGE, PAGE), 5000);
-	const { bookings, more } = await listBookingsFor(user, { accountId, limit });
+	const { bookings, more, total } = await listBookingsFor(user, {
+		accountId: filter.accountId,
+		limit,
+		filter
+	});
+	const byId = new Map(cats.map((c) => [c.id, c]));
 	return {
 		bookings,
 		more,
+		total,
 		limit,
-		accountId,
-		accountFilter: accounts.map((a) => ({ value: a.id, label: a.name }))
+		filter,
+		accountId: filter.accountId,
+		accountFilter: accounts.map((a) => ({ value: a.id, label: a.name })),
+		categoryGroups: categoryGroups(buildTree(cats)),
+		categoryNames: Object.fromEntries(
+			cats.map((c) => {
+				const parent = c.parentId ? byId.get(c.parentId) : undefined;
+				return [c.id, parent ? `${parent.name} › ${c.name}` : c.name];
+			})
+		),
+		tags: allTags.map((t) => ({ value: t.id, label: t.name }))
 	};
 };
 

@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.32.0] – Suche und Filter
+
+### Neu
+
+- Suchfeld auf der Seite „Buchungen“: findet Text in Empfänger, Verwendungszweck, IBAN und Buchungstext der Bank (Groß- und Kleinschreibung egal, auch Wortteile)
+- „Filter“: Ausgaben oder Einnahmen, Zeitraum von – bis, Betrag von – bis (ohne Vorzeichen), Kategorie (eine Hauptkategorie umfasst ihre Unterkategorien und Teile aufgeteilter Buchungen) und Tag (auch über den Dauerposten)
+- Aktive Filter erscheinen als Chips und lassen sich einzeln entfernen; dazu Anzahl und Summe der Treffer
+- Die Filter stehen in der Adresse: Neu laden, Zurück und Lesezeichen behalten sie
+
 ## [0.31.0] – Firmenlogos
 
 ### Neu
