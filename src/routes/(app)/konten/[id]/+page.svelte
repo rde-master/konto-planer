@@ -445,6 +445,52 @@
 		{/if}
 	{/if}
 
+	{#if data.forecast}
+		{@const f = data.forecast}
+		<section class="mb-8" aria-label="Vorschau 12 Monate">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Vorschau 12 Monate</h2>
+			<BalanceChart
+				series={f.series}
+				label="Kontostand in den nächsten 12 Monaten"
+				low={f.lowest ? [f.lowest.date, f.lowest.balance] : null}
+				limit={account.type === 'giro' ? account.overdraftLimit : 0}
+			/>
+			<ul
+				class="mt-2 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1">Tiefster Stand</span>
+					<span
+						class={['tabular', f.lowest && f.lowest.balance < 0 ? 'text-danger' : 'text-label-2']}
+						aria-label="Tiefster Stand"
+					>
+						{f.lowest
+							? `${formatEuro(f.lowest.balance)} am ${formatDay(f.lowest.date)}`
+							: 'keine Bewegung geplant'}
+					</span>
+				</li>
+				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					<span class="flex-1">Am {formatDay(f.until)}</span>
+					<span class="text-label-2 tabular" aria-label="Stand in 12 Monaten">
+						{formatEuro(f.end)}
+					</span>
+				</li>
+			</ul>
+			{#if f.lowest && f.lowest.balance < -(account.type === 'giro' ? account.overdraftLimit : 0)}
+				<p class="mt-1.5 px-4 text-[13px] text-danger" data-testid="forecast-warning">
+					Nach Plan reicht das Geld im Laufe des Jahres nicht: {account.overdraftLimit
+						? 'der Dispo würde überschritten.'
+						: 'das Konto rutscht ins Minus.'}
+				</p>
+			{:else}
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Aus Stand, Dauerposten, geplanten Zahlungen und Umbuchungen; schwankende Beträge mit dem
+					letzten Wert.
+				</p>
+			{/if}
+		</section>
+	{/if}
+
 	<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
 		<li>
 			<a

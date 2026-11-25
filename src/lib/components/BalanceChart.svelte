@@ -2,15 +2,39 @@
 	import { onMount } from 'svelte';
 	import * as echarts from 'echarts/core';
 	import { LineChart } from 'echarts/charts';
-	import { GridComponent, TooltipComponent } from 'echarts/components';
+	import {
+		GridComponent,
+		MarkLineComponent,
+		MarkPointComponent,
+		TooltipComponent
+	} from 'echarts/components';
 	import { SVGRenderer } from 'echarts/renderers';
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
 
-	echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
+	echarts.use([
+		LineChart,
+		GridComponent,
+		TooltipComponent,
+		MarkPointComponent,
+		MarkLineComponent,
+		SVGRenderer
+	]);
 
 	/** Balance history as a step line (Apache ECharts). `series`: [day, cents]. */
-	let { series, label }: { series: [string, number][]; label: string } = $props();
+	let {
+		series,
+		label,
+		low,
+		limit
+	}: {
+		series: [string, number][];
+		label: string;
+		/** Point to mark (e.g. the lowest balance). */
+		low?: [string, number] | null;
+		/** Overdraft limit (positive cents): a dashed line at −limit. */
+		limit?: number;
+	} = $props();
 
 	let el: HTMLDivElement | undefined = $state();
 
@@ -63,7 +87,26 @@
 							data: series,
 							lineStyle: { color: accent, width: 2 },
 							itemStyle: { color: accent },
-							areaStyle: { color: accent, opacity: 0.12 }
+							areaStyle: { color: accent, opacity: 0.12 },
+							markPoint: low
+								? {
+										symbol: 'circle',
+										symbolSize: 10,
+										itemStyle: { color: css('--kp-red') },
+										label: { show: false },
+										data: [{ coord: low, value: low[1] }]
+									}
+								: undefined,
+							markLine:
+								limit && limit > 0
+									? {
+											symbol: 'none',
+											silent: true,
+											lineStyle: { color: css('--kp-orange'), type: 'dashed' },
+											label: { formatter: 'Dispo', color: muted },
+											data: [{ yAxis: -limit }]
+										}
+									: undefined
 						}
 					]
 				},
