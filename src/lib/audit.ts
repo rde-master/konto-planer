@@ -17,6 +17,7 @@ export const ENTITY_TYPES = [
 	'goal',
 	'import',
 	'rule',
+	'tag',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -64,6 +65,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	goal: 'Sparziel',
 	import: 'Import',
 	rule: 'Kategorie-Regel',
+	tag: 'Tag',
 	settings: 'Einstellungen'
 };
 
@@ -189,6 +191,7 @@ const FIELD_LABELS: Record<string, string> = {
 	itemsRemoved: 'Entfernte Dauerposten',
 	rule: 'Regel',
 	split: 'Aufteilung',
+	tags: 'Tags',
 	bookingsCategorized: 'Kategorisierte Buchungen',
 	bankBalance: 'Saldo laut Bank',
 	appBalanceAfter: 'Stand laut App'

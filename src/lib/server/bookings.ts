@@ -44,6 +44,8 @@ export type BookingSummary = Booking & {
 	canCategorize: boolean;
 	/** Manual and imported bookings can be split into categories. */
 	canSplit: boolean;
+	/** Tags can be set by editors of the account. */
+	canTag: boolean;
 	/** Parts of a split booking (empty if not split). */
 	parts: PartSummary[];
 	/** False for bookings before the account's opening date. */
@@ -146,6 +148,7 @@ export async function listBookingsFor(
 			const account = byId.get(b.accountId)!;
 			return {
 				canSplit: splittable(account, b),
+				canTag: canEditAccount(account.level, account.archivedAt !== null),
 				parts: parts
 					.filter((p) => p.bookingId === b.id)
 					.map((p) => ({
@@ -179,6 +182,7 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 	return {
 		...b,
 		canSplit: splittable(account, b),
+		canTag: canEditAccount(account.level, account.archivedAt !== null),
 		parts: parts.map((p) => ({
 			id: p.id,
 			amount: p.amount,

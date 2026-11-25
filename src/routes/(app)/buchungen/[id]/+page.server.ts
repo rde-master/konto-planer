@@ -19,6 +19,8 @@ import { parseEuro } from '#lib/money.js';
 import { InterestError, creditForBooking, setCreditAmount } from '#lib/server/interest.js';
 import { GoalError, goalTransferForBooking, undoGoalTransfer } from '#lib/server/goals.js';
 import { validateSplit } from '#lib/splits.js';
+import { TagError, listTags, readTagForm, setBookingTags, tagsOf } from '#lib/server/tags.js';
+import { db } from '#lib/server/db/index.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -35,7 +37,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		booking.source === 'interest' ? await creditForBooking(locals.user!, booking.id) : null;
 	const goalTransfer =
 		booking.source === 'goal' ? await goalTransferForBooking(locals.user!, booking.id) : null;
+	const [tagMap, allTags] = await Promise.all([
+		tagsOf(db, [booking.id], booking.recurringId ? [booking.recurringId] : []),
+		listTags()
+	]);
 	return {
+		tags: {
+			all: allTags.map((t) => ({ id: t.id, name: t.name })),
+			selected: tagMap.booking.get(booking.id) ?? [],
+			inherited: booking.recurringId ? (tagMap.recurring.get(booking.recurringId) ?? []) : []
+		},
 		booking,
 		due,
 		credit,
@@ -154,6 +165,19 @@ export const actions: Actions = {
 			throw e;
 		}
 		redirect(303, `/dauerposten/${due.recurringId}`);
+	},
+
+	tags: async ({ request, locals, params }) => {
+		const user = locals.user!;
+		const { ids, error: invalid } = await readTagForm(user, await request.formData());
+		if (invalid !== null) return fail(400, { action: 'tags', tagError: invalid });
+		try {
+			await setBookingTags(user, params.id, ids);
+		} catch (e) {
+			if (e instanceof TagError) return fail(400, { action: 'tags', tagError: e.message });
+			throw e;
+		}
+		return { action: 'tags', success: true };
 	},
 
 	/** Split into categories; no rows = remove the split. */

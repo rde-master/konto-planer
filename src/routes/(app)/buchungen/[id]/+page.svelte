@@ -12,6 +12,7 @@
 	import FormField from '#lib/components/FormField.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
 	import SplitSection from '#lib/components/SplitSection.svelte';
+	import TagEditor from '#lib/components/TagEditor.svelte';
 	import { formatIban } from '#lib/iban.js';
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
@@ -130,6 +131,7 @@
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 	const saved = $derived(form?.action === 'update' && 'success' in form);
 	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
+	const tagsSaved = $derived(form?.action === 'tags' && 'success' in form);
 
 	const values = $derived(
 		updateInput ?? {
@@ -155,6 +157,10 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if tagsSaved}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Tags gesichert.
 		</p>
 	{:else if splitSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -226,6 +232,13 @@
 			categoryGroups={data.categoryGroups}
 			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
 		/>
+		<TagEditor
+			allTags={data.tags.all}
+			selected={data.tags.selected}
+			inherited={data.tags.inherited}
+			canEdit={booking.canTag}
+			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
+		/>
 		<ListGroup header="Verwaltung">
 			<ListRow
 				label="Als Vorlage sichern"
@@ -282,6 +295,13 @@
 			canSplit={booking.canSplit}
 			categoryGroups={data.categoryGroups}
 			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
+		/>
+		<TagEditor
+			allTags={data.tags.all}
+			selected={data.tags.selected}
+			inherited={data.tags.inherited}
+			canEdit={booking.canTag}
+			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
 		/>
 		{#if credit}
 			<ListGroup
