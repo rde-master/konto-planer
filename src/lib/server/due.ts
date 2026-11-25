@@ -18,6 +18,7 @@ import { isValidDate } from './recurring-rules.js';
 import { syncInterest } from './interest.js';
 import { syncGoals } from './goals.js';
 import { purgeExpired } from './trash.js';
+import { runNotifications } from './notify.js';
 
 export class DueError extends Error {}
 
@@ -225,6 +226,9 @@ export function startDueScheduler() {
 	const run = () => {
 		void syncDues().catch((e: unknown) =>
 			console.error('Fälligkeiten: Abgleich fehlgeschlagen', e)
+		);
+		void runNotifications().catch((e: unknown) =>
+			console.error('Benachrichtigungen: Versand fehlgeschlagen', e)
 		);
 		void purgeExpired().catch((e: unknown) =>
 			console.error('Papierkorb: Aufräumen fehlgeschlagen', e)

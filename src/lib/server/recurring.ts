@@ -102,7 +102,7 @@ async function accountInfos(visible: AccountWithLevel[], ids: string[]) {
 	return byId;
 }
 
-function toContract(row: ContractRow): Contract {
+export function toContract(row: ContractRow): Contract {
 	return {
 		termEnd: row.termEnd,
 		noticeEvery: row.noticeEvery,

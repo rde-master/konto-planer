@@ -4,6 +4,8 @@
 	import Users from '@lucide/svelte/icons/users';
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
 	import Zap from '@lucide/svelte/icons/zap';
+	import Bell from '@lucide/svelte/icons/bell';
+	import BellRing from '@lucide/svelte/icons/bell-ring';
 	import Page from '#lib/components/Page.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -95,11 +97,23 @@
 		footer="Häufige Buchungen mit einem Tipp ausfüllen – eigene und gemeinsame."
 	>
 		<ListRow label="Vorlagen" href="einstellungen/vorlagen" icon={Zap} iconColor="bg-[#5856d6]" />
+		<ListRow
+			label="Meine Benachrichtigungen"
+			href="einstellungen/meine-benachrichtigungen"
+			icon={Bell}
+			iconColor="bg-[#ff3b30]"
+		/>
 	</ListGroup>
 
 	{#if data.user.role === 'admin'}
 		<ListGroup header="Verwaltung">
 			<ListRow label="Benutzer" href="einstellungen/benutzer" icon={Users} />
+			<ListRow
+				label="Benachrichtigungen"
+				href="einstellungen/benachrichtigungen"
+				icon={BellRing}
+				iconColor="bg-[#ff9500]"
+			/>
 			<ListRow
 				label="Protokoll"
 				href="einstellungen/protokoll"

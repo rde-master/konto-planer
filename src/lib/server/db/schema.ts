@@ -28,6 +28,8 @@ export const users = pgTable('users', {
 	email: text('email'),
 	passwordHash: text('password_hash').notNull(),
 	role: userRole('role').notNull().default('user'),
+	/** Home Assistant notify services that get this user's notifications ("mobile_app_…"). */
+	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
@@ -295,6 +297,16 @@ export const appSettings = pgTable(
 	{
 		id: integer('id').primaryKey().default(1),
 		defaultLeadDays: integer('default_lead_days').notNull().default(30),
+		/** SMTP for e-mail notifications; the password is stored encrypted. */
+		smtpHost: text('smtp_host'),
+		smtpPort: integer('smtp_port'),
+		smtpSecure: boolean('smtp_secure').notNull().default(false),
+		smtpUser: text('smtp_user'),
+		smtpPasswordEnc: text('smtp_password_enc'),
+		smtpFrom: text('smtp_from'),
+		/** Home Assistant base URL and long-lived access token (encrypted). */
+		haUrl: text('ha_url'),
+		haTokenEnc: text('ha_token_enc'),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [check('app_settings_single_row', sql`${t.id} = 1`)]
@@ -918,3 +930,37 @@ export const scenarioChanges = pgTable(
 );
 
 export type ScenarioChange = typeof scenarioChanges.$inferSelect;
+
+/**
+ * Notification rule per type ("Meldungsregel"): channels, recipients (null = everyone with edit
+ * right on the account) and whether it repeats daily until it is done.
+ */
+export const notificationRules = pgTable('notification_rules', {
+	type: text('type').primaryKey(),
+	enabled: boolean('enabled').notNull().default(true),
+	email: boolean('email').notNull().default(true),
+	homeAssistant: boolean('home_assistant').notNull().default(false),
+	recipients: jsonb('recipients').$type<string[] | null>(),
+	repeat: text('repeat').notNull().default('once'),
+	toleranceDays: integer('tolerance_days').notNull().default(3),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+export type NotificationRule = typeof notificationRules.$inferSelect;
+
+/** Sent notifications (to repeat once a day at most and to show the history). */
+export const notificationLog = pgTable(
+	'notification_log',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		type: text('type').notNull(),
+		key: text('key').notNull(),
+		userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		channel: text('channel').notNull(),
+		title: text('title').notNull(),
+		ok: boolean('ok').notNull(),
+		error: text('error'),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('notification_log_lookup_idx').on(t.type, t.key, t.userId, t.channel)]
+);
