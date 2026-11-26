@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { nextBankDay } from '#lib/bank-calendar.js';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -425,6 +426,7 @@
 	<p class="-mt-6 mb-8 px-4 text-[13px] text-label-2">
 		Einmalige Ausgaben und Einnahmen wie Urlaub, Anschaffungen oder eine Steuererstattung.
 	</p>
+	<HelpLink chapter="erste-schritte" anchor="dauerposten-erfassen" label="Hilfe zu Dauerposten" />
 </Page>
 
 {#if data.accountOptions.length}

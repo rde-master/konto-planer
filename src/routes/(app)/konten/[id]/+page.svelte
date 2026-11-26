@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { enhance } from '$app/forms';
 	import Landmark from '@lucide/svelte/icons/landmark';
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
@@ -711,6 +712,11 @@
 			{/if}
 		</ListGroup>
 	{/if}
+	<HelpLink
+		chapter="erste-schritte"
+		anchor="mindestbestand-verstehen"
+		label="Wie rechnet die App den Mindestbestand?"
+	/>
 </Page>
 
 {#if data.isAdmin}

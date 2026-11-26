@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { enhance } from '$app/forms';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
@@ -306,4 +307,5 @@
 			</ul>
 		{/if}
 	</section>
+	<HelpLink chapter="benachrichtigungen" anchor="meldungen" label="Hilfe zu Meldungen" />
 </Page>

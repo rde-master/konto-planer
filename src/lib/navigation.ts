@@ -19,6 +19,7 @@ import HandCoins from '@lucide/svelte/icons/hand-coins';
 import Gauge from '@lucide/svelte/icons/gauge';
 import FlaskConical from '@lucide/svelte/icons/flask-conical';
 import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+import CircleHelp from '@lucide/svelte/icons/circle-help';
 
 /**
  * `resolve()` for a value of the whole `Path` union. TypeScript cannot check a union of more
@@ -58,6 +59,7 @@ export const MORE: (NavItem & { color: string })[] = [
 	{ path: 'was-waere-wenn', label: 'Was wäre wenn', icon: FlaskConical, color: 'bg-[#5ac8fa]' },
 	{ path: 'widgets', label: 'Widgets', icon: LayoutGrid, color: 'bg-[#007aff]' },
 	{ path: 'papierkorb', label: 'Papierkorb', icon: Trash2, color: 'bg-[#8e8e93]' },
+	{ path: 'hilfe', label: 'Hilfe', icon: CircleHelp, color: 'bg-[#007aff]' },
 	{ path: 'einstellungen', label: 'Einstellungen', icon: Settings, color: 'bg-[#8e8e93]' }
 ];
 

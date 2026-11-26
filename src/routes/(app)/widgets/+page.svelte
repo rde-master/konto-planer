@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
@@ -226,4 +227,5 @@
 			zuletzt geladenen Werte mit Uhrzeit. Wie oft es sich aktualisiert, bestimmt iOS.
 		</p>
 	</section>
+	<HelpLink chapter="widgets-und-mehr" anchor="widgets-auf-dem-iphone" label="Hilfe zu Widgets" />
 </Page>
