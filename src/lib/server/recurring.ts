@@ -5,6 +5,7 @@ import {
 	bookings,
 	categories,
 	contracts,
+	dueItems,
 	recurringAmounts,
 	recurringItems,
 	users,
@@ -22,6 +23,7 @@ import { snapshotRecurring, toTrash, trashFiles } from './trash.js';
 import type { RecurringValues } from './recurring-rules.js';
 import { addDays, amountOn, intervalLabel, nextDue, type AmountEntry } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
+import { canBecomeRecurring, isFirstPayment } from '../recurring-from-booking.js';
 import { endDateAfterSave, periodLabel, renewalLabel, type Contract } from '../contracts.js';
 
 export class RecurringError extends Error {}
@@ -404,7 +406,9 @@ export async function createRecurring(
 	actor: NonNullable<Actor> & Viewer,
 	input: RecurringValues,
 	amount: number,
-	contract: Contract | null = null
+	contract: Contract | null = null,
+	/** "Dauerposten daraus machen": this booking becomes the item's first payment. */
+	fromBookingId?: string
 ): Promise<string> {
 	const values = { ...input, endDate: endDateAfterSave(input.endDate, contract, null) };
 	await requireEditableAccount(actor, values);
@@ -426,10 +430,49 @@ export async function createRecurring(
 			entityLabel: created.name,
 			after: { ...(await auditFields(tx, values, contract)), amount }
 		});
+		if (fromBookingId) await linkFirstPayment(tx, actor, created, fromBookingId);
 		return created.id;
 	});
 	await syncDues([id]);
 	return id;
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Links an existing booking to a new item. If the first due date lies close to the booking, the
+ * booking counts as its payment (a booked due item), so the sync books nothing twice.
+ */
+async function linkFirstPayment(
+	tx: Tx,
+	actor: NonNullable<Actor>,
+	item: RecurringItem,
+	bookingId: string
+) {
+	const [booking] = await tx.select().from(bookings).where(eq(bookings.id, bookingId));
+	if (!booking || booking.accountId !== item.accountId || !canBecomeRecurring(booking))
+		throw new RecurringError('Aus dieser Buchung lässt sich kein Dauerposten machen.');
+	if (booking.amount < 0 !== (item.kind === 'expense') || item.kind === 'transfer')
+		throw new RecurringError('Die Art passt nicht zur Buchung (Ausgabe oder Einnahme).');
+	await tx.update(bookings).set({ recurringId: item.id }).where(eq(bookings.id, bookingId));
+	const first = isFirstPayment(booking.bookingDate, item.startDate);
+	if (first)
+		await tx.insert(dueItems).values({
+			recurringId: item.id,
+			dueDate: item.startDate,
+			bookingDate: booking.bookingDate,
+			amount: Math.abs(booking.amount),
+			status: 'booked',
+			bookingId
+		});
+	await audit(tx, {
+		actor,
+		entityType: 'booking',
+		action: 'update',
+		entityId: bookingId,
+		entityLabel: booking.counterparty ?? booking.purpose ?? 'Buchung',
+		after: { recurringItem: item.name, firstPayment: first }
+	});
 }
 
 /** "Gekündigt am": sets the cancellation day of a contract (the end follows as usual). */

@@ -18,6 +18,8 @@ Die IBAN ist optional; der Umsatzimport prüft damit, ob die Datei zum Konto pas
 
 Unter **Dauerposten** trägst du alles ein, was regelmäßig kommt oder geht: Gehalt, Miete, Strom, Versicherungen, Abos, Umbuchungen aufs Sparbuch. Je Posten wählst du Betrag, Intervall und erste Fälligkeit. Fällt die Fälligkeit auf ein Wochenende oder einen Feiertag, rechnet die App mit dem nächsten Bankarbeitstag.
 
+Ist eine Zahlung schon als Buchung da (von Hand erfasst oder importiert), geht es schneller: die Buchung öffnen und **Dauerposten daraus machen** tippen. Bezeichnung, Betrag, Konto, Kategorie und Empfänger sind dann schon ausgefüllt, und die Buchung zählt als erste Zahlung.
+
 Am Fälligkeitstag bucht die App den Posten **vorläufig**. Kommt später der Umsatzimport, ersetzt die echte Buchung die vorläufige.
 
 Ändert sich ein Betrag, trage ihn mit **Änderung planen** und „gültig ab“ ein – die Vorschau rechnet ab dann damit.

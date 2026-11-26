@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { nextBankDay } from '#lib/bank-calendar.js';
 	import { enhance } from '$app/forms';
@@ -42,7 +43,11 @@
 
 	const today = todayBerlin();
 
-	let createOpen = $state(false);
+	// Coming from a booking ("Dauerposten daraus machen") the form is open and filled.
+	let createOpen = $state(untrack(() => data.fromBooking !== null));
+	// Until "+" starts an empty form, the booking's values are used.
+	let useBooking = $state(true);
+	const fromBooking = $derived(useBooking ? data.fromBooking : null);
 	let pending = $state(false);
 	let formKey = $state(0);
 
@@ -179,7 +184,9 @@
 		customerNumber: null,
 		note: null
 	});
-	const formValues = $derived(form && 'input' in form && form.input ? form.input : emptyValues());
+	const formValues = $derived(
+		form && 'input' in form && form.input ? form.input : (fromBooking?.values ?? emptyValues())
+	);
 	const formErrors = $derived(form && 'errors' in form ? form.errors : undefined);
 	const formContract = $derived(
 		form && 'input' in form && form.input?.contract ? form.input : null
@@ -265,6 +272,7 @@
 				type="button"
 				aria-label="Dauerposten anlegen"
 				onclick={() => {
+					useBooking = false;
 					formKey++;
 					createOpen = true;
 				}}
@@ -450,6 +458,13 @@
 				};
 			}}
 		>
+			{#if fromBooking}
+				<input type="hidden" name="fromBooking" value={fromBooking.id} />
+				<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-label-2">
+					Aus der Buchung übernommen. Bitte Intervall und Bezeichnung prüfen – die Buchung zählt als
+					erste Zahlung.
+				</p>
+			{/if}
 			{#key formKey}
 				<RecurringFields
 					values={formValues}

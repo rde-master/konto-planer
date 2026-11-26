@@ -225,6 +225,8 @@ const FIELD_LABELS: Record<string, string> = {
 	savingSuggestion: 'Sparvorschlag',
 	subscriptionHint: 'Neues Abo',
 	monthlyReport: 'Monatsbericht',
+	recurringItem: 'Dauerposten',
+	firstPayment: 'Als erste Zahlung gezählt',
 	postalAddress: 'Anschrift',
 	calendarFeed: 'Kalender-Abo',
 	apiToken: 'API-Zugang',

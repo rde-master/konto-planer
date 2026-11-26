@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { RecurringError, createRecurring, listRecurringFor } from '#lib/server/recurring.js';
 import {
 	validateAmount,
@@ -13,9 +13,11 @@ import {
 import { getSettings } from '#lib/server/settings.js';
 import { formString } from '#lib/server/validation.js';
 import { itemLogos } from '#lib/server/logos.js';
+import { getBookingFor } from '#lib/server/bookings.js';
+import { canBecomeRecurring, recurringPrefill } from '#lib/recurring-from-booking.js';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const user = locals.user!;
 	const [items, form, settings] = await Promise.all([
 		listRecurringFor(user),
@@ -24,7 +26,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 	]);
 	// One-off payments live under „Geplant“.
 	const shown = items.filter((i) => i.interval !== 'once');
+	// "Dauerposten daraus machen": the form opens filled from a booking (?aus=<id>).
+	const source = url.searchParams.get('aus');
+	const booking = source ? await getBookingFor(user, source) : null;
+	const usable =
+		booking &&
+		booking.canTag &&
+		canBecomeRecurring(booking) &&
+		form.options.accountOptions.some((a) => a.value === booking.accountId && a.giro);
 	return {
+		fromBooking: usable ? { id: booking.id, values: recurringPrefill(booking) } : null,
 		items: shown,
 		logos: await itemLogos(shown),
 		plannedCount: items.filter((i) => i.interval === 'once' && !i.archivedAt).length,
@@ -50,8 +61,10 @@ export const actions: Actions = {
 		};
 		if (!values || !amount.values || contract.errors)
 			return fail(400, { input: { ...input, amount: amountInput }, errors: allErrors });
+		const fromBooking = formString(data, 'fromBooking') || undefined;
+		let id: string;
 		try {
-			await createRecurring(user, values, amount.values.amount, contract.values);
+			id = await createRecurring(user, values, amount.values.amount, contract.values, fromBooking);
 		} catch (e) {
 			if (e instanceof RecurringError)
 				return fail(400, {
@@ -60,6 +73,8 @@ export const actions: Actions = {
 				});
 			throw e;
 		}
+		// From a booking: go straight to the new item.
+		if (fromBooking) redirect(303, `/dauerposten/${id}`);
 		return { created: values.name };
 	}
 };
