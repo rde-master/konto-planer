@@ -288,6 +288,13 @@
       "when": 1795678864072,
       "tag": "0040_widget_layout",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795684677705,
+      "tag": "0041_shortcut_token",
+      "breakpoints": true
     }
   ]
 }

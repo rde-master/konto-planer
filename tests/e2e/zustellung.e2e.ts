@@ -396,3 +396,50 @@ test('the values are pushed to Home Assistant as sensors', async ({ page }) => {
 	expect(JSON.parse(sensor!.body)).toMatchObject({ attributes: { unit_of_measurement: '€' } });
 	expect(haCalls.some((c) => c.path === '/api/states/sensor.konto_planer_verfuegbar')).toBe(true);
 });
+
+test('an iOS shortcut books with its own token', async ({ page, playwright }) => {
+	await login(page);
+	await page.goto('/einstellungen/api');
+	await page.getByLabel('Name').fill('Kurzbefehl Test');
+	await page.getByLabel('Zweck').selectOption({ label: 'Kurzbefehl (bucht)' });
+	await page.getByLabel('Bucht auf').selectOption({ label: ACCOUNT });
+	await page.getByRole('button', { name: 'Zugang anlegen' }).click();
+	await expect(page.getByRole('status')).toHaveText('API-Zugang angelegt.');
+	const token = (await page.getByTestId('api-token').textContent())!.trim();
+	const url = (await page.getByTestId('shortcut-url').textContent())!.trim();
+	expect(url).toMatch(/\/api\/v1\/shortcut$/);
+
+	const api = await playwright.request.newContext();
+	const headers = { authorization: `Bearer ${token}` };
+	const options = ((await (await api.get(url, { headers })).json()) as { options: string[] })
+		.options;
+	const choice = options.find((o) => !o.startsWith('Vorlage:'))!;
+	expect(choice).toBeTruthy();
+
+	let res = await api.post(url, { headers, data: { amount: 12.8, choice, payee: 'Kiosk Kurz' } });
+	expect(res.status()).toBe(200);
+	const body = (await res.json()) as { message: string };
+	expect(body.message.replace(/\u00a0/g, ' ')).toContain(`12,80 € `);
+	expect(body.message).toContain(`gebucht (${ACCOUNT})`);
+
+	res = await api.post(url, { headers, data: { amount: '12,80', choice: 'Gibt es nicht' } });
+	expect(res.status()).toBe(400);
+
+	// A read-only token may not book.
+	await page.getByLabel('Name').fill('Nur lesen');
+	await page.getByLabel('Zweck').selectOption({ label: 'Sonstiges' });
+	await page.getByRole('button', { name: 'Zugang anlegen' }).click();
+	await expect(page.getByTestId('api-token')).not.toHaveText(token);
+	const reader = (await page.getByTestId('api-token').textContent())!.trim();
+	res = await api.post(url, {
+		headers: { authorization: `Bearer ${reader}` },
+		data: { amount: 1, choice }
+	});
+	expect(res.status()).toBe(403);
+	await api.dispose();
+
+	await page.goto('/buchungen?q=Kiosk%20Kurz');
+	await expect(page.getByRole('main').getByRole('link', { name: /Kiosk Kurz.*12,80/ })).toHaveCount(
+		1
+	);
+});

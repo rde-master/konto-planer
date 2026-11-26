@@ -1,0 +1,2 @@
+ALTER TABLE "api_tokens" ADD COLUMN "default_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "api_tokens" ADD CONSTRAINT "api_tokens_default_account_id_accounts_id_fk" FOREIGN KEY ("default_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;

@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.57.0] – Schnellerfassung per iOS-Kurzbefehl
+
+### Neu
+
+- Ausgaben über einen iOS-Kurzbefehl erfassen, ohne die App zu öffnen: Betrag eingeben, Vorlage oder Kategorie aus der Liste wählen – fertig
+- Eigener Zugang „Kurzbefehl (bucht)“ unter Einstellungen › API-Zugänge mit festem Konto („Bucht auf“); er ist der einzige Zugang, der schreiben darf, und legt nur Buchungen an
+- Vorlagen der Schnellerfassung bestimmen Konto, Kategorie und Empfänger; Einnahmen mit „+“ vor dem Betrag
+- Rückmeldung als Mitteilung, z. B. „12,80 € Lebensmittel gebucht (Giro) · Lebensmittel: noch 87,20 € diesen Monat · verfügbar 612,00 €“
+- Anleitung zum Einrichten in der App „Kurzbefehle“ mit Kopier-Knopf für die Adresse
+
 ## [0.56.0] – Sperrbildschirm-Widgets
 
 ### Neu
