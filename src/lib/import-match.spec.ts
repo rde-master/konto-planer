@@ -147,6 +147,149 @@ describe('analyzeRows', () => {
 	});
 });
 
+/** A card statement row: no IBAN, the day of purchase in the name. */
+function cardRow(line: number, bookingDate: string, counterparty: string | null, amount: number) {
+	const r = {
+		line,
+		accountIban: '',
+		bookingDate,
+		valueDate: bookingDate,
+		counterparty,
+		counterpartyIban: null,
+		bookingText: 'Kartenzahlung',
+		purpose: null as string | null,
+		amount,
+		balanceAfter: null,
+		note: null,
+		bankCategory: null,
+		creditorId: null,
+		mandateReference: null
+	};
+	return { ...r, checksum: `${line}|${bookingDate}|${counterparty}|${amount}` };
+}
+
+describe('matching by name', () => {
+	const streaming = item({
+		id: 'stream',
+		name: 'Streaming',
+		counterparty: 'Filmdienst Beispiel',
+		startDate: '2026-09-24',
+		amounts: [{ amount: 13_99, validFrom: '2026-01-01' }]
+	});
+	const ctx = { ...base, items: [streaming] };
+
+	it('recognises a card payment whose name carries the day of purchase', () => {
+		const [nov, dec, other] = analyzeRows(
+			[
+				cardRow(2, '2026-11-26', 'FILMDIENST BEISPIEL 24.11.', -13_99),
+				cardRow(3, '2026-12-28', 'FILMDIENST BEISPIEL 24.12.', -13_99),
+				cardRow(4, '2026-11-25', 'Buchhandlung Muster 24.11.', -13_99 - 1)
+			],
+			ctx
+		);
+		expect(nov.recurring).toMatchObject({ id: 'stream', via: 'name', amountDiffers: false });
+		expect(nov.recurring?.due?.dueDate).toBe('2026-11-24');
+		expect(dec.recurring?.due?.dueDate).toBe('2026-12-24');
+		expect(other.status).toBe('new');
+	});
+
+	it('accepts a price change, but no amount far from the plan', () => {
+		const [raised] = analyzeRows([cardRow(2, '2026-11-25', 'Filmdienst Beispiel', -15_99)], ctx);
+		expect(raised.recurring).toMatchObject({ id: 'stream', via: 'name', amountDiffers: true });
+		const [purchase] = analyzeRows([cardRow(2, '2026-11-25', 'Filmdienst Beispiel', -59_00)], ctx);
+		expect(purchase.status).toBe('new');
+		// A varying amount is expected to differ.
+		const [varying] = analyzeRows([cardRow(2, '2026-11-25', 'Filmdienst Beispiel', -59_00)], {
+			...base,
+			items: [{ ...streaming, variable: true }]
+		});
+		expect(varying.recurring?.id).toBe('stream');
+	});
+
+	it('needs a due date nearby', () => {
+		const [early] = analyzeRows([cardRow(2, '2026-11-10', 'Filmdienst Beispiel', -13_99)], ctx);
+		expect(early.status).toBe('new');
+	});
+
+	it('takes the payment with the exact amount when two name the item', () => {
+		const result = analyzeRows(
+			[
+				cardRow(2, '2026-11-20', 'Filmdienst Beispiel Shop', -12_00),
+				cardRow(3, '2026-11-25', 'Filmdienst Beispiel 24.11.', -13_99)
+			],
+			ctx
+		);
+		expect(result.map((r) => r.recurring?.id ?? r.status)).toEqual(['new', 'stream']);
+	});
+
+	it('knows the item by its own name as whole words, also in the purpose', () => {
+		const gym = item({
+			id: 'gym',
+			name: 'Sportpark',
+			startDate: '2026-10-01',
+			amounts: [{ amount: 29_00, validFrom: '2026-01-01' }]
+		});
+		const rowsIn = [
+			cardRow(2, '2026-11-02', 'SPORTPARK MUSTERSTADT 01.11.', -29_00),
+			cardRow(3, '2026-12-02', null, -29_00),
+			cardRow(4, '2027-01-04', 'Sportparkhaus City', -29_00 - 100)
+		];
+		rowsIn[1].purpose = 'Beitrag Sportpark 12/2026';
+		const result = analyzeRows(rowsIn, { ...base, items: [gym] });
+		expect(result.map((r) => r.recurring?.via ?? r.status)).toEqual(['name', 'name', 'new']);
+	});
+
+	it('follows a payee whose name changed while the IBAN stayed', () => {
+		const power = item({
+			id: 'strom',
+			name: 'Strom',
+			counterparty: 'Stadtwerke Musterstadt',
+			iban: 'DE02120300000000202051',
+			startDate: '2026-10-01',
+			amounts: [{ amount: 60_00, validFrom: '2026-01-01' }]
+		});
+		const renamed = {
+			...cardRow(2, '2026-11-02', 'Energie Beispiel AG', -64_00),
+			counterpartyIban: 'DE02120300000000202051'
+		};
+		const [hit] = analyzeRows([renamed], { ...base, items: [power] });
+		expect(hit.recurring).toMatchObject({ id: 'strom', via: 'iban', amountDiffers: true });
+		// Without a due date nearby the other name is somebody else at the same bank account.
+		const [miss] = analyzeRows([{ ...renamed, bookingDate: '2026-11-16' }], {
+			...base,
+			items: [power]
+		});
+		expect(miss.status).toBe('new');
+	});
+
+	it('without IBAN and with another name the exact amount counts within ten days, if unambiguous', () => {
+		const late = cardRow(2, '2026-12-01', 'ZAHLUNGSDIENST*XY 30.11.', -13_99);
+		const [hit] = analyzeRows([late], ctx);
+		expect(hit.recurring).toMatchObject({ id: 'stream', via: 'amount' });
+		expect(hit.recurring?.due?.dueDate).toBe('2026-11-24');
+		// Two items with this amount: nobody can tell which one it is.
+		const twin = { ...streaming, id: 'twin', name: 'Zeitung', counterparty: 'Verlag Beispiel' };
+		const [open] = analyzeRows([late], { ...base, items: [streaming, twin] });
+		expect(open.status).toBe('new');
+		// With an IBAN the bank day is reliable: three days as before.
+		const [giro] = analyzeRows([{ ...late, counterpartyIban: 'DE02120300000000202051' }], ctx);
+		expect(giro.status).toBe('new');
+	});
+
+	it('suggests a card subscription although the name differs every month', () => {
+		const analyzed = analyzeRows(
+			[
+				cardRow(2, '2026-10-26', 'MUSIKDIENST MUSTER 24.10.', -9_99),
+				cardRow(3, '2026-11-26', 'MUSIKDIENST MUSTER 24.11.', -9_99)
+			],
+			base
+		);
+		expect(suggestItems(analyzed, [])).toMatchObject([
+			{ key: 'musikdienst muster', name: 'MUSIKDIENST MUSTER', interval: 'monthly', count: 2 }
+		]);
+	});
+});
+
 describe('suggestions', () => {
 	it('detects intervals', () => {
 		expect(detectInterval(['2026-10-01', '2026-11-02'])).toBe('monthly');

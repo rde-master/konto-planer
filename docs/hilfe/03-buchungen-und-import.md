@@ -21,6 +21,8 @@ Auf der Kontoseite **CSV importieren** wählen und den Export deiner Bank hochla
 - **ersetzt**: ersetzt eine manuelle Buchung mit gleichem Betrag (±3 Tage)
 - **Dublette**: schon importiert, wird übersprungen
 
+Einen Dauerposten erkennt der Import der Reihe nach an Mandat und Gläubiger-ID, an der IBAN, am Namen (mit einer Fälligkeit in den zehn Tagen davor oder danach) und zuletzt an Betrag und Datum (±3 Tage; bei Zahlungen ohne IBAN wie auf der Kreditkarte ±10 Tage, wenn nur ein Dauerposten mit genau diesem Betrag in Frage kommt). Beim Namen zählt nur, was bleibt: Datum, Uhrzeit und Belegnummern, die vor allem Kreditkartenabrechnungen an den Namen hängen („FILMDIENST 24.11.“), werden nicht mitverglichen. Hat ein Empfänger bei gleicher IBAN einen neuen Namen, gilt die Zahlung weiter als sein Dauerposten, wenn eine Fälligkeit in der Nähe liegt. Nur über den Namen erkannt wird eine Zahlung, wenn der Betrag höchstens 30 % vom Plan abweicht – außer bei Dauerposten mit schwankendem Betrag. So wird eine regelmäßige Kartenzahlung nicht doppelt geführt (vorläufig und importiert), sondern ersetzt die vorläufige Buchung.
+
 Weicht ein Betrag vom Dauerposten ab, kannst du den neuen Betrag übernehmen. Regelmäßige Zahlungen ohne Dauerposten schlägt der Import als neue Dauerposten vor. Nach dem Übernehmen vergleicht die App den Kontostand mit dem Saldo laut Bank.
 
 Ein Import lässt sich rückgängig machen, solange er der jüngste auf dem Konto ist.

@@ -188,3 +188,38 @@ test('a negative balance can be entered without a minus key', async ({ page }) =
 	await expect(adjust).toBeHidden();
 	await expect(balance(page)).toHaveText(/−300,00\s€/);
 });
+
+test('a card payment is recognised although its name carries the day of purchase', async ({
+	page
+}) => {
+	await login(page);
+	await page.goto('/dauerposten');
+	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
+	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
+	await create.getByLabel('Bezeichnung').fill('Musikdienst Karte');
+	await create.getByLabel('Betrag in €').fill('9,95');
+	await create.getByLabel('Konto').selectOption({ label: CARD });
+	await create.getByLabel('Erste Fälligkeit').fill(addDays(today, -2));
+	await create.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(create).toBeHidden();
+
+	// No IBAN, another amount, and the name ends with the day of purchase.
+	const day = (d: string) => d.split('-').reverse().join('.');
+	const bought = addDays(today, -1);
+	const header =
+		'Bezeichnung Auftragskonto;IBAN Auftragskonto;BIC Auftragskonto;Bankname Auftragskonto;Buchungstag;Valutadatum;Name Zahlungsbeteiligter;IBAN Zahlungsbeteiligter;BIC (SWIFT-Code) Zahlungsbeteiligter;Buchungstext;Verwendungszweck;Betrag;Waehrung;Saldo nach Buchung;Bemerkung;Kategorie;Gekennzeichneter Umsatz;Glaeubiger ID;Mandatsreferenz';
+	const row = `Kreditkarte Muster;;;Musterbank eG;${day(bought)};${day(bought)};MUSIKDIENST KARTE ${day(bought).slice(0, 6)};;;Kartenzahlung;Abo;-10,95;EUR;;;;;;`;
+	const buffer = Buffer.from([header, row].join('\r\n') + '\r\n', 'latin1');
+
+	await openAccount(page, CARD);
+	await page.getByRole('link', { name: 'CSV importieren' }).click();
+	await page
+		.getByLabel('CSV-Datei')
+		.setInputFiles({ name: 'karte-abo.csv', mimeType: 'text/csv', buffer });
+	await page.getByRole('button', { name: 'Vorschau zeigen' }).click();
+	await expect(
+		page.getByText('Dauerposten „Musikdienst Karte“ (Name und Fälligkeit)')
+	).toBeVisible();
+	await page.getByRole('button', { name: 'Übernehmen' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Import übernommen' })).toBeVisible();
+});

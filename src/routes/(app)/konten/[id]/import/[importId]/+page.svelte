@@ -26,7 +26,8 @@
 
 	const VIA: Record<string, string> = {
 		mandate: 'Mandat',
-		iban: 'IBAN und Name',
+		iban: 'IBAN',
+		name: 'Name und Fälligkeit',
 		amount: 'Betrag und Datum'
 	};
 

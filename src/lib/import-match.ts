@@ -3,6 +3,7 @@
 import type { ImportRow } from './csv-import.js';
 import { duesBetween, type ExpectedDue } from './due.js';
 import { addDays, type AmountEntry, type Interval, type Schedule } from './recurring.js';
+import { payeeCore, payeeLabel, samePayee } from './payee-name.js';
 
 export type MatchItem = Schedule & {
 	id: string;
@@ -15,6 +16,8 @@ export type MatchItem = Schedule & {
 	mandateReference: string | null;
 	creditorId: string | null;
 	categoryId: string | null;
+	/** Amount varies from payment to payment (no amount check when matching by name). */
+	variable?: boolean;
 	amounts: AmountEntry[];
 };
 
@@ -50,7 +53,7 @@ export type ImportContext = {
 export type RecurringMatch = {
 	id: string;
 	name: string;
-	via: 'mandate' | 'iban' | 'amount';
+	via: 'mandate' | 'iban' | 'name' | 'amount';
 	/** Due item the row fulfils (null if none lies near). */
 	due: (ExpectedDue & { storedId: string | null; replaceBookingId: string | null }) | null;
 	/** Planned amount differs from the bank's (positive cents). */
@@ -75,11 +78,44 @@ function norm(value: string | null): string {
 	return (value ?? '').toLowerCase().replace(/\s+/g, '');
 }
 
-/** Names match when one contains the other (ignoring case and spaces). */
+/**
+ * Names match when one contains the other – ignoring case, spaces and what changes from
+ * booking to booking (dates, receipt numbers; see `payeeCore()`).
+ */
 export function namesMatch(a: string | null, b: string | null): boolean {
-	const x = norm(a);
-	const y = norm(b);
-	return x !== '' && y !== '' && (x.includes(y) || y.includes(x));
+	return samePayee(a, b);
+}
+
+/** Largest deviation from the planned amount for a match by name alone (30 %). */
+export const NAME_AMOUNT_TOLERANCE = 0.3;
+
+const words = (text: string | null) =>
+	payeeCore(text)
+		.split(/[^\p{L}\p{N}&]+/u)
+		.filter(Boolean);
+
+/** The words of `part` stand in `text`, whole and in this order ("Netflix" in "netflix.com 24.11."). */
+function containsWords(text: string | null, part: string | null): boolean {
+	const all = words(text);
+	const wanted = words(part);
+	if (!wanted.length || wanted.join('').length < 4) return false;
+	return all.some((_, i) => wanted.every((w, n) => all[i + n] === w));
+}
+
+/**
+ * The row names the item: its payee matches the row's (or stands in the purpose when the
+ * bank gives no payee), or the item's own name stands there as whole words.
+ */
+export function rowNamesItem(
+	item: { name: string; counterparty: string | null },
+	row: { counterparty: string | null; purpose: string | null }
+): boolean {
+	if (row.counterparty)
+		return (
+			(item.counterparty !== null && samePayee(item.counterparty, row.counterparty)) ||
+			containsWords(row.counterparty, item.name)
+		);
+	return containsWords(row.purpose, item.counterparty) || containsWords(row.purpose, item.name);
 }
 
 /** Effect of an item on the account: -1 out, +1 in, 0 none. */
@@ -92,8 +128,9 @@ function sideOf(item: MatchItem, accountId: string): -1 | 0 | 1 {
 
 /**
  * Status and assignment of every row. Order: duplicates (checksum stored or repeated in the
- * file), recurring items (mandate and creditor ID, then IBAN and name, then amount and date
- * ±3 days), manual bookings (same amount ±3 days), transfers to own accounts.
+ * file), recurring items (mandate and creditor ID, then IBAN, then name with a due date
+ * ±10 days, then amount and date ±3 days – without an IBAN ±10 days if only one item fits),
+ * manual bookings (same amount ±3 days), transfers to own accounts.
  */
 export function analyzeRows(
 	rows: (ImportRow & { checksum: string })[],
@@ -116,7 +153,7 @@ export function analyzeRows(
 	);
 	const out = new Map<number, AnalyzedRow>();
 
-	for (const r of ordered) {
+	for (const [position, r] of ordered.entries()) {
 		const base = { ...r, recurring: null, replace: null, transfer: null };
 		if (seen.has(r.checksum)) {
 			out.set(r.line, { ...base, status: 'duplicate' });
@@ -148,27 +185,90 @@ export function analyzeRows(
 		);
 		if (byMandate)
 			found = { item: byMandate.item, via: 'mandate', due: near(byMandate.item, 10)[0] ?? null };
+		const amount = Math.abs(r.amount);
+		/** Nearest open due date, preferring one with exactly the row's amount. */
+		const dueFor = (item: MatchItem) => {
+			const dues = near(item, 10);
+			return dues.find((d) => d.amount === amount) ?? dues[0] ?? null;
+		};
+		/** Best first: exact amount, then name, then any due date nearby. */
+		const best = <T extends { due: ExpectedDue | null; named: boolean }>(list: T[]) =>
+			list.sort(
+				(a, b) =>
+					Number(b.due?.amount === amount) - Number(a.due?.amount === amount) ||
+					Number(b.named) - Number(a.named) ||
+					Number(b.due !== null) - Number(a.due !== null)
+			)[0];
+
 		if (!found && r.counterpartyIban) {
-			const byIban = candidates.find(({ item }) => {
-				if (item.kind === 'transfer') {
-					const other = item.accountId === ctx.accountId ? item.targetAccountId : item.accountId;
-					return own !== undefined && own.id === other;
-				}
-				return (
-					item.iban === r.counterpartyIban &&
-					(!item.counterparty || namesMatch(item.counterparty, r.counterparty))
-				);
-			});
-			if (byIban) found = { item: byIban.item, via: 'iban', due: near(byIban.item, 10)[0] ?? null };
+			// Same IBAN. The payee's name may have changed – then a due date nearby must confirm it.
+			const byIban = best(
+				candidates
+					.filter(({ item }) => {
+						if (item.kind === 'transfer') {
+							const other =
+								item.accountId === ctx.accountId ? item.targetAccountId : item.accountId;
+							return own !== undefined && own.id === other;
+						}
+						return item.iban === r.counterpartyIban;
+					})
+					.map(({ item }) => ({
+						item,
+						due: dueFor(item),
+						named:
+							item.kind === 'transfer' ||
+							!item.counterparty ||
+							namesMatch(item.counterparty, r.counterparty)
+					}))
+					.filter((x) => x.named || x.due)
+			);
+			if (byIban) found = { item: byIban.item, via: 'iban', due: byIban.due };
+		}
+		if (!found) {
+			// No IBAN to go by (card statements) or a new one: the name and a due date nearby.
+			const byName = best(
+				candidates
+					.filter(({ item }) => item.kind !== 'transfer' && rowNamesItem(item, r))
+					.map(({ item }) => ({ item, due: dueFor(item), named: true }))
+					.filter(({ item, due }) => {
+						if (due === null) return false;
+						if (due.amount === amount) return true;
+						// Another amount: not if a later row of the file pays exactly the planned one.
+						const exactFollows = ordered
+							.slice(position + 1)
+							.some(
+								(o) =>
+									Math.sign(o.amount) === sign &&
+									Math.abs(o.amount) === due.amount &&
+									!seen.has(o.checksum) &&
+									days(o.bookingDate, due.bookingDate) <= 10 &&
+									rowNamesItem(item, o)
+							);
+						return (
+							!exactFollows &&
+							(item.variable || Math.abs(due.amount - amount) <= due.amount * NAME_AMOUNT_TOLERANCE)
+						);
+					})
+			);
+			if (byName) found = { item: byName.item, via: 'name', due: byName.due };
 		}
 		if (!found)
 			for (const { item } of candidates) {
-				const due = near(item, 3).find((d) => d.amount === Math.abs(r.amount));
+				const due = near(item, 3).find((d) => d.amount === amount);
 				if (due) {
 					found = { item, via: 'amount', due };
 					break;
 				}
 			}
+		if (!found && !r.counterpartyIban) {
+			// Card statements: no IBAN, the name may be another every time and the booking day
+			// lags behind. The exact amount within ±10 days counts if only one item fits.
+			const fits = candidates
+				.filter(({ item }) => item.kind !== 'transfer')
+				.map(({ item }) => ({ item, due: near(item, 10).find((d) => d.amount === amount) }))
+				.filter((x) => x.due !== undefined);
+			if (fits.length === 1) found = { item: fits[0].item, via: 'amount', due: fits[0].due! };
+		}
 
 		if (found) {
 			const due = found.due;
@@ -226,14 +326,17 @@ export function analyzeRows(
 	return rows.map((r) => out.get(r.line)!);
 }
 
-/** Key of a payee for suggestions and remembered categories: IBAN, otherwise the name. */
+/**
+ * Key of a payee for suggestions, remembered categories and logos: IBAN, otherwise the lasting
+ * part of the name (`payeeCore()`), so that "NETFLIX.COM 24.11." and "NETFLIX.COM 24.12." are
+ * the same payee.
+ */
 export function payeeKey(r: {
 	counterpartyIban: string | null;
 	counterparty: string | null;
 }): string | null {
 	if (r.counterpartyIban) return r.counterpartyIban;
-	const name = (r.counterparty ?? '').trim().toLowerCase();
-	return name || null;
+	return payeeCore(r.counterparty) || null;
 }
 
 /** Interval from the median gap between payments (null if irregular). */
@@ -296,7 +399,8 @@ export function suggestItems(
 		const key = payeeKey(r);
 		if (!key) return;
 		const g = groups.get(key) ?? {
-			name: r.counterparty ?? key,
+			// Without the date or receipt number of this one booking.
+			name: payeeLabel(r.counterparty) || key,
 			iban: r.counterpartyIban,
 			entries: []
 		};

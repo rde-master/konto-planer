@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.64.3] – Dauerposten im Import besser erkennen
+
+### Behoben
+
+- Kreditkarte: Hängt die Bank das Kaufdatum oder eine Belegnummer an den Namen („FILMDIENST 24.11.“), wird die Zahlung jetzt trotzdem ihrem Dauerposten zugeordnet – sie steht nicht mehr doppelt da (vorläufig und importiert)
+- Zahlungen ohne IBAN werden am Namen erkannt: Empfänger oder Bezeichnung des Dauerpostens, dazu eine Fälligkeit in den zehn Tagen davor oder danach; der Betrag darf bis 30 % abweichen (bei schwankendem Betrag beliebig)
+- Ganz anderer Name auf der Karte: Der genaue Betrag reicht innerhalb von zehn Tagen, wenn nur ein Dauerposten in Frage kommt
+- Gleiche IBAN, neuer Name des Empfängers: Die Zahlung bleibt bei ihrem Dauerposten, wenn eine Fälligkeit in der Nähe liegt
+- Vorschläge für neue Dauerposten, gemerkte Kategorien und Logos fassen solche Zahlungen jetzt zu einem Empfänger zusammen; der Vorschlag trägt den Namen ohne Datum
+
+Hinweis: Für Empfänger ohne IBAN, deren Name Zahlen enthielt, musst du eine von Hand gewählte Kategorie oder ein Logo einmal neu wählen.
+
 ## [0.64.2] – Zurück führt zurück
 
 ### Behoben
