@@ -36,6 +36,7 @@ import { ACCESS_LEVELS, validateAccount, type AccessLevel } from '#lib/server/ac
 import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError, formString } from '#lib/server/validation.js';
 import { nextSettlements } from '#lib/server/credit-cards.js';
+import { balanceDates } from '#lib/server/import-reminder.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -60,7 +61,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 					.map((a) => ({ value: a.id, label: a.name }))
 			}
 		: null;
+	const asOf = (await balanceDates([account])).get(account.id) ?? null;
 	return {
+		asOf,
 		card,
 		forecast,
 		goals,

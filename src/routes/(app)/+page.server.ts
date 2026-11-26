@@ -13,6 +13,7 @@ import { cancelSoon, contractStatus } from '#lib/contracts.js';
 import { addDays } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import { formatIban } from '#lib/iban.js';
+import { balanceDates } from '#lib/server/import-reminder.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
 	ManualTransferError,
@@ -48,7 +49,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		getSettings()
 	]);
 	const accounts = all.filter((a) => !a.archivedAt);
-	const balances = await balancesOf(accounts);
+	const [balances, asOf] = await Promise.all([balancesOf(accounts), balanceDates(accounts, today)]);
 	const plans = await plansFor(user, accounts, balances);
 	const active = items.filter((i) => !i.archivedAt);
 	const ids = new Set(accounts.map((a) => a.id));
@@ -63,6 +64,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				name: a.name,
 				color: a.color,
 				balance: balances.get(a.id) ?? a.openingBalance,
+				asOf: asOf.get(a.id) ?? null,
 				available: plan?.plan.available ?? null,
 				minimum: plan?.plan.minimum ?? null,
 				cutoff: plan?.cutoff.date ?? null,

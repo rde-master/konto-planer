@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { todayBerlin } from '../../src/lib/dates';
+import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
 // Price and subscription watch: higher amounts and new regular debits from the import.
@@ -102,4 +102,15 @@ test('a new regular debit from the import can become a recurring item', async ({
 			name: 'Musikdienst Beispiel'
 		})
 	).toHaveCount(0);
+});
+
+test('the balance shows the date of the latest import', async ({ page }) => {
+	await login(page);
+	await page.goto('/konten');
+	const row = page.getByRole('link', { name: new RegExp(ACCOUNT) });
+	await expect(row).toContainText(`Stand vom ${formatDay(addDays(today, -10))}`);
+	await row.click();
+	await expect(page.getByTestId('as-of')).toHaveText(
+		`Stand vom ${formatDay(addDays(today, -10))} (letzter Import)`
+	);
 });

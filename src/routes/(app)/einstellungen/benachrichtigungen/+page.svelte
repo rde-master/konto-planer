@@ -40,7 +40,9 @@
 		price_increase:
 			'Wenn ein Dauerposten (Ausgabe) einen höheren Betrag bekommt oder der Import eine höhere Abbuchung findet; auch angekündigte Erhöhungen.',
 		new_subscription:
-			'Wenn der Import eine regelmäßige Abbuchung ohne Dauerposten findet (ab der zweiten Zahlung) und du sie nicht übernommen hast.'
+			'Wenn der Import eine regelmäßige Abbuchung ohne Dauerposten findet (ab der zweiten Zahlung) und du sie nicht übernommen hast.',
+		import_reminder:
+			'Monatlich am 30. (im Februar am Monatsletzten) für Girokonten und Kreditkarten mit Import, wenn der letzte Import älter als 14 Tage ist.'
 	};
 </script>
 

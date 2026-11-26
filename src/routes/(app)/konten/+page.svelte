@@ -12,7 +12,7 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { shortIban } from '#lib/iban.js';
-	import { todayBerlin } from '#lib/dates.js';
+	import { formatDay, todayBerlin } from '#lib/dates.js';
 	import { ACCOUNT_TYPE_LABELS } from '#lib/account-types.js';
 	import type { PageProps } from './$types';
 
@@ -131,6 +131,9 @@
 												? `verfügbar ${formatEuro(account.available)}`
 												: null,
 											account.iban ? shortIban(account.iban) : null,
+											account.asOf && !account.archivedAt
+												? `Stand vom ${formatDay(account.asOf.date)}`
+												: null,
 											account.level === 'view' ? 'Nur ansehen' : null
 										]
 											.filter(Boolean)
