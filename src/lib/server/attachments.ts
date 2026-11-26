@@ -14,7 +14,7 @@ import { attachmentError, cleanFileName } from './attachment-rules.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Attachments live in the data volume next to the backups. */
-function attachmentDir() {
+export function attachmentDir() {
 	return path.resolve(
 		process.env.ATTACHMENT_DIR || path.join(process.cwd(), 'data', 'attachments')
 	);

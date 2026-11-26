@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { backupFileName, backupsToDelete, needsBackup, pendingMigrations } from './backup-rules';
+import {
+	backupFileName,
+	backupsToDelete,
+	isBackupFile,
+	needsBackup,
+	pendingMigrations
+} from './backup-rules';
 
 const JOURNAL = [1000, 2000, 3000];
 
@@ -59,5 +65,17 @@ describe('backupsToDelete', () => {
 
 	it('deletes nothing when there are few backups', () => {
 		expect(backupsToDelete(names.slice(0, 3))).toEqual([]);
+	});
+});
+
+describe('manual backups', () => {
+	it('are named and recognised', () => {
+		const name = backupFileName('0.58.0', new Date('2026-11-26T10:00:00Z'), 'manuell');
+		expect(name).toBe('2026-11-26_11-00-00_manuell-0.58.0.dump');
+		expect(isBackupFile(name)).toBe(true);
+		expect(isBackupFile('../etc/passwd')).toBe(false);
+		expect(backupsToDelete([name, '2026-01-01_00-00-00_vor-0.1.0.dump'], 1)).toEqual([
+			'2026-01-01_00-00-00_vor-0.1.0.dump'
+		]);
 	});
 });

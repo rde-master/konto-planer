@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.58.0] – Systemstatus und „Was ist neu“
+
+### Neu
+
+- Einstellungen › Systemstatus (Admin): Version mit Hinweis auf ein neueres Release, Laufzeit, Hintergrundjobs mit letztem Lauf, Dauer und Fehlern, Verbindungen (E-Mail, Home Assistant, Push) mit letztem Versand, Datenbank-Version und -Größe, Anzahl der Daten, Platz für Anhänge und Sicherungen
+- Sicherungen: „Jetzt sichern“ (wie vor jedem Update) und alle Sicherungen zum Herunterladen; die neuesten zehn bleiben
+- „Was ist neu“: nach einem Update sieht jeder Benutzer einmal, was sich seit seinem letzten Besuch geändert hat; jederzeit nachlesbar unter Einstellungen › Was ist neu
+
+### Hinweis
+
+- Die Update-Prüfung fragt nur die öffentliche Release-Liste auf GitHub ab und sendet keine Daten
+
 ## [0.57.0] – Schnellerfassung per iOS-Kurzbefehl
 
 ### Neu

@@ -32,6 +32,8 @@ export const users = pgTable('users', {
 	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
 	/** Monthly report by e-mail (opt-in). */
 	monthlyReport: boolean('monthly_report').notNull().default(false),
+	/** Last version whose "Was ist neu" the user has seen. */
+	lastSeenVersion: text('last_seen_version'),
 	/** Sender address for letters (cancellations). */
 	postalAddress: jsonb('postal_address').$type<{
 		name: string;
@@ -1160,3 +1162,13 @@ export const widgets = pgTable(
 	},
 	(t) => [index('widgets_user_idx').on(t.userId)]
 );
+
+/** Last run of each background job (system status). */
+export const jobRuns = pgTable('job_runs', {
+	job: text('job').primaryKey(),
+	startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+	finishedAt: timestamp('finished_at', { withTimezone: true }),
+	ok: boolean('ok'),
+	message: text('message'),
+	durationMs: integer('duration_ms')
+});
