@@ -1134,3 +1134,23 @@ export const apiTokens = pgTable(
 	},
 	(t) => [index('api_tokens_user_idx').on(t.userId)]
 );
+
+/** iOS widget (Scriptable) with its own read-only token; only the hash is stored. */
+export const widgets = pgTable(
+	'widgets',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		template: text('template').notNull(),
+		size: text('size').notNull(),
+		/** Accounts shown; empty = all the user sees. */
+		accountIds: jsonb('account_ids').$type<string[]>().notNull().default([]),
+		tokenHash: text('token_hash').notNull().unique(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		lastUsedAt: timestamp('last_used_at', { withTimezone: true })
+	},
+	(t) => [index('widgets_user_idx').on(t.userId)]
+);

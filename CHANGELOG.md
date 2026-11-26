@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.54.0] – Widget-Musterseite
+
+### Neu
+
+- Neue Seite „Widgets“ (unter Mehr) mit drei Vorlagen für iOS-Widgets über die App Scriptable: „Verfügbar bis Gehalt“, „Offene Zahlungen“ und „Alle Konten“
+- Jede Vorlage mit Live-Vorschau in Klein, Mittel oder Groß und wählbaren Konten
+- „Widget anlegen“ erzeugt ein Widget mit eigenem, nur lesendem Token und ein fertiges Skript zum Kopieren; dazu eine Anleitung in drei Schritten
+- Das Skript lädt Layout und Werte vom Server, folgt Hell/Dunkel des iPhones und zeigt ohne Verbindung die zuletzt geladenen Werte mit „offline · Stand HH:MM“
+- „Meine Widgets“ zeigt alle Widgets mit letztem Abruf; jedes lässt sich einzeln widerrufen
+
 ## [0.53.0] – Lesende API und Home-Assistant-Sensoren
 
 ### Neu
