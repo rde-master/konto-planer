@@ -22,6 +22,8 @@
 	import Zap from '@lucide/svelte/icons/zap';
 	import Repeat from '@lucide/svelte/icons/repeat';
 	import Link2 from '@lucide/svelte/icons/link-2';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
+	import { transferLabel } from '#lib/transfers.js';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { accountColorCss } from '#lib/colors.js';
@@ -59,12 +61,16 @@
 	let assignOpen = $state(false);
 	let unassignOpen = $state(false);
 	let assignPending = $state(false);
+	let transferOpen = $state(false);
+	let untransferOpen = $state(false);
 	const assignEnhance: SubmitFunction = () => {
 		assignPending = true;
 		return async ({ update }) => {
 			assignPending = false;
 			assignOpen = false;
 			unassignOpen = false;
+			transferOpen = false;
+			untransferOpen = false;
 			await update();
 		};
 	};
@@ -158,6 +164,16 @@
 	const unassignDone = $derived(
 		form?.action === 'unassign' && 'success' in form ? form.name : undefined
 	);
+	const transferDone = $derived(
+		form?.action === 'transfer' && 'success' in form
+			? { accountName: form.accountName, created: form.created }
+			: undefined
+	);
+	const untransferDone = $derived(
+		form?.action === 'untransfer' && 'success' in form
+			? { accountName: form.accountName, removed: form.removed }
+			: undefined
+	);
 	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
 	const tagsSaved = $derived(form?.action === 'tags' && 'success' in form);
 	const logoSaved = $derived(form?.action === 'logo' && 'success' in form);
@@ -179,6 +195,23 @@
 </script>
 
 {#snippet assignRows()}
+	{#if data.transfer}
+		<ListRow
+			label="Umbuchung"
+			value={transferLabel(booking.amount, data.transfer.accountName)}
+			href={data.transfer.bookingId ? `buchungen/${data.transfer.bookingId}` : undefined}
+		/>
+		{#if data.transfer.canRelease}
+			<ListRow label="Umbuchung auflösen" onclick={() => (untransferOpen = true)} />
+		{/if}
+	{:else if data.transferTargets.length}
+		<ListRow
+			label="Als Umbuchung kennzeichnen"
+			icon={ArrowLeftRight}
+			iconColor="bg-[#007aff]"
+			onclick={() => (transferOpen = true)}
+		/>
+	{/if}
 	{#if data.assigned}
 		<ListRow
 			label="Dauerposten"
@@ -216,6 +249,20 @@
 			{assignDone.dueDate
 				? `Die Fälligkeit vom ${formatDay(assignDone.dueDate)} gilt als bezahlt.`
 				: 'In der Nähe liegt keine offene Fälligkeit.'}
+		</p>
+	{:else if transferDone}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Als Umbuchung gekennzeichnet.
+			{transferDone.created
+				? `Die Gegenbuchung auf ${transferDone.accountName} wurde angelegt.`
+				: `Verknüpft mit der passenden Buchung auf ${transferDone.accountName}.`}
+		</p>
+	{:else if untransferDone}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Umbuchung aufgelöst.
+			{untransferDone.removed
+				? `Die Gegenbuchung auf ${untransferDone.accountName} liegt im Papierkorb.`
+				: `Die Buchung auf ${untransferDone.accountName} bleibt stehen.`}
 		</p>
 	{:else if unassignDone}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -533,6 +580,69 @@
 		{/if}
 	{/if}
 </Page>
+
+{#if data.transferTargets.length}
+	<Sheet
+		bind:open={transferOpen}
+		title="Umbuchung"
+		confirmLabel="Kennzeichnen"
+		formId="transfer-form"
+		confirmDisabled={assignPending}
+	>
+		<form id="transfer-form" method="POST" action="?/transfer" use:enhance={assignEnhance}>
+			<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+				<SelectField
+					label={booking.amount < 0 ? 'Umbuchung auf' : 'Umbuchung von'}
+					name="counterAccountId"
+					options={data.transferTargets}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				{booking.amount < 0
+					? 'Das Geld ist auf ein anderes eigenes Konto gegangen: hier Ausgang, dort Eingang.'
+					: 'Das Geld kam von einem anderen eigenen Konto: hier Eingang, dort Ausgang.'}
+				Steht dort schon eine Buchung über denselben Betrag (bis drei Tage davor oder danach), werden
+				beide verknüpft; sonst legt die App die Gegenbuchung an. Umbuchungen zählen in den Auswertungen
+				nicht als Ausgabe oder Einnahme.
+			</p>
+		</form>
+	</Sheet>
+{/if}
+
+{#if data.transfer?.canRelease}
+	<Sheet
+		bind:open={untransferOpen}
+		title="Umbuchung auflösen"
+		confirmLabel="Auflösen"
+		formId="untransfer-form"
+		confirmDisabled={assignPending}
+	>
+		<form id="untransfer-form" method="POST" action="?/untransfer" use:enhance={assignEnhance}>
+			<p class="mb-4 px-4 text-center text-[15px]">
+				Diese Buchung und die Buchung auf {data.transfer.accountName} sind dann wieder zwei einzelne Buchungen
+				und zählen als Ausgabe und Einnahme.
+			</p>
+			{#if data.transfer.canRemove}
+				<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+					<li>
+						<label class="flex min-h-11 items-center gap-3 px-4 py-2.5 text-[17px]">
+							<span class="flex-1">Buchung auf {data.transfer.accountName} löschen</span>
+							<input
+								type="checkbox"
+								name="remove"
+								checked
+								class="size-5 accent-[var(--kp-accent)]"
+							/>
+						</label>
+					</li>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Die Gegenbuchung hat die App angelegt. Gelöscht liegt sie 30 Tage im Papierkorb.
+				</p>
+			{/if}
+		</form>
+	</Sheet>
+{/if}
 
 {#if data.assignOptions.length}
 	<Sheet

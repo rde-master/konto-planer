@@ -350,6 +350,7 @@
 					errors={formErrors}
 					accounts={options.bookingAccounts}
 					categories={options.categoryGroups}
+					counterAccounts={data.counterAccounts}
 					full
 				/>
 			{/key}

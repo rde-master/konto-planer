@@ -40,6 +40,13 @@ import {
 	canUnassign,
 	unassignBooking
 } from '#lib/server/recurring-assign.js';
+import {
+	TransferError,
+	linkTransfer,
+	releaseTransfer,
+	transferOf,
+	transferOptions
+} from '#lib/server/transfers.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -65,11 +72,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		settleUsers()
 	]);
 	const real = booking.source === 'manual' || booking.source === 'import';
-	const [assignable, assigned] = await Promise.all([
+	const [assignable, assigned, transfer, transferTargets] = await Promise.all([
 		assignOptions(booking),
-		real ? assignedItem(booking) : null
+		real ? assignedItem(booking) : null,
+		transferOf(locals.user!, booking),
+		transferOptions(booking)
 	]);
 	return {
+		/** Other side of a transfer between two accounts (null = a plain booking). */
+		transfer,
+		/** "Als Umbuchung kennzeichnen": the other active accounts. */
+		transferTargets,
 		/** "Dauerposten zuordnen": items of the account in the booking's direction. */
 		assignOptions: assignable,
 		/** Item a real payment belongs to, and whether it can be released from it. */
@@ -111,6 +124,31 @@ export const actions: Actions = {
 			return { action: 'assign' as const, success: true, ...result };
 		} catch (e) {
 			if (e instanceof AssignError) return fail(400, { action: 'assign', message: e.message });
+			throw e;
+		}
+	},
+
+	/** "Als Umbuchung kennzeichnen": links or creates the other side on the chosen account. */
+	transfer: async ({ request, locals, params }) => {
+		const accountId = formString(await request.formData(), 'counterAccountId');
+		try {
+			const result = await linkTransfer(locals.user!, params.id, accountId);
+			return { action: 'transfer' as const, success: true, ...result };
+		} catch (e) {
+			if (e instanceof TransferError) return fail(400, { action: 'transfer', message: e.message });
+			throw e;
+		}
+	},
+
+	/** "Umbuchung auflösen": both bookings stand alone again; optionally the other side goes. */
+	untransfer: async ({ request, locals, params }) => {
+		const remove = formString(await request.formData(), 'remove') === 'on';
+		try {
+			const result = await releaseTransfer(locals.user!, params.id, remove);
+			return { action: 'untransfer' as const, success: true, ...result };
+		} catch (e) {
+			if (e instanceof TransferError)
+				return fail(400, { action: 'untransfer', message: e.message });
 			throw e;
 		}
 	},

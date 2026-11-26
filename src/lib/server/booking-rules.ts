@@ -13,6 +13,8 @@ export type BookingInput = {
 	bookingDate: string;
 	counterparty: string;
 	purpose: string;
+	/** Other account of a transfer ("" = a plain booking). */
+	counterAccountId?: string;
 };
 
 export type BookingValues = {
@@ -30,6 +32,8 @@ export type BookingContext = {
 	accountIds: Set<string>;
 	categoryIds: Set<string>;
 	today: string;
+	/** Accounts a booking can be transferred with (absent = transfers are not offered). */
+	counterAccountIds?: Set<string>;
 };
 
 function optional(value: string, max: number, field: string, errors: FieldErrors): string | null {
@@ -42,7 +46,9 @@ function optional(value: string, max: number, field: string, errors: FieldErrors
 export function validateBooking(
 	input: BookingInput,
 	ctx: BookingContext
-): { values: BookingValues; errors: null } | { values: null; errors: FieldErrors } {
+):
+	| { values: BookingValues; counterAccountId: string | null; errors: null }
+	| { values: null; errors: FieldErrors } {
 	const errors: FieldErrors = {};
 	const kind = BOOKING_KINDS.find((k) => k === input.kind);
 	if (!kind) errors.kind = 'Bitte Ausgabe oder Einnahme wählen.';
@@ -61,6 +67,15 @@ export function validateBooking(
 	else if (input.bookingDate > ctx.today)
 		errors.bookingDate = 'Das Datum darf nicht in der Zukunft liegen.';
 
+	// A transfer: the same amount arrives on (or comes from) another account of the app.
+	const counterAccountId = input.counterAccountId || null;
+	if (counterAccountId) {
+		if (!ctx.counterAccountIds?.has(counterAccountId))
+			errors.counterAccountId = 'Dieses Konto gibt es nicht mehr.';
+		else if (counterAccountId === input.accountId)
+			errors.counterAccountId = 'Bitte ein anderes Konto als das der Buchung wählen.';
+	}
+
 	const counterparty = optional(input.counterparty, 70, 'counterparty', errors);
 	const purpose = optional(input.purpose, 140, 'purpose', errors);
 
@@ -74,6 +89,7 @@ export function validateBooking(
 			counterparty,
 			purpose
 		},
+		counterAccountId,
 		errors: null
 	};
 }

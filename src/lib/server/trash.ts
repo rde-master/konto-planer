@@ -128,6 +128,11 @@ function ids(rows: Record<string, unknown>[], key = 'id'): string[] {
 // --- snapshots of the objects ---------------------------------------------------------------
 
 export async function snapshotBooking(executor: Executor, id: string): Promise<Snapshot> {
+	// The other side of a transfer loses its link when this booking goes.
+	const counters = await executor
+		.select({ id: bookings.id })
+		.from(bookings)
+		.where(eq(bookings.counterBookingId, id));
 	return {
 		rows: [
 			{ table: 'bookings', rows: await rowsOf(executor, bookings, 'id', [id]) },
@@ -139,7 +144,15 @@ export async function snapshotBooking(executor: Executor, id: string): Promise<S
 				rows: await rowsOf(executor, sharedExpenseShares, 'bookingId', [id])
 			}
 		],
-		links: []
+		links: [
+			{
+				table: 'bookings',
+				key: 'id',
+				column: 'counterBookingId',
+				value: id,
+				ids: counters.map((c) => c.id)
+			}
+		]
 	};
 }
 

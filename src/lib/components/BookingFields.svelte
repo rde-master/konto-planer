@@ -8,6 +8,7 @@
 		amount: string;
 		accountId: string;
 		categoryId: string | null;
+		counterAccountId?: string | null;
 		bookingDate?: string;
 		counterparty?: string | null;
 		purpose?: string | null;
@@ -23,6 +24,7 @@
 		accounts,
 		categories,
 		full = false,
+		counterAccounts = [],
 		onaccountchange
 	}: {
 		values: BookingFormValues;
@@ -30,6 +32,8 @@
 		accounts: { value: string; label: string }[];
 		categories: { label: string; options: { value: string; label: string }[] }[];
 		full?: boolean;
+		/** Other accounts of the app: offers "Umbuchung mit Konto" in the full form. */
+		counterAccounts?: { value: string; label: string }[];
 		onaccountchange?: (accountId: string) => void;
 	} = $props();
 </script>
@@ -100,4 +104,20 @@
 			error={errors?.purpose}
 		/>
 	</ul>
+	{#if counterAccounts.length}
+		<ul class="mt-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
+			<SelectField
+				label="Umbuchung auf/von"
+				name="counterAccountId"
+				options={[{ value: '', label: 'Keine Umbuchung' }, ...counterAccounts]}
+				value={values.counterAccountId ?? ''}
+				error={errors?.counterAccountId}
+			/>
+		</ul>
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Geht das Geld auf ein anderes eigenes Konto (oder kommt es von dort)? Dann wähle es hier: Die
+			Ausgabe hier ist dort eine Einnahme und umgekehrt. Umbuchungen zählen in den Auswertungen
+			weder als Ausgabe noch als Einnahme.
+		</p>
+	{/if}
 {/if}

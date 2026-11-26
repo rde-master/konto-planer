@@ -10,6 +10,7 @@ export function readBookingForm(data: FormData, today: string): BookingInput {
 		categoryId: formString(data, 'categoryId'),
 		bookingDate: data.has('bookingDate') ? formString(data, 'bookingDate') : today,
 		counterparty: formString(data, 'counterparty'),
-		purpose: formString(data, 'purpose')
+		purpose: formString(data, 'purpose'),
+		counterAccountId: formString(data, 'counterAccountId')
 	};
 }

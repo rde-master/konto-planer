@@ -2,6 +2,17 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.66.0] – Umbuchung zwischen zwei Konten
+
+### Neu
+
+- Buchung erfassen: Im Feld „Umbuchung auf/von“ wählst du ein anderes eigenes Konto. Die Ausgabe hier ist dort eine Einnahme (und umgekehrt) – etwa Girokonto → Sparbuch oder Girokonto → Kreditkarte
+- An einer bestehenden Buchung: „Als Umbuchung kennzeichnen“. Steht auf dem anderen Konto schon die passende Buchung (gleicher Betrag, bis drei Tage davor oder danach), werden beide verknüpft; sonst legt die App die Gegenbuchung an
+- Beide Seiten zeigen, wohin bzw. woher das Geld ging, und führen zueinander
+- „Umbuchung auflösen“ macht daraus wieder zwei einzelne Buchungen; eine von der App angelegte Gegenbuchung lässt sich dabei gleich löschen
+- Umbuchungen zählen in Auswertungen und Budgets weder als Ausgabe noch als Einnahme
+- Änderst du Betrag oder Datum, zieht die von der App angelegte Gegenbuchung mit
+
 ## [0.65.0] – Zahlungen von Hand zuordnen
 
 ### Neu
