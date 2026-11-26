@@ -297,6 +297,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.62.0 | Mehr Firmenlogos: von der Firmen-Webseite und über den Google-Symboldienst |
 | 0.63.0 | Grafiken auf der Übersicht |
 | 0.64.0 | Dauerposten aus einer Buchung anlegen (aus den manuellen Tests) |
+| 0.65.0 | Buchungen von Hand einem Dauerposten zuordnen, im Import und an der Buchung; Namen merken (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

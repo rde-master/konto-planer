@@ -625,6 +625,37 @@
 		</ListGroup>
 	{/if}
 
+	{#if data.aliases.length}
+		<section class="mb-8" aria-label="Namen im Import">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Namen im Import</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.aliases as alias (alias.id)}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
+						<span class="min-w-0 flex-1 truncate text-[17px]">{alias.name}</span>
+						{#if item.canEdit}
+							<form method="POST" action="?/removeAlias" use:enhance>
+								<input type="hidden" name="aliasId" value={alias.id} />
+								<button
+									type="submit"
+									aria-label={`${alias.name} entfernen`}
+									class="kp-text-button text-[15px] text-danger active:opacity-60"
+								>
+									Entfernen
+								</button>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Unter diesen Namen hast du Buchungen von Hand zugeordnet. Der Import erkennt den Dauerposten
+				daran wieder.
+			</p>
+		</section>
+	{/if}
+
 	{#if item.createdByName}
 		<p class="mb-8 px-4 text-[13px] text-label-2">Angelegt von {item.createdByName}.</p>
 	{/if}

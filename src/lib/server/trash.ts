@@ -21,6 +21,7 @@ import {
 	recurringAmounts,
 	recurringAttachments,
 	recurringItems,
+	recurringAliases,
 	recurringTags,
 	savingsGoals,
 	sharedExpenseShares,
@@ -49,6 +50,7 @@ const TABLES = {
 	contracts,
 	recurringAttachments,
 	recurringTags,
+	recurringAliases,
 	loans,
 	loanExtraPayments,
 	manualTransfersDone,
@@ -162,6 +164,10 @@ export async function snapshotRecurring(executor: Executor, id: string): Promise
 			{ table: 'contracts', rows: await rowsOf(executor, contracts, 'recurringId', [id]) },
 			{ table: 'recurringAttachments', rows: attachments },
 			{ table: 'recurringTags', rows: await rowsOf(executor, recurringTags, 'recurringId', [id]) },
+			{
+				table: 'recurringAliases',
+				rows: await rowsOf(executor, recurringAliases, 'recurringId', [id])
+			},
 			{ table: 'loans', rows: await rowsOf(executor, loans, 'recurringId', [id]) },
 			{
 				table: 'loanExtraPayments',

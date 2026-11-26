@@ -9,6 +9,7 @@ import {
 	counterpartyCategories,
 	dueItems,
 	imports,
+	recurringAliases,
 	recurringAmounts,
 	recurringItems,
 	subscriptionHints,
@@ -28,10 +29,13 @@ import {
 	type ImportRow
 } from '../csv-import.js';
 import {
+	MANUAL_WINDOW,
 	analyzeRows,
 	payeeKey,
+	sideOf,
 	suggestItems,
 	type AnalyzedRow,
+	type Assignment,
 	type ImportContext,
 	type MatchItem,
 	type StoredDue,
@@ -43,6 +47,7 @@ import { activeRules } from './rules.js';
 import { categoryByRules } from '../rules.js';
 import { formatIban } from '../iban.js';
 import { addDays } from '../recurring.js';
+import { payeeCore } from '../payee-name.js';
 
 export class ImportError extends Error {}
 
@@ -53,7 +58,7 @@ export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type StoredRow = ImportRow & { checksum: string };
+type StoredRow = ImportRow & { checksum: string; assign?: Assignment };
 
 /** Account the viewer may import into: giro (with IBAN) or credit card, edit right, active. */
 export async function importableAccount(viewer: Viewer, accountId: string) {
@@ -126,10 +131,11 @@ export async function createDraft(
 	});
 }
 
-const CONTEXT_DAYS = 14;
+/** Days around the file's period that are loaded: a row assigned by hand looks this far. */
+const CONTEXT_DAYS = MANUAL_WINDOW + 4;
 
 /** Everything the assignment needs: stored data around the file's period. */
-async function loadContext(executor: Executor, accountId: string, rows: StoredRow[]) {
+export async function loadContext(executor: Executor, accountId: string, rows: StoredRow[]) {
 	const dates = rows.map((r) => r.bookingDate).sort();
 	const from = addDays(dates[0] ?? '2000-01-01', -CONTEXT_DAYS);
 	const to = addDays(dates.at(-1) ?? '2000-01-01', CONTEXT_DAYS);
@@ -197,7 +203,7 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 		activeRules(executor)
 	]);
 	const itemIds = items.map((i) => i.id);
-	const [amounts, dues] = itemIds.length
+	const [amounts, dues, aliases] = itemIds.length
 		? await Promise.all([
 				executor
 					.select()
@@ -212,13 +218,18 @@ async function loadContext(executor: Executor, accountId: string, rows: StoredRo
 							gte(dueItems.dueDate, addDays(from, -CONTEXT_DAYS)),
 							lte(dueItems.dueDate, to)
 						)
-					)
+					),
+				executor
+					.select({ recurringId: recurringAliases.recurringId, name: recurringAliases.name })
+					.from(recurringAliases)
+					.where(inArray(recurringAliases.recurringId, itemIds))
 			])
-		: [[], []];
+		: [[], [], []];
 	const sourceOf = new Map(near.map((b) => [b.id, b.source]));
 	const itemById = new Map(items.map((i) => [i.id, i]));
 	const matchItems: MatchItem[] = items.map((i) => ({
 		...i,
+		aliases: aliases.filter((a) => a.recurringId === i.id).map((a) => a.name),
 		amounts: amounts
 			.filter((a) => a.recurringId === i.id)
 			.map(({ amount, validFrom }) => ({ amount, validFrom }))
@@ -330,6 +341,8 @@ export type ImportView = Omit<Import, 'rows'> & {
 	/** Provisional bookings in the period without a real booking in the file. */
 	missing: { id: string; date: string; amount: number; label: string }[];
 	categoryNames: Record<string, string>;
+	/** Recurring items a row can be assigned to by hand (`side`: -1 out, +1 in). */
+	items: { id: string; name: string; side: -1 | 1 }[];
 };
 
 /** Draft with the assignment of each row, or the result of a finished import. */
@@ -347,7 +360,7 @@ export async function importView(
 		.where(and(eq(imports.id, importId), eq(imports.accountId, accountId)));
 	if (!row || (row.status === 'draft' && row.userId !== viewer.id)) return null;
 	const stored = (row.rows ?? []) as StoredRow[];
-	const { analyzed, suggestions, categoryOf, near } = await analyze(db, accountId, stored);
+	const { analyzed, suggestions, categoryOf, near, ctx } = await analyze(db, accountId, stored);
 	const dates = stored.map((r) => r.bookingDate).sort();
 	const from = dates[0] ?? row.periodFrom;
 	const to = dates.at(-1) ?? row.periodTo;
@@ -392,7 +405,11 @@ export async function importView(
 				label: b.purpose ?? b.counterparty ?? 'Buchung'
 			}))
 			.sort((a, b) => a.date.localeCompare(b.date)),
-		categoryNames: Object.fromEntries(cats.map((c) => [c.id, c.name]))
+		categoryNames: Object.fromEntries(cats.map((c) => [c.id, c.name])),
+		items: ctx.items
+			.map((i) => ({ id: i.id, name: i.name, side: sideOf(i, accountId) }))
+			.filter((i): i is { id: string; name: string; side: -1 | 1 } => i.side !== 0)
+			.sort((a, b) => a.name.localeCompare(b.name, 'de'))
 	};
 }
 
@@ -450,7 +467,89 @@ type UndoData = {
 	parts?: BookingPart[];
 	/** "Neues Abo?" hints the import created. */
 	hints?: string[];
+	/** Payee names learned from rows assigned by hand. */
+	aliases?: string[];
 };
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * The booking fulfils the due item: it is marked as booked (created if not stored yet) and its
+ * provisional booking on this account goes. `undo` collects what changed.
+ */
+export async function fulfilDue(
+	tx: Tx,
+	item: { id: string; accountId: string },
+	accountId: string,
+	bookingId: string,
+	due: NonNullable<NonNullable<AnalyzedRow['recurring']>['due']>,
+	undo?: Pick<UndoData, 'dues' | 'createdDues' | 'restoreBookings'>
+) {
+	const side = item.accountId === accountId ? 'bookingId' : 'targetBookingId';
+	if (due.storedId) {
+		const [before] = await tx.select().from(dueItems).where(eq(dueItems.id, due.storedId));
+		if (undo && before && !undo.dues.some((d) => d.id === before.id))
+			undo.dues.push({
+				id: before.id,
+				status: before.status,
+				bookingId: before.bookingId,
+				targetBookingId: before.targetBookingId
+			});
+		await tx
+			.update(dueItems)
+			.set({ [side]: bookingId, status: 'booked', updatedAt: new Date() })
+			.where(eq(dueItems.id, due.storedId));
+	} else {
+		const [inserted] = await tx
+			.insert(dueItems)
+			.values({
+				recurringId: item.id,
+				dueDate: due.dueDate,
+				bookingDate: due.bookingDate,
+				amount: due.amount,
+				status: 'booked',
+				[side]: bookingId
+			})
+			.returning({ id: dueItems.id });
+		undo?.createdDues.push(inserted.id);
+	}
+	if (due.replaceBookingId) {
+		const gone = await tx
+			.delete(bookings)
+			.where(and(eq(bookings.id, due.replaceBookingId), eq(bookings.source, 'provisional')))
+			.returning();
+		undo?.restoreBookings.push(...gone);
+	}
+}
+
+/**
+ * Remembers the payee name of a booking assigned by hand, so the next import recognises the
+ * item by it. Returns the id of a new entry (null if known already or without a name).
+ */
+export async function learnAlias(
+	tx: Tx,
+	actor: Actor,
+	item: { id: string; name: string; counterparty: string | null },
+	counterparty: string | null
+): Promise<string | null> {
+	const name = payeeCore(counterparty);
+	if (!name || name === payeeCore(item.counterparty) || name === payeeCore(item.name)) return null;
+	const [created] = await tx
+		.insert(recurringAliases)
+		.values({ recurringId: item.id, name })
+		.onConflictDoNothing()
+		.returning({ id: recurringAliases.id });
+	if (!created) return null;
+	await audit(tx, {
+		actor,
+		entityType: 'recurring',
+		action: 'update',
+		entityId: item.id,
+		entityLabel: item.name,
+		after: { importName: name }
+	});
+	return created.id;
+}
 
 export type CommitChoice = {
 	/** Lines to take over. */
@@ -460,6 +559,8 @@ export type CommitChoice = {
 	/** Suggestions to create as recurring items, and which of them are salaries. */
 	suggestions: Set<string>;
 	salaries: Set<string>;
+	/** Rows assigned by hand: line → recurring item, or null for "no recurring item". */
+	assign?: Map<number, string | null>;
 };
 
 /**
@@ -482,7 +583,10 @@ export async function commitImport(
 	await db.transaction(async (tx) => {
 		await tx.execute(sql`select id from accounts where id = ${accountId} for update`);
 		// Re-check inside the lock (another import may have run meanwhile).
-		const stored = view.rows.map(stripAnalysis);
+		const stored = view.rows.map(stripAnalysis).map((r) => {
+			const assign = choice.assign?.get(r.line);
+			return assign === undefined ? r : { ...r, assign };
+		});
 		const { analyzed, suggestions, categoryOf, itemById, ownAccounts } = await analyze(
 			tx,
 			accountId,
@@ -497,7 +601,8 @@ export async function commitImport(
 			items: [],
 			links: [],
 			parts: [],
-			hints: []
+			hints: [],
+			aliases: []
 		};
 		let created = 0;
 		let matched = 0;
@@ -513,44 +618,12 @@ export async function commitImport(
 					.returning({ id: bookings.id });
 				createdByLine.set(r.line, booking.id);
 				const due = r.recurring.due;
+				if (r.recurring.via === 'manual') {
+					const alias = await learnAlias(tx, actor, item, r.counterparty);
+					if (alias) undo.aliases!.push(alias);
+				}
 				if (due) {
-					const side = item.accountId === accountId ? 'bookingId' : 'targetBookingId';
-					if (due.storedId) {
-						const [before] = await tx.select().from(dueItems).where(eq(dueItems.id, due.storedId));
-						if (before && !undo.dues.some((d) => d.id === before.id))
-							undo.dues.push({
-								id: before.id,
-								status: before.status,
-								bookingId: before.bookingId,
-								targetBookingId: before.targetBookingId
-							});
-						await tx
-							.update(dueItems)
-							.set({ [side]: booking.id, status: 'booked', updatedAt: new Date() })
-							.where(eq(dueItems.id, due.storedId));
-					} else {
-						const [inserted] = await tx
-							.insert(dueItems)
-							.values({
-								recurringId: item.id,
-								dueDate: due.dueDate,
-								bookingDate: due.bookingDate,
-								amount: due.amount,
-								status: 'booked',
-								[side]: booking.id
-							})
-							.returning({ id: dueItems.id });
-						undo.createdDues.push(inserted.id);
-					}
-					if (due.replaceBookingId)
-						undo.restoreBookings.push(
-							...(await tx
-								.delete(bookings)
-								.where(
-									and(eq(bookings.id, due.replaceBookingId), eq(bookings.source, 'provisional'))
-								)
-								.returning())
-						);
+					await fulfilDue(tx, item, accountId, booking.id, due, undo);
 					if (r.recurring.amountDiffers && choice.amountLines.has(r.line)) {
 						const amount = Math.abs(r.amount);
 						const [previous] = await tx
@@ -944,6 +1017,8 @@ export async function undoImport(
 			await tx.delete(dueItems).where(inArray(dueItems.id, undo.createdDues));
 		if (undo.hints?.length)
 			await tx.delete(subscriptionHints).where(inArray(subscriptionHints.id, undo.hints));
+		if (undo.aliases?.length)
+			await tx.delete(recurringAliases).where(inArray(recurringAliases.id, undo.aliases));
 		if (undo.restoreBookings.length) {
 			const restore = undo.restoreBookings.map(bookingRow);
 			await tx.insert(bookings).values(restore).onConflictDoNothing();

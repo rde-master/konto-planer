@@ -21,6 +21,7 @@
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
 	import Zap from '@lucide/svelte/icons/zap';
 	import Repeat from '@lucide/svelte/icons/repeat';
+	import Link2 from '@lucide/svelte/icons/link-2';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { accountColorCss } from '#lib/colors.js';
@@ -55,6 +56,18 @@
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
+	let assignOpen = $state(false);
+	let unassignOpen = $state(false);
+	let assignPending = $state(false);
+	const assignEnhance: SubmitFunction = () => {
+		assignPending = true;
+		return async ({ update }) => {
+			assignPending = false;
+			assignOpen = false;
+			unassignOpen = false;
+			await update();
+		};
+	};
 	let templateOpen = $state(false);
 	let templatePending = $state(false);
 	let templateKey = $state(0);
@@ -137,6 +150,14 @@
 	);
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 	const saved = $derived(form?.action === 'update' && 'success' in form);
+	const assignDone = $derived(
+		form?.action === 'assign' && 'success' in form
+			? { name: form.name, dueDate: form.dueDate }
+			: undefined
+	);
+	const unassignDone = $derived(
+		form?.action === 'unassign' && 'success' in form ? form.name : undefined
+	);
 	const splitSaved = $derived(form?.action === 'split' && 'success' in form);
 	const tagsSaved = $derived(form?.action === 'tags' && 'success' in form);
 	const logoSaved = $derived(form?.action === 'logo' && 'success' in form);
@@ -157,6 +178,26 @@
 	);
 </script>
 
+{#snippet assignRows()}
+	{#if data.assigned}
+		<ListRow
+			label="Dauerposten"
+			value={data.assigned.name}
+			href={`dauerposten/${data.assigned.id}`}
+		/>
+		{#if data.canUnassign}
+			<ListRow label="Zuordnung lösen" onclick={() => (unassignOpen = true)} />
+		{/if}
+	{:else if data.assignOptions.length}
+		<ListRow
+			label="Dauerposten zuordnen"
+			icon={Link2}
+			iconColor="bg-[#ff9500]"
+			onclick={() => (assignOpen = true)}
+		/>
+	{/if}
+{/snippet}
+
 <Page {title} back={{ path: 'buchungen', label: 'Buchungen' }}>
 	{#if message}
 		<p
@@ -168,6 +209,17 @@
 	{:else if saved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Änderungen gesichert.
+		</p>
+	{:else if assignDone}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Dem Dauerposten „{assignDone.name}“ zugeordnet.
+			{assignDone.dueDate
+				? `Die Fälligkeit vom ${formatDay(assignDone.dueDate)} gilt als bezahlt.`
+				: 'In der Nähe liegt keine offene Fälligkeit.'}
+		</p>
+	{:else if unassignDone}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Zuordnung zu „{unassignDone}“ gelöst. Die Fälligkeit ist wieder offen.
 		</p>
 	{:else if sharedSaved}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -282,6 +334,7 @@
 				? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
 				: undefined}
 		>
+			{@render assignRows()}
 			{#if data.canMakeRecurring}
 				<ListRow
 					label="Dauerposten daraus machen"
@@ -461,6 +514,7 @@
 					? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
 					: undefined}
 			>
+				{@render assignRows()}
 				{#if data.canMakeRecurring}
 					<ListRow
 						label="Dauerposten daraus machen"
@@ -479,6 +533,38 @@
 		{/if}
 	{/if}
 </Page>
+
+{#if data.assignOptions.length}
+	<Sheet
+		bind:open={assignOpen}
+		title="Dauerposten zuordnen"
+		confirmLabel="Zuordnen"
+		formId="assign-form"
+		confirmDisabled={assignPending}
+	>
+		<form id="assign-form" method="POST" action="?/assign" use:enhance={assignEnhance}>
+			<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+				<SelectField label="Dauerposten" name="recurringId" options={data.assignOptions} />
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Die nächstgelegene offene Fälligkeit gilt damit als bezahlt; eine vorläufige Buchung dafür
+				wird entfernt. Die App merkt sich den Namen für den nächsten Import.
+			</p>
+		</form>
+	</Sheet>
+{/if}
+
+{#if data.canUnassign && data.assigned}
+	<Sheet bind:open={unassignOpen} title="Zuordnung lösen">
+		<p class="mb-6 px-4 text-center text-[15px]">
+			Die Buchung gehört dann nicht mehr zu „{data.assigned.name}“. Die Fälligkeit, die sie bezahlt
+			hat, ist wieder offen und wird vorläufig gebucht, wenn ihr Tag erreicht ist.
+		</p>
+		<form method="POST" action="?/unassign" use:enhance={assignEnhance}>
+			<Button type="submit" variant="destructive" disabled={assignPending}>Lösen</Button>
+		</form>
+	</Sheet>
+{/if}
 
 {#if data.goalTransfer?.canUndo}
 	<Sheet bind:open={goalUndoOpen} title="Umbuchung zurücknehmen">

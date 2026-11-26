@@ -26,6 +26,7 @@
 
 	const VIA: Record<string, string> = {
 		mandate: 'Mandat',
+		manual: 'von Hand',
 		iban: 'IBAN',
 		name: 'Name und Fälligkeit',
 		amount: 'Betrag und Datum'
@@ -45,6 +46,9 @@
 				: `Umbuchung, Gegenbuchung auf ${r.transfer.accountName}`;
 		return 'neu';
 	}
+
+	/** Recurring items a row can be assigned to by hand: same direction as the row. */
+	const itemsFor = (amount: number) => view.items.filter((i) => i.side === (amount < 0 ? -1 : 1));
 
 	function signed(amount: number) {
 		return `${amount > 0 ? '+' : ''}${formatEuro(amount)}`;
@@ -168,6 +172,24 @@
 									Kategorie: {view.categoryNames[r.categoryId] ?? '–'}
 								</span>
 							{/if}
+							{#if r.status !== 'duplicate' && itemsFor(r.amount).length}
+								<label class="mt-1 flex items-center gap-2 text-[13px] text-label-2">
+									<span class="shrink-0">Dauerposten</span>
+									<select
+										name="assign-{r.line}"
+										aria-label="Zeile {r.line} zuordnen"
+										class="min-w-0 flex-1 rounded-md bg-fill px-2 py-1 text-[13px] text-accent"
+									>
+										<option value="">
+											{r.recurring ? `automatisch: ${r.recurring.name}` : 'automatisch: keiner'}
+										</option>
+										{#each itemsFor(r.amount) as i (i.id)}
+											<option value={i.id}>{i.name}</option>
+										{/each}
+										{#if r.recurring}<option value="none">keiner</option>{/if}
+									</select>
+								</label>
+							{/if}
 							{#if r.recurring?.amountDiffers && r.recurring.due}
 								<label class="mt-1 flex items-start gap-2 text-[13px]">
 									<input
@@ -189,6 +211,13 @@
 					</li>
 				{/each}
 			</ul>
+
+			{#if view.items.length}
+				<p class="-mt-4 mb-6 px-4 text-[13px] text-label-2">
+					Erkennt die App eine Zahlung nicht, wähle den Dauerposten von Hand. Sie merkt sich den
+					Namen für den nächsten Import.
+				</p>
+			{/if}
 
 			{#if view.suggestions.length}
 				<section class="mb-6" aria-label="Neue Dauerposten">

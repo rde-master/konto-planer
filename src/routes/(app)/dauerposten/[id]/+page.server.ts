@@ -45,6 +45,7 @@ import { addDays, addMonths } from '#lib/recurring.js';
 import { duesBetween } from '#lib/due.js';
 import { DueError, recentDues, restoreDue } from '#lib/server/due.js';
 import { todayBerlin } from '#lib/dates.js';
+import { AssignError, listAliases, removeAlias } from '#lib/server/recurring-assign.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -94,7 +95,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			bookingId: ownSide ? d.bookingId : d.targetBookingId
 		})),
 		today,
-		hasData: await recurringHasData(item.id)
+		hasData: await recurringHasData(item.id),
+		/** Payee names learned from bookings assigned by hand. */
+		aliases: await listAliases(item.id)
 	};
 };
 
@@ -104,6 +107,17 @@ function recurringError(action: string, e: unknown) {
 }
 
 export const actions: Actions = {
+	/** Forgets a payee name the import knows the item by. */
+	removeAlias: async ({ request, locals, params }) => {
+		try {
+			await removeAlias(locals.user!, params.id, formString(await request.formData(), 'aliasId'));
+		} catch (e) {
+			if (e instanceof AssignError) return fail(400, { action: 'removeAlias', message: e.message });
+			throw e;
+		}
+		return { action: 'removeAlias', success: true };
+	},
+
 	/** Books a skipped ("zurückgenommen") due item provisionally again. */
 	restoreDue: async ({ request, locals }) => {
 		try {

@@ -32,6 +32,14 @@ import {
 	unsetShared,
 	validateShares
 } from '#lib/server/settle.js';
+import {
+	AssignError,
+	assignBooking,
+	assignOptions,
+	assignedItem,
+	canUnassign,
+	unassignBooking
+} from '#lib/server/recurring-assign.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -56,7 +64,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		sharedOf(booking.id, booking.amount),
 		settleUsers()
 	]);
+	const real = booking.source === 'manual' || booking.source === 'import';
+	const [assignable, assigned] = await Promise.all([
+		assignOptions(booking),
+		real ? assignedItem(booking) : null
+	]);
 	return {
+		/** "Dauerposten zuordnen": items of the account in the booking's direction. */
+		assignOptions: assignable,
+		/** Item a real payment belongs to, and whether it can be released from it. */
+		assigned,
+		canUnassign: canUnassign(booking),
 		shared,
 		settleUsers: settleUsersList,
 		canShare:
@@ -85,6 +103,29 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+	/** "Dauerposten zuordnen": the booking pays the nearest open due date of the item. */
+	assign: async ({ request, locals, params }) => {
+		const recurringId = formString(await request.formData(), 'recurringId');
+		try {
+			const result = await assignBooking(locals.user!, params.id, recurringId);
+			return { action: 'assign' as const, success: true, ...result };
+		} catch (e) {
+			if (e instanceof AssignError) return fail(400, { action: 'assign', message: e.message });
+			throw e;
+		}
+	},
+
+	/** "Zuordnung lösen": the booking leaves its item, the due date is open again. */
+	unassign: async ({ locals, params }) => {
+		try {
+			const result = await unassignBooking(locals.user!, params.id);
+			return { action: 'unassign' as const, success: true, ...result };
+		} catch (e) {
+			if (e instanceof AssignError) return fail(400, { action: 'unassign', message: e.message });
+			throw e;
+		}
+	},
+
 	update: async ({ request, locals, params }) => {
 		const user = locals.user!;
 		const { ctx } = await bookingFormContext(user);

@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.65.0] – Zahlungen von Hand zuordnen
+
+### Neu
+
+- Import-Vorschau: Jede Zeile hat eine Auswahl „Dauerposten“. Erkennt die App eine Zahlung nicht, wählst du den Dauerposten selbst; hat sie falsch zugeordnet, wählst du einen anderen oder „keiner“
+- An der Buchung: „Dauerposten zuordnen“ für Zahlungen, die schon importiert oder von Hand erfasst sind – und „Zuordnung lösen“, falls es der falsche war
+- Die zugeordnete Zahlung nimmt die nächstgelegene offene Fälligkeit (bis 31 Tage davor oder danach) und ersetzt deren vorläufige Buchung – nichts steht mehr doppelt da
+- Die App merkt sich den Namen der Zahlung und erkennt den Dauerposten beim nächsten Import daran. Die gemerkten Namen stehen am Dauerposten unter „Namen im Import“ und lassen sich dort entfernen
+- Importierte Buchungen zeigen jetzt, zu welchem Dauerposten sie gehören
+
 ## [0.64.4] – Kartenabrechnung in den offenen Zahlungen
 
 ### Behoben
