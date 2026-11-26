@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.59.0] – Anleitung
+
+### Neu
+
+- Hilfe in der App unter Mehr › Hilfe: Einrichtung, Erste Schritte, Buchungen und Import, Planen und Sparen, Benachrichtigungen, Widgets/Kurzbefehl/Kalender/API und Gemeinsam nutzen
+- Suche über alle Kapitel, Abschnitt mit einem Tipp öffnen
+- Hilfe-Links auf wichtigen Seiten führen direkt zum passenden Abschnitt (Mindestbestand, Dauerposten, Import, Widgets, Meldungen)
+- Dieselben Texte stehen im Repository unter docs/hilfe, verlinkt aus der README
+
 ## [0.58.0] – Systemstatus und „Was ist neu“
 
 ### Neu

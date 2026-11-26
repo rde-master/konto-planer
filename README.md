@@ -4,6 +4,8 @@ Zeigt für jedes Girokonto, wie viel Geld bis zum nächsten Gehaltseingang minde
 
 Selbst gehostete Web-App für das Heimnetz: SvelteKit und PostgreSQL als Docker-Stack, am iPhone als Web-App auf dem Homescreen installierbar. Status: in Entwicklung, siehe [Plan](docs/PLAN.md) und [Changelog](CHANGELOG.md).
 
+**Anleitung:** [Einrichtung](docs/hilfe/01-einrichtung.md) · [Erste Schritte](docs/hilfe/02-erste-schritte.md) · [Buchungen und Import](docs/hilfe/03-buchungen-und-import.md) · [Planen und Sparen](docs/hilfe/04-planen-und-sparen.md) · [Benachrichtigungen](docs/hilfe/05-benachrichtigungen.md) · [Widgets, Kurzbefehl, Kalender, API](docs/hilfe/06-widgets-und-mehr.md) · [Gemeinsam nutzen](docs/hilfe/07-gemeinsam.md) – dieselben Texte stehen in der App unter Mehr › Hilfe.
+
 ## Installation
 
 Voraussetzung: Docker mit Compose und ein Reverse Proxy mit HTTPS.

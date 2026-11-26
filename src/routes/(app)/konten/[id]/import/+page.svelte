@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { enhance } from '$app/forms';
 	import FileUp from '@lucide/svelte/icons/file-up';
 	import Page from '#lib/components/Page.svelte';
@@ -98,6 +99,11 @@
 			{/if}
 		</section>
 	{/if}
+	<HelpLink
+		chapter="buchungen-und-import"
+		anchor="umsatzimport-csv"
+		label="Hilfe zum Umsatzimport"
+	/>
 </Page>
 
 {#if undoable}

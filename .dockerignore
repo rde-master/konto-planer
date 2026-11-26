@@ -10,5 +10,6 @@ test-results
 playwright-report
 coverage
 tests
-docs
+docs/*
+!docs/hilfe
 docker-compose*.yml
