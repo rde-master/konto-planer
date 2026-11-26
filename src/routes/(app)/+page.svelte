@@ -7,6 +7,12 @@
 	import Page from '#lib/components/Page.svelte';
 	import Logo from '#lib/components/Logo.svelte';
 	import SavingsSuggestion from '#lib/components/SavingsSuggestion.svelte';
+	import BalanceChart from '#lib/components/BalanceChart.svelte';
+	import BarChart from '#lib/components/BarChart.svelte';
+	import DonutChart from '#lib/components/DonutChart.svelte';
+	import Sparkline from '#lib/components/Sparkline.svelte';
+	import Ring from '#lib/components/Ring.svelte';
+	import { monthName } from '#lib/monthly-report.js';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, formatDay } from '#lib/dates.js';
@@ -117,6 +123,26 @@
 			{/if}
 		</section>
 
+		{#if data.charts}
+			{@const nw = data.charts.netWorth}
+			<section class="mb-8" aria-label="Vermögensverlauf">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Vermögen · 6 Monate und Vorschau</span>
+					<span class={['normal-case tabular', nw.change < 0 ? 'text-danger' : 'text-income']}>
+						{signed(nw.change)}
+					</span>
+				</h2>
+				<BalanceChart
+					series={nw.history}
+					forecast={nw.outlook}
+					label="Vermögensverlauf mit Vorschau"
+				/>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Summe aller Konten; gestrichelt die erwarteten Zahlungen der nächsten 30 Tage.
+				</p>
+			</section>
+		{/if}
+
 		{#if data.giro.length}
 			<section class="mb-8" aria-label="Verfügbar">
 				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Verfügbar</h2>
@@ -154,6 +180,14 @@
 											Mindestbestand {formatEuro(g.minimum)}
 										</span>
 									{/if}
+									{#if data.charts?.sparks[g.id]}
+										<span class="mt-1 block sm:hidden">
+											<Sparkline
+												points={data.charts.sparks[g.id]}
+												label="Verlauf von {g.name} bis zum Stichtag"
+											/>
+										</span>
+									{/if}
 									{#if g.exceedsOverdraft || g.goesNegative}
 										<span
 											role="alert"
@@ -166,6 +200,15 @@
 										</span>
 									{/if}
 								</span>
+								{#if data.charts?.sparks[g.id]}
+									<!-- Phones show the line under the text, wider screens beside the amount. -->
+									<span class="hidden sm:block">
+										<Sparkline
+											points={data.charts.sparks[g.id]}
+											label="Verlauf von {g.name} bis zum Stichtag"
+										/>
+									</span>
+								{/if}
 								<span
 									class={[
 										'shrink-0 text-[20px] font-semibold tabular',
@@ -323,7 +366,48 @@
 			</section>
 		{/if}
 
-		{#if data.budgetAlerts.length}
+		{#if data.charts && data.charts.expenses.slices.length}
+			{@const e = data.charts.expenses}
+			<section class="mb-8" aria-label="Ausgaben nach Kategorie">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Ausgaben im {monthName(e.month)}</span>
+					<a href={resolve('auswertungen')} class="text-accent normal-case">Mehr</a>
+				</h2>
+				<DonutChart
+					slices={e.slices}
+					label="Ausgaben nach Kategorie im {monthName(e.month)}"
+					center={formatEuro(e.total)}
+				/>
+				{#if e.change !== null}
+					<p class="mt-1.5 px-4 text-[13px] text-label-2">
+						{e.change === 0
+							? 'So viel wie im Vormonat bis zum gleichen Tag.'
+							: `${Math.abs(e.change)} % ${e.change > 0 ? 'mehr' : 'weniger'} als im Vormonat bis zum gleichen Tag.`}
+					</p>
+				{/if}
+			</section>
+		{/if}
+
+		{#if data.charts && data.charts.inOut.income.some((v, i) => v || data.charts?.inOut.expenses[i])}
+			{@const io = data.charts.inOut}
+			<section class="mb-8" aria-label="Einnahmen und Ausgaben">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Einnahmen und Ausgaben</span>
+					<a href={resolve('auswertungen?ansicht=einaus')} class="text-accent normal-case">Mehr</a>
+				</h2>
+				<BarChart
+					labels={io.months.map((m) => monthName(m).slice(0, 3))}
+					series={[
+						{ name: 'Einnahmen', values: io.income, color: '--kp-green' },
+						{ name: 'Ausgaben', values: io.expenses, color: '--kp-red' }
+					]}
+					label="Einnahmen und Ausgaben der letzten sechs Monate"
+					highlight={io.months.length - 1}
+				/>
+			</section>
+		{/if}
+
+		{#if data.budgets.length}
 			<section class="mb-8" aria-label="Budgets">
 				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
 					<span class="flex-1">Budgets</span>
@@ -332,15 +416,68 @@
 				<ul
 					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 				>
-					{#each data.budgetAlerts as b (b.id)}
-						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+					{#each data.budgets as b (b.id)}
+						<li class="flex items-center gap-3 px-4 py-2">
+							<Ring
+								part={b.spent}
+								whole={b.limit}
+								label={b.categoryName}
+								color={accountColorCss(b.color)}
+								warnFrom={0.8}
+							/>
 							<span class="min-w-0 flex-1">
 								<span class="block truncate">{b.categoryName}</span>
 								<span class="block truncate text-[13px] text-label-2">{b.accountName}</span>
 							</span>
-							<span class={['tabular', b.state === 'over' ? 'text-danger' : 'text-[#c93400]']}>
-								{Math.round((b.spent / b.limit) * 100)} %
+							<span class="text-right">
+								<span
+									class={[
+										'block tabular',
+										b.state === 'over' ? 'text-danger' : b.state === 'warn' && 'text-[#c93400]'
+									]}
+								>
+									{Math.round((b.spent / b.limit) * 100)} %
+								</span>
+								<span class="block text-[13px] text-label-2 tabular">
+									{formatEuro(b.spent)} von {formatEuro(b.limit)}
+								</span>
 							</span>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
+		{#if data.goals.length}
+			<section class="mb-8" aria-label="Sparziele">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Sparziele</span>
+					<a href={resolve('sparziele')} class="text-accent normal-case">Alle</a>
+				</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.goals as g (g.id)}
+						<li>
+							<a
+								href={resolve(`sparziele/${g.id}`)}
+								class="flex items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<Ring
+									part={g.allocated}
+									whole={g.targetAmount}
+									label={g.name}
+									color="var(--kp-green)"
+								/>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate">{g.name}</span>
+									<span class="block truncate text-[13px] text-label-2">{g.accountName}</span>
+								</span>
+								<span class="text-right text-[13px] text-label-2 tabular">
+									{formatEuro(g.allocated)}<br />von {formatEuro(g.targetAmount)}
+								</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
 						</li>
 					{/each}
 				</ul>
