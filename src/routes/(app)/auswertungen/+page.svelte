@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { gotoReplace } from '#lib/back.svelte.js';
 	import { resolve } from '$app/paths';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Page from '#lib/components/Page.svelte';
@@ -45,7 +45,7 @@
 			['ansicht', data.view],
 			['konto', value !== 'giro' ? value : null]
 		]);
-		void goto(resolve(`auswertungen?${query}`), { replace: true, reset: false });
+		void gotoReplace(resolve(`auswertungen?${query}`), { reset: false });
 	}
 
 	/** 0.27 → "27 %" */

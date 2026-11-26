@@ -58,6 +58,8 @@ test('a booking becomes a recurring item without being booked twice', async ({ p
 	await expect(page.getByRole('heading', { level: 1, name: PAYEE })).toBeVisible();
 	await expect(page).toHaveURL(/\/dauerposten\/[0-9a-f-]{36}$/);
 	await expect(page.getByRole('main')).toContainText(formatDay(today));
+	// Back leads to the booking, not to the filled form again.
+	await expect(page.locator('main header').getByRole('link')).toHaveText(PAYEE);
 
 	// Still exactly one booking: no provisional copy for the same day.
 	await page.goto(`/buchungen?q=${encodeURIComponent(PAYEE)}`);

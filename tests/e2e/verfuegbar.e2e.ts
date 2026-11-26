@@ -188,7 +188,7 @@ test('one-off payments after the cut-off day are only a hint', async ({ page }) 
 	await expect(minimum(page)).toHaveText(/1\.350,00\s€/);
 
 	await later.getByRole('link', { name: /Urlaub/ }).click();
-	await expect(page.getByRole('link', { name: 'Geplant' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Urlaub' })).toBeVisible();
 	await page.getByRole('button', { name: 'Dauerposten löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Dauerposten löschen' })

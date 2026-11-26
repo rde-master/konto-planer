@@ -96,6 +96,8 @@ iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop
 
 `Page` (großer Titel, `back`, `actions`), `ListGroup`/`ListRow` (gruppierte Listen; `href`, `onclick`, `value`), `FormField` (Eingabe als Listenzeile), `SegmentedField` (Radio-Segmente, `initial`), `Sheet` (Blatt von unten, Bestätigen-Knopf sendet `formId`), `Button` (`filled`, `tinted`, `plain`, `destructive`). Grafiken: `BalanceChart` (Linie), `BarChart` (Balken). Admin-Seiten mit `requireAdmin()` aus `#lib/server/guards.js` schützen.
 
+**Zurück-Knopf:** `Page` führt mit `back` dorthin zurück, woher der Benutzer kam (`history.back()`, Beschriftung = Titel der vorigen Seite); der feste Elternpfad gilt nur ohne Vorgeschichte oder wenn die vorige Seite dieselbe bzw. eine darunterliegende ist. Seiten ohne Elternseite, die auch von anderswo erreicht werden, setzen `returns` (gefilterte Buchungsliste). Der Verlauf (`src/lib/back.ts` rein, `back.svelte.ts` Zustand in `sessionStorage`) wird im `(app)`-Layout über `afterNavigate` geführt. Ersetzende Navigation immer mit `gotoReplace()` statt `goto(…, { replace: true })` bzw. `data-sveltekit-replacestate` am Link – sonst zählt der Verlauf falsch.
+
 ## Daten und Sicherheit
 
 - Öffentliches Repo (MIT). **Nur erfundene Testdaten.** Echte Bankexporte (`*.csv` außerhalb von `tests/fixtures/`), `.env` und Zugangsdaten nie einchecken.

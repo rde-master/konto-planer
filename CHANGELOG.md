@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.64.2] – Zurück führt zurück
+
+### Behoben
+
+- Der Zurück-Knopf oben links führt jetzt dorthin, woher du gekommen bist, und zeigt den Namen dieser Seite: vom Konto in dessen Buchungen, in eine Buchung und zurück landest du wieder in der gefilterten Liste und danach beim Konto – nicht mehr bei allen Buchungen
+- Die Liste steht dabei wieder an der Stelle, an der du sie verlassen hast
+- Die gefilterte Buchungsliste hat selbst einen Zurück-Knopf, wenn du von einer anderen Seite kommst (Konto, Auswertung, Tag, Budget)
+- Nach „Dauerposten daraus machen“ führt Zurück zur Buchung statt noch einmal ins ausgefüllte Formular
+- Öffnest du eine Seite direkt (Lesezeichen, Mitteilung), führt Zurück wie bisher zur übergeordneten Liste
+
 ## [0.64.1] – Minusbetrag am Handy eingeben
 
 ### Behoben

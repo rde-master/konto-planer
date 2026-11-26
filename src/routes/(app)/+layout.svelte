@@ -1,11 +1,31 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { afterNavigate } from '$app/navigation';
+	import { recordNavigation } from '#lib/back.svelte.js';
+	import { plainTitle } from '#lib/back.js';
 	import AppShell from '#lib/components/AppShell.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import ChangeList from '#lib/components/ChangeList.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
+
+	// The way back: remember the pages visited so the back button returns to where we came from.
+	afterNavigate((navigation) => {
+		const url = navigation.to?.url;
+		if (!url) return;
+		const path = url.pathname + url.search;
+		const title = plainTitle(document.title);
+		if (navigation.type === 'enter') recordNavigation(data.user.id, { type: 'enter' }, path, title);
+		else if (navigation.type === 'popstate')
+			recordNavigation(data.user.id, { type: 'pop', delta: navigation.delta }, path, title);
+		else {
+			const source =
+				navigation.type === 'link' || navigation.type === 'form' ? navigation.event.target : null;
+			const replace = source instanceof Element && source.closest('[data-sveltekit-replacestate]');
+			recordNavigation(data.user.id, { type: replace ? 'replace' : 'push' }, path, title);
+		}
+	});
 
 	// Shown once after an update; closing remembers the version.
 	let newsOpen = $state(false);

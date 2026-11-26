@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { gotoReplace } from '#lib/back.svelte.js';
 	import { resolve } from '$app/paths';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
@@ -94,10 +94,7 @@
 
 	function go(f: BookingFilter) {
 		const q = query(f);
-		void goto(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), {
-			replace: true,
-			reset: false
-		});
+		void gotoReplace(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), { reset: false });
 	}
 
 	function filter(accountId: string) {
@@ -155,14 +152,11 @@
 				pairs.push(`${k}=${encodeURIComponent(val)}`);
 		filterOpen = false;
 		const q = pairs.join('&');
-		void goto(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), {
-			replace: true,
-			reset: false
-		});
+		void gotoReplace(q ? resolve(`buchungen?${q}`) : resolve('buchungen'), { reset: false });
 	}
 </script>
 
-<Page title="Buchungen">
+<Page title="Buchungen" returns={filtered || !!data.filter.accountId}>
 	{#snippet actions()}
 		{#if canCreate}
 			<button
