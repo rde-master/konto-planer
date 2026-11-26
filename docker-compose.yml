@@ -13,6 +13,7 @@ services:
       ORIGIN: ${ORIGIN:?set ORIGIN in .env (public URL behind the reverse proxy)}
       APP_SECRET: ${APP_SECRET:-}
       BACKUP_BEFORE_MIGRATION: ${BACKUP_BEFORE_MIGRATION:-true}
+      WEB_LOGOS: ${WEB_LOGOS:-true}
       TZ: Europe/Berlin
     ports:
       - '${APP_PORT:-3000}:3000'

@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.62.0] – Mehr Firmenlogos
+
+### Neu
+
+- Empfänger ohne Logo bekommen jetzt das Symbol von der Webseite der Firma, ersatzweise über den Symboldienst von Google – für rund 180 bekannte Firmen in Deutschland (REWE, EDEKA, Lidl, ALDI, dm, Rossmann, Kaufland, Sparkasse, Volksbank, Versicherungen, Tankstellen …) und per vorsichtigem Versuch aus dem Firmennamen
+- Die Suche läuft automatisch stündlich und nach jedem Import; unter Einstellungen › Systemstatus gibt es „Fehlende Logos jetzt suchen“
+- „Logo ändern“: Webseite der Firma (z. B. rewe.de) oder die Adresse eines Bildes aus einer Websuche eintragen und mit „Holen“ übernehmen
+- Privatpersonen werden nie im Web gesucht; ohne Logo bleiben wie bisher die Initialen
+
+### Hinweis
+
+- Der Server ruft dafür Firmen-Webseiten und den Google-Dienst ab; übertragen wird nur die Adresse der Firmen-Webseite, keine Buchungsdaten. Abschalten mit `WEB_LOGOS=false` in der `.env`
+- Die Bilder liegen im Datenvolume unter `logos/`
+
 ## [0.61.0] – Desktop-Layout
 
 ### Neu

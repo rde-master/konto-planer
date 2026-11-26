@@ -808,7 +808,10 @@ export const recurringTags = pgTable(
  */
 export const payeeLogos = pgTable('payee_logos', {
 	key: text('key').primaryKey(),
+	/** Simple Icons slug, "web:<id>" (web icon), "-" (initials) or "~" (searched, nothing found). */
 	slug: text('slug').notNull(),
+	/** Found by the background search (not chosen by hand); a manual choice replaces it. */
+	auto: boolean('auto').notNull().default(false),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
@@ -1171,4 +1174,18 @@ export const jobRuns = pgTable('job_runs', {
 	ok: boolean('ok'),
 	message: text('message'),
 	durationMs: integer('duration_ms')
+});
+
+/**
+ * Company icons fetched from the web (the firm's website or Google's favicon service). The image
+ * lies in the data volume (`logos/<id>`); id = domain or "u-<hash>" for an image address.
+ */
+export const webIcons = pgTable('web_icons', {
+	id: text('id').primaryKey(),
+	contentType: text('content_type').notNull(),
+	size: integer('size').notNull(),
+	/** "site", "google" or "url". */
+	source: text('source').notNull(),
+	url: text('url'),
+	fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow()
 });

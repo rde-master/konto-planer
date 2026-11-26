@@ -15,7 +15,8 @@ import {
 import { listGoalsFor } from '#lib/server/goals.js';
 import { TagError, listTags, readTagForm, setRecurringTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
-import { LogoError, itemLogos, setPayeeLogo } from '#lib/server/logos.js';
+import { LogoError, itemLogos } from '#lib/server/logos.js';
+import { setPayeeLogoFromForm } from '#lib/server/web-logos.js';
 import {
 	addExtra,
 	applyLoanEnd,
@@ -211,9 +212,13 @@ export const actions: Actions = {
 		const key = (await itemLogos([item]))[item.id]?.key;
 		if (!key || !item.canEdit)
 			return fail(400, { action: 'logo', message: 'Das Logo darfst du hier nicht ändern.' });
-		const slug = formString(await request.formData(), 'slug') || null;
 		try {
-			await setPayeeLogo(user, key, item.counterparty ?? item.name, slug);
+			await setPayeeLogoFromForm(
+				user,
+				key,
+				item.counterparty ?? item.name,
+				await request.formData()
+			);
 		} catch (e) {
 			if (e instanceof LogoError) return fail(400, { action: 'logo', message: e.message });
 			throw e;

@@ -4,6 +4,7 @@ import {
 	initials,
 	initialsColor,
 	matchLogo,
+	logoSrc,
 	resolveLogo,
 	words,
 	NO_LOGO
@@ -50,6 +51,19 @@ describe('resolveLogo and initials', () => {
 		expect(resolveLogo(index, 'Netflix', undefined)).toEqual({ slug: 'netflix', hex: 'E50914' });
 		expect(resolveLogo(index, 'Netflix', NO_LOGO)).toBeNull();
 		expect(resolveLogo(index, 'Kiosk am Eck', 'rewe')?.slug).toBe('rewe');
+	});
+	it('uses icons from the web: by hand first, the search result only without a built-in logo', () => {
+		expect(resolveLogo(index, 'Netflix', 'web:netflix.com')).toEqual({
+			slug: 'web:netflix.com',
+			hex: ''
+		});
+		expect(resolveLogo(index, 'Kiosk am Eck', undefined, 'web:kiosk.de')?.slug).toBe(
+			'web:kiosk.de'
+		);
+		expect(resolveLogo(index, 'Netflix', undefined, 'web:netflix.com')?.slug).toBe('netflix');
+		expect(resolveLogo(index, 'Kiosk am Eck', undefined, '~')).toBeNull();
+		expect(logoSrc('web:rewe.de')).toBe('/api/logos/web/rewe.de');
+		expect(logoSrc('netflix')).toBe('/api/logos/netflix');
 	});
 
 	it('initials and a stable color', () => {

@@ -52,6 +52,18 @@ export function words(text: string): string[] {
 		.filter(Boolean);
 }
 
+/** Words of a payee name without legal forms ("REWE Markt GmbH" → ["rewe", "markt"]). */
+export function payeeWords(name: string): string[] {
+	return words(name.replace(/[&+]\s*co\b/gi, ' co')).filter((w) => !NOISE.has(w));
+}
+
+const LEGAL = new Set(['gmbh', 'mbh', 'ag', 'se', 'kg', 'ohg', 'ug', 'ev', 'eg', 'ltd', 'inc']);
+
+/** Whether the name carries a legal form (so it is a company, not a person). */
+export function hasLegalForm(name: string): boolean {
+	return words(name).some((w) => LEGAL.has(w));
+}
+
 /**
  * Brand titles that are also first names ("Max Mustermann"): matched only when the name is just
  * the brand (plus legal forms), e.g. "OTTO GmbH".
@@ -113,15 +125,31 @@ export function matchLogo(index: LogoIndex, name: string | null): LogoEntry | nu
 
 /** Stored choice: a slug, NONE (initials) or nothing (automatic). */
 export const NO_LOGO = '-';
+/** Stored choice for an icon from the web: "web:<id>" (see web-logos.ts). */
+export const WEB_PREFIX = 'web:';
 
+/**
+ * Logo of a payee: the choice made by hand, otherwise the Simple Icons match by name,
+ * otherwise the web icon found by the background search (`auto`).
+ */
 export function resolveLogo(
 	index: LogoIndex,
 	name: string | null,
-	override: string | undefined
+	override: string | undefined,
+	auto?: string
 ): LogoRef | null {
 	if (override === NO_LOGO) return null;
+	if (override?.startsWith(WEB_PREFIX)) return { slug: override, hex: '' };
 	const chosen = override ? index.bySlug.get(override) : matchLogo(index, name);
-	return chosen ? { slug: chosen.slug, hex: chosen.hex } : null;
+	if (chosen) return { slug: chosen.slug, hex: chosen.hex };
+	return auto?.startsWith(WEB_PREFIX) ? { slug: auto, hex: '' } : null;
+}
+
+/** Address of a logo image. */
+export function logoSrc(slug: string): string {
+	return slug.startsWith(WEB_PREFIX)
+		? `/api/logos/web/${slug.slice(WEB_PREFIX.length)}`
+		: `/api/logos/${slug}`;
 }
 
 /** Up to two initials of a name ("Hausverwaltung Beispiel" → "HB"). */

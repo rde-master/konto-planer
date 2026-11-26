@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import Search from '@lucide/svelte/icons/search';
 	import ListGroup from './ListGroup.svelte';
 	import ListRow from './ListRow.svelte';
@@ -26,6 +27,13 @@
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let form: HTMLFormElement | undefined = $state();
 	let slug = $state('');
+	let web = $state('');
+	let webPending = $state(false);
+	/** Message of the last try (e.g. no logo found on the website). */
+	const error = $derived.by(() => {
+		const f = page.form as { action?: string; message?: string } | null;
+		return f?.action === 'logo' ? f.message : undefined;
+	});
 
 	function start() {
 		query = name.split(/\s+/)[0] ?? '';
@@ -50,6 +58,16 @@
 
 	function choose(value: string) {
 		slug = value;
+		web = '';
+		queueMicrotask(() => form?.requestSubmit());
+	}
+
+	/** Fetch the icon of a website (or an image address) and use it. */
+	function fetchWeb(e: SubmitEvent) {
+		e.preventDefault();
+		if (!web.trim()) return;
+		slug = '';
+		webPending = true;
 		queueMicrotask(() => form?.requestSubmit());
 	}
 </script>
@@ -69,11 +87,16 @@
 		bind:this={form}
 		use:enhance={() =>
 			async ({ result, update }) => {
-				if (result.type === 'success') open = false;
+				webPending = false;
+				if (result.type === 'success') {
+					open = false;
+					web = '';
+				}
 				await update({ reset: false });
 			}}
 	>
 		<input type="hidden" name="slug" value={slug} />
+		<input type="hidden" name="web" value={web} />
 	</form>
 	<div class="mb-4 flex items-center gap-2 rounded-[var(--radius-row)] bg-card px-4 py-2">
 		<Search class="size-5 text-label-3" />
@@ -106,6 +129,35 @@
 	{#if query.trim() && !results.length}
 		<p class="mb-4 px-4 text-[15px] text-label-2">Kein Logo gefunden.</p>
 	{/if}
+	<form onsubmit={fetchWeb} class="mb-4" aria-label="Logo aus dem Web">
+		<p class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Aus dem Web</p>
+		<div class="flex items-center gap-2 rounded-[var(--radius-row)] bg-card px-4 py-2">
+			<input
+				bind:value={web}
+				aria-label="Webseite oder Bild-Adresse"
+				placeholder="z. B. rewe.de oder Bild-Adresse"
+				autocomplete="off"
+				autocapitalize="none"
+				spellcheck={false}
+				inputmode="url"
+				class="w-full bg-transparent py-1 text-[17px] outline-none placeholder:text-label-3"
+			/>
+			<button
+				type="submit"
+				disabled={webPending || !web.trim()}
+				class="shrink-0 text-[17px] text-accent disabled:opacity-40"
+			>
+				{webPending ? 'Lädt …' : 'Holen'}
+			</button>
+		</div>
+		{#if error}
+			<p role="alert" class="mt-1.5 px-4 text-[13px] text-danger">{error}</p>
+		{/if}
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			Die App holt das Symbol von der Webseite der Firma, ersatzweise über den Symboldienst von
+			Google, und speichert es. Du kannst auch die Adresse eines Bildes aus einer Websuche einfügen.
+		</p>
+	</form>
 	<ul class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card">
 		<li>
 			<button
@@ -128,6 +180,7 @@
 		</li>
 	</ul>
 	<p class="mt-3 px-4 text-[13px] text-label-2">
-		Logos: Simple Icons (CC0). Markennamen und Logos gehören ihren Inhabern.
+		Logos: Simple Icons (CC0) und Symbole der jeweiligen Webseiten. Markennamen und Logos gehören
+		ihren Inhabern.
 	</p>
 </Sheet>

@@ -25,6 +25,7 @@ import { pushHaSensors } from './api.js';
 import { trackJob } from './jobs.js';
 import { isDemo } from './demo-mode.js';
 import { nightlyDemoReset } from './demo.js';
+import { syncWebLogos } from './web-logos.js';
 
 export class DueError extends Error {}
 
@@ -238,6 +239,7 @@ export function startDueScheduler() {
 		void trackJob('ha_sensors', () => pushHaSensors());
 		void trackJob('trash', () => purgeExpired());
 		if (isDemo()) void trackJob('demo_reset', () => nightlyDemoReset());
+		void trackJob('web_logos', () => syncWebLogos());
 	};
 	void run();
 	timer = setInterval(() => void run(), 60 * 60 * 1000);

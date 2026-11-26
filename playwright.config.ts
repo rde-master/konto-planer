@@ -36,7 +36,9 @@ export default defineConfig({
 			BODY_SIZE_LIMIT: '12M',
 			ATTACHMENT_DIR: 'test-results/attachments',
 			// Local stand-in for the browser push services (zustellung.e2e.ts).
-			PUSH_TEST_ORIGIN: 'http://127.0.0.1:18124'
+			PUSH_TEST_ORIGIN: 'http://127.0.0.1:18124',
+			// Stand-in for company websites and the favicon service (firmenlogos-web.e2e.ts).
+			LOGO_TEST_BASE: 'http://127.0.0.1:18126'
 		}
 	}
 });

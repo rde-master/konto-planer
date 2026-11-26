@@ -38,6 +38,7 @@ import {
 	type Suggestion
 } from '../import-match.js';
 import { syncDues } from './due.js';
+import { syncWebLogos } from './web-logos.js';
 import { activeRules } from './rules.js';
 import { categoryByRules } from '../rules.js';
 import { formatIban } from '../iban.js';
@@ -831,6 +832,8 @@ export async function commitImport(
 	});
 	// New and booked due items, counter bookings on savings accounts (interest).
 	await syncDues();
+	// Logos of new payees; in the background, the import does not wait for the web.
+	void syncWebLogos().catch((e: unknown) => console.error('[logos] search failed', e));
 }
 
 /** Drops a draft ("Abbrechen"). */

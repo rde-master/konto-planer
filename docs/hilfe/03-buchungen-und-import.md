@@ -10,7 +10,7 @@ Mit dem **+** unten rechts erfasst du eine Ausgabe oder Einnahme von jeder Seite
 
 - **Aufteilen**: Eine Buchung lässt sich auf mehrere Kategorien verteilen (z. B. Supermarkt: Lebensmittel und Drogerie).
 - **Tags** fassen Buchungen über Kategorien hinweg zusammen, z. B. „Urlaub 2026“.
-- Für viele Firmen zeigt die App automatisch das **Logo**; tippe auf das Logo, um es zu ändern.
+- Für viele Firmen zeigt die App automatisch das **Logo**. Fehlt es, sucht die App das Symbol auf der Webseite der Firma (stündlich und nach jedem Import). Unter **Logo ändern** kannst du selbst eine Webseite wie `rewe.de` oder die Adresse eines Bildes eintragen, ein anderes Logo wählen oder bei den Initialen bleiben.
 
 ## Umsatzimport (CSV)
 

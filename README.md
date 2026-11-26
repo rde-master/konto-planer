@@ -91,4 +91,4 @@ pnpm dev
 
 ## Lizenz
 
-[MIT](LICENSE). Symbole: [Lucide](https://lucide.dev) (ISC). Firmenlogos: [Simple Icons](https://simpleicons.org) (CC0); Markennamen und Logos gehören ihren Inhabern und werden nur zur Kennzeichnung von Zahlungen angezeigt.
+[MIT](LICENSE). Symbole: [Lucide](https://lucide.dev) (ISC). Firmenlogos: [Simple Icons](https://simpleicons.org) (CC0); weitere Symbole holt die laufende App von den Webseiten der Firmen oder über den Favicon-Dienst von Google und speichert sie nur im Datenvolume (abschaltbar mit `WEB_LOGOS=false`), sie sind nicht Teil dieses Repositorys. Markennamen und Logos gehören ihren Inhabern und werden nur zur Kennzeichnung von Zahlungen angezeigt.
