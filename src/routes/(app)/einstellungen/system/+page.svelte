@@ -12,6 +12,7 @@
 	const status = $derived(form && 'success' in form ? form.success : null);
 	const message = $derived(form && 'message' in form ? form.message : null);
 	let pending = $state(false);
+	let logosPending = $state(false);
 	const row = 'flex min-h-11 items-center gap-3 px-4 py-2.5';
 	const list =
 		'divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card';
@@ -118,6 +119,30 @@
 				</li>
 			{/each}
 		</ul>
+	</section>
+
+	<section class="mb-8" aria-label="Firmenlogos">
+		<h2 class={head}>Firmenlogos</h2>
+		<form
+			method="POST"
+			action="?/logos"
+			use:enhance={() => {
+				logosPending = true;
+				return async ({ update }) => {
+					logosPending = false;
+					await update();
+				};
+			}}
+		>
+			<Button type="submit" variant="tinted" disabled={logosPending || !data.webLogos}>
+				{logosPending ? 'Suche läuft …' : 'Fehlende Logos jetzt suchen'}
+			</Button>
+		</form>
+		<p class="mt-1.5 px-4 text-[13px] text-label-2">
+			{data.webLogos
+				? 'Für Empfänger ohne Logo holt die App das Symbol von der Webseite der Firma, ersatzweise über den Symboldienst von Google – stündlich und nach jedem Import. Dabei werden nur Firmen-Webseiten abgefragt, keine Buchungsdaten übertragen. Abschalten: WEB_LOGOS=false.'
+				: 'Logos aus dem Web sind abgeschaltet (WEB_LOGOS=false).'}
+		</p>
 	</section>
 
 	<section class="mb-8" aria-label="Datenbank und Speicher">

@@ -21,7 +21,8 @@ import { GoalError, goalTransferForBooking, undoGoalTransfer } from '#lib/server
 import { validateSplit } from '#lib/splits.js';
 import { TagError, listTags, readTagForm, setBookingTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
-import { LogoError, setPayeeLogo } from '#lib/server/logos.js';
+import { LogoError } from '#lib/server/logos.js';
+import { setPayeeLogoFromForm } from '#lib/server/web-logos.js';
 import {
 	SettleError,
 	setShared,
@@ -231,9 +232,13 @@ export const actions: Actions = {
 				action: 'logo',
 				message: 'Das Logo dieser Buchung darfst du nicht ändern.'
 			});
-		const slug = formString(await request.formData(), 'slug') || null;
 		try {
-			await setPayeeLogo(user, booking.payeeKey, booking.counterparty ?? 'Empfänger', slug);
+			await setPayeeLogoFromForm(
+				user,
+				booking.payeeKey,
+				booking.counterparty ?? 'Empfänger',
+				await request.formData()
+			);
 		} catch (e) {
 			if (e instanceof LogoError) return fail(400, { action: 'logo', message: e.message });
 			throw e;

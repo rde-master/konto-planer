@@ -27,6 +27,7 @@ In der Datei `.env` vorher anpassen:
 - `ORIGIN`: die Adresse, unter der die App über den Reverse Proxy erreichbar ist, z. B. `https://konto.example.lan`
 - `APP_PORT`: der Port auf dem Server, an den der Reverse Proxy weiterleitet (Standard 3000)
 - `APP_SECRET` (optional): Schlüssel für gespeicherte Zugangsdaten. Ohne Angabe legt die App selbst eine Schlüsseldatei im Datenvolume an.
+- `WEB_LOGOS` (optional): mit `false` holt der Server keine Firmenlogos aus dem Web. Sonst ruft er dafür Firmen-Webseiten und den Symboldienst von Google ab – nur mit der Adresse der Firma, nie mit Buchungsdaten.
 
 ## Erster Start
 

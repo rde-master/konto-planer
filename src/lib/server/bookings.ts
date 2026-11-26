@@ -12,7 +12,7 @@ import {
 import { payeeKey } from '../import-match.js';
 import type { Part } from '../splits.js';
 import type { LogoRef } from '../logos.js';
-import { logoOf, logoOverrides } from './logos.js';
+import { chosenLogo, logoOf, logoOverrides, type LogoChoice } from './logos.js';
 import { formatEuro } from '../money.js';
 import { snapshotBooking, toTrash } from './trash.js';
 import { audit, type Actor } from './audit.js';
@@ -100,12 +100,12 @@ function keyOf(b: Pick<Booking, 'iban' | 'counterparty'>) {
 }
 
 /** Logo by the payee; provisional bookings without payee use the item's name. */
-function logoFields(b: Booking, overrides: Map<string, string>) {
+function logoFields(b: Booking, overrides: Map<string, LogoChoice>) {
 	const key = keyOf(b);
 	return {
 		logo: logoOf(overrides, key, b.counterparty ?? (b.recurringId ? b.purpose : null)),
 		payeeKey: key,
-		logoChosen: key ? (overrides.get(key) ?? null) : null
+		logoChosen: chosenLogo(overrides, key)
 	};
 }
 
