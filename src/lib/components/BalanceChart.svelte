@@ -26,10 +26,13 @@
 		series,
 		label,
 		low,
-		limit
+		limit,
+		forecast
 	}: {
 		series: [string, number][];
 		label: string;
+		/** Expected continuation (dashed), starting at the last point of `series`. */
+		forecast?: [string, number][];
 		/** Point to mark (e.g. the lowest balance). */
 		low?: [string, number] | null;
 		/** Overdraft limit (positive cents): a dashed line at −limit. */
@@ -63,6 +66,7 @@
 						type: 'time',
 						axisLabel: {
 							color: muted,
+							hideOverlap: true,
 							formatter: (v: number) =>
 								new Date(v).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
 						},
@@ -107,7 +111,21 @@
 											data: [{ yAxis: -limit }]
 										}
 									: undefined
-						}
+						},
+						...(forecast && forecast.length > 1
+							? [
+									{
+										type: 'line',
+										step: 'end',
+										name: 'Vorschau',
+										showSymbol: false,
+										data: forecast,
+										lineStyle: { color: accent, width: 2, type: 'dashed', opacity: 0.7 },
+										itemStyle: { color: accent },
+										areaStyle: { color: accent, opacity: 0.05 }
+									}
+								]
+							: [])
 					]
 				},
 				true
@@ -131,7 +149,7 @@
 		};
 	});
 
-	const last = $derived(series.at(-1));
+	const last = $derived((forecast?.length ? forecast : series).at(-1));
 	const first = $derived(series.at(0));
 </script>
 

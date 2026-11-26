@@ -10,7 +10,7 @@ Selbst gehostete Web-App für das Heimnetz: SvelteKit und PostgreSQL als Docker-
   <img src="docs/screenshots/uebersicht-handy-hell.png" alt="Übersicht am iPhone" width="240">
   <img src="docs/screenshots/konto-handy-dunkel.png" alt="Konto mit Mindestbestand, dunkel" width="240">
 </p>
-<img src="docs/screenshots/auswertungen-desktop.png" alt="Auswertungen am Desktop" width="720">
+<img src="docs/screenshots/uebersicht-desktop.png" alt="Übersicht am Desktop mit Grafiken" width="720">
 
 ## Demo ausprobieren
 

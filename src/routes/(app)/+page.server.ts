@@ -14,6 +14,7 @@ import { addDays } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import { formatIban } from '#lib/iban.js';
 import { balanceDates } from '#lib/server/import-reminder.js';
+import { dashboardCharts } from '#lib/server/dashboard.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
 	ManualTransferError,
@@ -96,7 +97,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const metrics = accounts.length ? await metricsFor(user, today) : null;
 	// Budgets from 80 % on.
-	const budgetAlerts = (await budgetsFor(user, today.slice(0, 7))).filter((b) => b.state !== 'ok');
+	// All budgets of the month (rings); those from 80 % on are marked.
+	const budgets = await budgetsFor(user, today.slice(0, 7));
+	const charts = await dashboardCharts(accounts, balances, plans, active, today);
 	// Expected payments not confirmed by an import (tolerance from the notification rule).
 	const rules = await listRules();
 	const tolerance = rules.find((r) => r.type === 'payment_missing')?.toleranceDays ?? 3;
@@ -138,7 +141,23 @@ export const load: PageServerLoad = async ({ locals }) => {
 			accountCount: accounts.length
 		},
 		giro,
-		budgetAlerts,
+		charts,
+		budgets: budgets.map((b) => ({
+			id: b.id,
+			categoryName: b.categoryName,
+			accountName: b.accountName,
+			color: b.color,
+			limit: b.limit,
+			spent: b.spent,
+			state: b.state
+		})),
+		goals: openGoals.map((g) => ({
+			id: g.id,
+			name: g.name,
+			accountName: g.account.name,
+			allocated: g.allocated,
+			targetAmount: g.targetAmount
+		})),
 		missing: missing.map((m) => ({
 			bookingId: m.bookingId,
 			name: m.name,

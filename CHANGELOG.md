@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.63.0] – Grafiken auf der Übersicht
+
+### Neu
+
+- Vermögensverlauf: Summe aller Konten über die letzten sechs Monate, gestrichelt die erwarteten Zahlungen der nächsten 30 Tage
+- Ausgaben des laufenden Monats als Ring nach Kategorie, mit Vergleich zum Vormonat bis zum gleichen Tag
+- Einnahmen und Ausgaben der letzten sechs Monate als Balken
+- Je Girokonto eine kleine Verlaufslinie bis zum Stichtag, mit Markierung des tiefsten Punkts
+- Budgets und Sparziele mit Fortschrittsringen – alle Budgets des Monats, nicht mehr nur die knappen
+
 ## [0.62.0] – Mehr Firmenlogos
 
 ### Neu
