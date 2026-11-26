@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.64.4] – Kartenabrechnung in den offenen Zahlungen
+
+### Behoben
+
+- „Offene Zahlungen“ listet jetzt auch die nächste Kreditkartenabrechnung: als Ausgang beim Girokonto und als Eingang bei der Karte, am Tag der Abbuchung. Bisher war sie nur in Mindestbestand, Verfügbar und Vorschau eingerechnet
+- Auch das Widget „Offene Zahlungen“ und die nächste Zahlung in der API (Home Assistant) kennen die Abrechnung
+
 ## [0.64.3] – Dauerposten im Import besser erkennen
 
 ### Behoben

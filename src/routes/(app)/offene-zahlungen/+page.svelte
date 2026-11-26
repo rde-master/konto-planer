@@ -73,7 +73,8 @@
 			<CalendarClock class="mx-auto mb-3 size-10 text-label-3" />
 			<p class="text-[17px] font-semibold">Keine offenen Zahlungen</p>
 			<p class="mt-1 text-[15px] text-label-2">
-				Hier erscheinen die nächsten Fälligkeiten deiner Dauerposten.
+				Hier erscheinen die nächsten Fälligkeiten deiner Dauerposten und die Abrechnungen der
+				Kreditkarten.
 			</p>
 		</div>
 	{:else}
@@ -91,18 +92,21 @@
 			<ul
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 			>
-				{#each group.items as r (r.recurringId + r.accountId + r.dueDate)}
+				{#each group.items as r (r.key)}
+					{@const href = r.recurringId
+						? resolve(`dauerposten/${r.recurringId}`)
+						: r.cardId
+							? resolve(`konten/${r.cardId}`)
+							: null}
 					<li>
-						<a
-							href={resolve(`dauerposten/${r.recurringId}`)}
-							class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
-						>
+						{#snippet row()}
 							<span class="min-w-0 flex-1">
 								<span class="block truncate text-[17px]">{r.name}</span>
 								<span class="block truncate text-[13px] text-label-2">
 									{[
 										data.accountId ? null : r.accountName,
-										r.dueDate !== r.bookingDate ? `planmäßig ${formatDay(r.dueDate)}` : null
+										r.dueDate !== r.bookingDate ? `planmäßig ${formatDay(r.dueDate)}` : null,
+										r.settlement ? 'Kreditkartenabrechnung' : null
 									]
 										.filter(Boolean)
 										.join(' · ') || 'Dauerposten'}
@@ -111,8 +115,15 @@
 							<span class={['shrink-0 text-[17px] tabular', r.amount > 0 && 'text-income']}>
 								{r.amount > 0 ? '+' : ''}{formatEuro(r.amount)}
 							</span>
-							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
-						</a>
+						{/snippet}
+						{#if href}
+							<a {href} class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill">
+								{@render row()}
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
+						{:else}
+							<div class="flex min-h-14 items-center gap-3 px-4 py-2">{@render row()}</div>
+						{/if}
 					</li>
 				{/each}
 			</ul>

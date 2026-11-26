@@ -8,7 +8,7 @@ import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import { listRecurringFor } from './recurring.js';
-import { openPayments } from '../due.js';
+import { upcomingPayments } from './credit-cards.js';
 import {
 	DEFAULT_STYLE,
 	TEMPLATE_LAYOUTS,
@@ -56,11 +56,14 @@ export async function widgetData(
 				cutoff: plan?.cutoff.date ?? null
 			};
 		}),
-		payments: openPayments(
-			items.filter((i) => !i.archivedAt),
-			ids,
-			addDays(today, 1),
-			addDays(today, 30)
+		payments: (
+			await upcomingPayments(
+				items.filter((i) => !i.archivedAt),
+				ids,
+				addDays(today, 1),
+				addDays(today, 30),
+				today
+			)
 		).map((p) => ({ name: p.name, date: p.bookingDate, amount: p.amount, accountId: p.accountId }))
 	};
 }

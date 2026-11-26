@@ -109,6 +109,16 @@ test('the next settlement counts in the giro plan; late purchases correct the la
 		`Kreditkarte ${CARD}`
 	);
 
+	// The statement is listed among the open payments: out of the giro account, into the card.
+	await page.goto('/offene-zahlungen?tage=90');
+	const debit = page.getByRole('region', { name: formatDay(nextDebit) });
+	await expect(debit.getByRole('link', { name: new RegExp(`Kreditkarte ${CARD}`) })).toContainText(
+		/−150,00\s€/
+	);
+	await expect(
+		debit.getByRole('link', { name: new RegExp(`Abbuchung von ${GIRO}`) })
+	).toContainText(/\+150,00\s€/);
+
 	// A purchase entered late (before the last statement) raises the settlement already booked.
 	await book(page, '20', addDays(last, -2), 'Nachzügler Karte');
 	await openAccount(page, GIRO);

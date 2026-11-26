@@ -2,7 +2,7 @@
 
 ## Offene und geplante Zahlungen
 
-**Offene Zahlungen** listet alles, was in den nächsten Wochen fällig wird. Einmalige Ausgaben (z. B. Autoversicherung im März) trägst du unter **Geplante Zahlungen** ein; sie zählen in Mindestbestand und Vorschau.
+**Offene Zahlungen** listet alles, was in den nächsten Wochen fällig wird. Dazu gehört auch die nächste Kreditkartenabrechnung: als Ausgang beim Girokonto und als Eingang bei der Karte. Einmalige Ausgaben (z. B. Autoversicherung im März) trägst du unter **Geplante Zahlungen** ein; sie zählen in Mindestbestand und Vorschau.
 
 Die **12-Monats-Vorschau** auf der Kontoseite zeigt den erwarteten Verlauf mit dem tiefsten Punkt.
 
