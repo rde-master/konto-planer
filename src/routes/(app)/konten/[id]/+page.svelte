@@ -160,6 +160,16 @@
 			<p class="text-[13px] text-label-2">
 				Startsaldo {formatEuro(account.openingBalance)} am {formatDay(account.openingDate)}
 			</p>
+			{#if data.asOf && data.asOf.source !== 'opening'}
+				<p
+					class={['text-[13px]', data.asOf.stale ? 'text-danger' : 'text-label-2']}
+					data-testid="as-of"
+				>
+					Stand vom {formatDay(data.asOf.date)} ({data.asOf.source === 'import'
+						? 'letzter Import'
+						: 'korrigiert'}){data.asOf.stale ? ' – bitte aktualisieren' : ''}
+				</p>
+			{/if}
 		</div>
 	</section>
 

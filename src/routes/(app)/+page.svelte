@@ -27,6 +27,10 @@
 		return f?.action === 'saving' ? (f as SavingErrors) : null;
 	});
 
+	function asOfText(a: { date: string; source: string }) {
+		return `Stand vom ${formatDay(a.date)}${a.source === 'import' ? ' (Import)' : a.source === 'adjustment' ? ' (korrigiert)' : ' (Startsaldo)'}`;
+	}
+
 	function signed(amount: number) {
 		return `${amount > 0 ? '+' : ''}${formatEuro(amount)}`;
 	}
@@ -135,6 +139,16 @@
 									<span class="block truncate text-[13px] text-label-2 tabular">
 										Stand {formatEuro(g.balance)}{g.cutoff ? ` · bis ${formatDay(g.cutoff)}` : ''}
 									</span>
+									{#if g.asOf}
+										<span
+											class={[
+												'block truncate text-[13px]',
+												g.asOf.stale ? 'text-danger' : 'text-label-2'
+											]}
+										>
+											{asOfText(g.asOf)}
+										</span>
+									{/if}
 									{#if g.minimum}
 										<span class="block truncate text-[13px] text-label-2 tabular">
 											Mindestbestand {formatEuro(g.minimum)}

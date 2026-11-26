@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.49.0] – Import-Erinnerung
+
+### Neu
+
+- Meldung „Import-Erinnerung“: monatlich am 30. (im Februar am Monatsletzten) für Girokonten und Kreditkarten, die schon importiert wurden und deren letzter Import älter als 14 Tage ist; die Meldung führt direkt zum Import
+- „Stand vom“ an jedem Kontostand (Übersicht, Kontoliste, Kontoseite): Tag der jüngsten importierten Buchung, ohne Import der letzten Kontostand-Korrektur; ab 30 Tagen rot markiert
+
 ## [0.48.0] – Preis- und Abo-Wächter
 
 ### Neu

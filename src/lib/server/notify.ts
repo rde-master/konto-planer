@@ -27,6 +27,8 @@ import { remindersFor } from './manual-transfers.js';
 import { suggestionsFor } from './savings-suggestion.js';
 import { forecastFor } from './forecast.js';
 import { increasesOn } from './watch.js';
+import { importInfo } from './import-reminder.js';
+import { needsImport } from '../import-reminder.js';
 import { addMonths } from '../recurring.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
 import {
@@ -594,6 +596,27 @@ async function subscriptionEvents(): Promise<Event[]> {
 	}));
 }
 
+/** Monthly reminder (the 30th, February the last day) for accounts imported before. */
+async function importReminderEvents(today: string): Promise<Event[]> {
+	const list = (await listAccountsFor(SYSTEM)).filter(
+		(a) => a.type !== 'sparbuch' && !a.archivedAt
+	);
+	const info = await importInfo(list.map((a) => a.id));
+	return list
+		.filter((a) => needsImport(today, info.get(a.id)?.lastImportDay ?? null))
+		.map((a) => {
+			const i = info.get(a.id)!;
+			return {
+				type: 'import_reminder' as const,
+				key: `${a.id}:${today.slice(0, 7)}`,
+				accountId: a.id,
+				url: `konten/${a.id}/import`,
+				title: `Import fällig: ${a.name}`,
+				message: `Zeit für den Umsatzimport von ${a.name}: der letzte Import war am ${formatDay(i.lastImportDay!)}${i.importDate ? `, Buchungen bis ${formatDay(i.importDate)}` : ''}. So bleiben Mindestbestand und verfügbarer Betrag genau.`
+			};
+		});
+}
+
 /** Users with edit right on the account (admins included). */
 async function editorsOf(accountId: string): Promise<string[]> {
 	const [admins, editors] = await Promise.all([
@@ -632,7 +655,8 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 		...(on('savings_suggestion') ? await savingsEvents(today) : []),
 		...(on('credit_limit') ? await creditLimitEvents(today) : []),
 		...(on('price_increase') ? await priceEvents(today) : []),
-		...(on('new_subscription') ? await subscriptionEvents() : [])
+		...(on('new_subscription') ? await subscriptionEvents() : []),
+		...(on('import_reminder') ? await importReminderEvents(today) : [])
 	].filter((e) => on(e.type));
 	if (!events.length) return 0;
 	const people = await db

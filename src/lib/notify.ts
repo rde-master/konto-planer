@@ -9,7 +9,8 @@ export const NOTIFICATION_TYPES = [
 	'savings_suggestion',
 	'credit_limit',
 	'price_increase',
-	'new_subscription'
+	'new_subscription',
+	'import_reminder'
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -23,7 +24,8 @@ export const NOTIFICATION_LABELS: Record<NotificationType, string> = {
 	savings_suggestion: 'Sparvorschlag am Gehaltstag',
 	credit_limit: 'Kreditrahmen der Kreditkarte reicht nicht',
 	price_increase: 'Dauerposten wird teurer',
-	new_subscription: 'Neue regelmäßige Abbuchung im Import'
+	new_subscription: 'Neue regelmäßige Abbuchung im Import',
+	import_reminder: 'Import-Erinnerung'
 };
 
 /**

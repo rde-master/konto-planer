@@ -6,18 +6,20 @@ import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError } from '#lib/server/validation.js';
 import { balancesOf } from '#lib/server/bookings.js';
 import { plansFor } from '#lib/server/minimum.js';
+import { balanceDates } from '#lib/server/import-reminder.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const list = await listAccountsFor(user);
 	const balances = await balancesOf(list);
-	const plans = await plansFor(user, list, balances);
+	const [plans, asOf] = await Promise.all([plansFor(user, list, balances), balanceDates(list)]);
 	return {
 		accounts: list.map((a) => ({
 			...a,
 			balance: balances.get(a.id) ?? a.openingBalance,
-			available: plans.get(a.id)?.plan.available ?? null
+			available: plans.get(a.id)?.plan.available ?? null,
+			asOf: asOf.get(a.id) ?? null
 		})),
 		isAdmin: user.role === 'admin'
 	};
