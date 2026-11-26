@@ -1101,3 +1101,15 @@ export const subscriptionHints = pgTable(
 		check('subscription_hints_status', sql`${t.status} in ('open', 'dismissed', 'created')`)
 	]
 );
+
+/** Calendar subscription of a user (one per user); only the token's hash is stored. */
+export const calendarFeeds = pgTable('calendar_feeds', {
+	userId: uuid('user_id')
+		.primaryKey()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	tokenHash: text('token_hash').notNull().unique(),
+	/** Calendar kinds included ("payments", "deadlines", "cards", "goals"). */
+	include: jsonb('include').$type<string[]>().notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	lastFetchedAt: timestamp('last_fetched_at', { withTimezone: true })
+});

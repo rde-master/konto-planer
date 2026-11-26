@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.52.0] – Kalender-Abo
+
+### Neu
+
+- Einstellungen › Kalender-Abo: ein geheimer Abo-Link je Benutzer für Apple Kalender, Google Kalender & Co. („Im Kalender abonnieren“ oder Link kopieren)
+- Inhalt wählbar: Fälligkeiten der Dauerposten (mit Betrag), Kündigungsfristen (mit Erinnerung zum Vorlauf), Kreditkarten-Abbuchungen und Sparziel-Termine
+- Zeitraum drei Monate zurück bis zwölf Monate voraus, nur Konten, die du siehst; der Kalender aktualisiert sich etwa alle sechs Stunden
+- „Neuen Link erzeugen“ macht den alten ungültig, „Abo beenden“ schaltet ihn ab; der Link wird nur als Hash gespeichert
+
 ## [0.51.0] – Kündigungsschreiben als PDF
 
 ### Neu

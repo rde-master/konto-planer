@@ -226,6 +226,8 @@ const FIELD_LABELS: Record<string, string> = {
 	subscriptionHint: 'Neues Abo',
 	monthlyReport: 'Monatsbericht',
 	postalAddress: 'Anschrift',
+	calendarFeed: 'Kalender-Abo',
+	calendarInclude: 'Kalender-Inhalt',
 	settlementAccountId: 'Abrechnungskonto',
 	statementDay: 'Abrechnungstag',
 	debitDay: 'Abbuchungstag',
