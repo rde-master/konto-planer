@@ -41,8 +41,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const setupDone = await hasAnyUser();
 		if (!setupDone && pathname !== '/setup') redirect(303, '/setup');
 		if (setupDone && pathname === '/setup') redirect(303, '/');
-		// Calendar subscriptions carry their own secret token.
-		const calendar = pathname.startsWith('/api/kalender/');
+		// Calendar subscriptions and the read API carry their own secret token.
+		const calendar = pathname.startsWith('/api/kalender/') || pathname.startsWith('/api/v1/');
 		if (!event.locals.user && !PUBLIC_PATHS.has(pathname) && !calendar) {
 			const target = pathname + event.url.search;
 			redirect(303, target === '/' ? '/login' : `/login?redirectTo=${encodeURIComponent(target)}`);

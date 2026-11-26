@@ -40,6 +40,16 @@ PDF-Anhänge an Dauerposten (bis 10 MB je Datei) liegen im Volume `app-data` unt
 
 Am iPhone: Seite in Safari öffnen → Teilen → „Zum Home-Bildschirm“.
 
+## Lesende API und Home Assistant
+
+Unter Einstellungen › API-Zugänge legt jeder Benutzer eigene Tokens an (alle oder ausgewählte Konten, jederzeit widerrufbar). Abfrage:
+
+```sh
+curl -H "Authorization: Bearer <token>" https://konto.example.lan/api/v1/status
+```
+
+Die Antwort enthält Kontostände („Stand vom“), verfügbar und Mindestbestand je Girokonto, nächste Zahlungen, Budgets des Monats und Warnungen; `/api/v1/accounts/<id>` liefert ein Konto. Für Home Assistant zeigt die App beim Anlegen einen fertigen REST-Sensor (YAML). Alternativ sendet die App die Werte stündlich als `sensor.konto_planer_…` an Home Assistant (Einstellungen › Benachrichtigungen, Admin).
+
 ## Entwicklung
 
 Voraussetzungen: Node 24, pnpm, Docker.

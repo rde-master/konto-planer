@@ -105,6 +105,12 @@
 			iconColor="bg-[#ff3b30]"
 		/>
 		<ListRow
+			label="API-Zugänge"
+			href="einstellungen/api"
+			icon={KeyRound}
+			iconColor="bg-[#34c759]"
+		/>
+		<ListRow
 			label="Kalender-Abo"
 			href="einstellungen/kalender"
 			icon={CalendarDays}

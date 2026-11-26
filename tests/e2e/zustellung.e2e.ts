@@ -344,3 +344,55 @@ test('the monthly report can be switched on and sent right away', async ({ page 
 	expect(mail?.data).toContain('Einnahmen');
 	expect(mail?.data).toContain(ACCOUNT);
 });
+
+test('a read-only API token delivers the status and can be revoked', async ({
+	page,
+	playwright
+}) => {
+	await login(page);
+	await page.goto('/einstellungen');
+	await page.getByRole('link', { name: 'API-Zugänge' }).click();
+	await page.getByLabel('Name').fill('Home Assistant Test');
+	await page.getByRole('button', { name: 'Zugang anlegen' }).click();
+	await expect(page.getByRole('status')).toHaveText('API-Zugang angelegt.');
+	const token = (await page.getByTestId('api-token').textContent())!.trim();
+	await expect(page.getByTestId('ha-yaml')).toContainText('/api/v1/status');
+	await expect(page.getByTestId('ha-yaml')).toContainText(`Bearer ${token}`);
+
+	const api = await playwright.request.newContext();
+	expect((await api.get('/api/v1/status')).status()).toBe(401);
+	const res = await api.get('/api/v1/status', { headers: { authorization: `Bearer ${token}` } });
+	expect(res.status()).toBe(200);
+	const status = (await res.json()) as {
+		accounts: { name: string; sensor: string; balance: number }[];
+		warnings: { type: string; account: string }[];
+	};
+	const meldekonto = status.accounts.find((a) => a.name === ACCOUNT);
+	expect(meldekonto?.sensor).toBe('meldekonto');
+	expect(status.warnings.some((w) => w.type === 'overdraft_reached' && w.account === ACCOUNT)).toBe(
+		true
+	);
+
+	await page
+		.getByRole('listitem', { name: 'Home Assistant Test' })
+		.getByRole('button', { name: 'Widerrufen' })
+		.click();
+	await expect(page.getByRole('status')).toHaveText('API-Zugang widerrufen.');
+	expect(
+		(await api.get('/api/v1/status', { headers: { authorization: `Bearer ${token}` } })).status()
+	).toBe(401);
+	await api.dispose();
+});
+
+test('the values are pushed to Home Assistant as sensors', async ({ page }) => {
+	await login(page);
+	await page.goto('/einstellungen/benachrichtigungen');
+	const region = page.getByRole('region', { name: 'Home Assistant' });
+	await region.getByRole('switch', { name: /Werte als Sensoren senden/ }).check();
+	await region.getByRole('button', { name: 'Sichern und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText(/\d+ Sensoren an Home Assistant gesendet\./);
+	const sensor = haCalls.find((c) => c.path === '/api/states/sensor.konto_planer_meldekonto_stand');
+	expect(sensor?.auth).toBe('Bearer ha-test-token');
+	expect(JSON.parse(sensor!.body)).toMatchObject({ attributes: { unit_of_measurement: '€' } });
+	expect(haCalls.some((c) => c.path === '/api/states/sensor.konto_planer_verfuegbar')).toBe(true);
+});

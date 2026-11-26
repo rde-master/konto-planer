@@ -21,6 +21,7 @@ import { syncGoals } from './goals.js';
 import { purgeExpired } from './trash.js';
 import { runNotifications } from './notify.js';
 import { runMonthlyReports } from './monthly-report.js';
+import { pushHaSensors } from './api.js';
 
 export class DueError extends Error {}
 
@@ -236,6 +237,9 @@ export function startDueScheduler() {
 		);
 		void runMonthlyReports().catch((e: unknown) =>
 			console.error('Monatsbericht: Versand fehlgeschlagen', e)
+		);
+		void pushHaSensors().catch((e: unknown) =>
+			console.error('Home Assistant: Sensoren nicht gesendet', e)
 		);
 		void purgeExpired().catch((e: unknown) =>
 			console.error('Papierkorb: Aufräumen fehlgeschlagen', e)

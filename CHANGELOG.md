@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.53.0] – Lesende API und Home-Assistant-Sensoren
+
+### Neu
+
+- Einstellungen › API-Zugänge: jeder legt eigene Tokens an (Name, Zweck, alle oder ausgewählte Konten), sieht, wann sie zuletzt benutzt wurden, und kann sie widerrufen; das Token wird nur einmal angezeigt und nur als Hash gespeichert
+- Lesende API `/api/v1/status`: Kontostände mit „Stand vom“, verfügbar und Mindestbestand je Girokonto, nächste Zahlung je Konto und gesamt, Budgets des Monats und Warnungen (Minus, Dispo, Mindestbestand, ausgebliebene Zahlungen, Kreditrahmen); `/api/v1/accounts/<id>` für ein Konto
+- Für Home Assistant: fertiger REST-Sensor zum Kopieren beim Anlegen eines Zugangs
+- Zusätzlich kann die App die Werte stündlich als Sensoren an Home Assistant senden (sensor.konto_planer_verfuegbar, _naechste_zahlung, _warnungen und je Konto Stand/verfügbar) – Schalter für den Admin unter Benachrichtigungen
+
 ## [0.52.0] – Kalender-Abo
 
 ### Neu

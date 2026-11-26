@@ -14,18 +14,20 @@ import {
 	testHomeAssistant
 } from '#lib/server/notify.js';
 import { formString } from '#lib/server/validation.js';
+import { ApiError, haSensorsEnabled, pushHaSensors, setHaSensors } from '#lib/server/api.js';
 import { NOTIFICATION_TYPES, REPEATS } from '#lib/notify.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	requireAdmin(locals.user);
-	const [settings, rules, people, log] = await Promise.all([
+	const [settings, rules, people, log, haSensors] = await Promise.all([
 		notifySettingsView(),
 		listRules(),
 		notifyUsers(),
-		recentNotifications()
+		recentNotifications(),
+		haSensorsEnabled()
 	]);
-	return { settings, rules, people, log };
+	return { settings, rules, people, log, haSensors };
 };
 
 export const actions: Actions = {
@@ -69,6 +71,21 @@ export const actions: Actions = {
 		});
 		if (errors) return fail(400, { action: 'ha' as const, errors });
 		return { action: 'ha' as const, success: 'Home-Assistant-Einstellungen gesichert.' };
+	},
+
+	haSensors: async ({ request, locals }) => {
+		const user = requireAdmin(locals.user);
+		const on = formString(await request.formData(), 'haSensors') === 'on';
+		await setHaSensors(user, on);
+		if (!on) return { action: 'ha' as const, success: 'Sensoren werden nicht mehr gesendet.' };
+		try {
+			const n = await pushHaSensors({ force: true });
+			return { action: 'ha' as const, success: `${n} Sensoren an Home Assistant gesendet.` };
+		} catch (e) {
+			if (e instanceof ApiError || e instanceof NotifyError)
+				return fail(400, { action: 'test' as const, message: e.message });
+			throw e;
+		}
 	},
 
 	testHa: async ({ locals }) => {

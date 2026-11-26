@@ -251,6 +251,20 @@ export async function haServices(ha: HaSettings): Promise<string[]> {
 		: [];
 }
 
+/** Sets the state of an entity (creates it if needed), e.g. "sensor.konto_planer_verfuegbar". */
+export async function haSetState(
+	ha: HaSettings,
+	entity: string,
+	state: string,
+	attributes: Record<string, unknown>
+) {
+	if (!/^sensor\.[a-z0-9_]+$/.test(entity)) throw new NotifyError('Ungültiger Sensor.');
+	await haFetch(ha, `/states/${entity}`, {
+		method: 'POST',
+		body: JSON.stringify({ state, attributes })
+	});
+}
+
 export async function haNotify(ha: HaSettings, service: string, title: string, message: string) {
 	if (!/^[a-z0-9_]+$/.test(service)) throw new NotifyError('Ungültiger Dienst.');
 	await haFetch(ha, `/services/notify/${service}`, {
