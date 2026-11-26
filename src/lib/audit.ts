@@ -230,6 +230,8 @@ const FIELD_LABELS: Record<string, string> = {
 	importName: 'Name für den Import gemerkt',
 	assignedTo: 'Dauerposten zugeordnet',
 	unassignedFrom: 'Zuordnung gelöst',
+	transferWith: 'Umbuchung mit Konto',
+	counterBooking: 'Gegenbuchung',
 	postalAddress: 'Anschrift',
 	calendarFeed: 'Kalender-Abo',
 	apiToken: 'API-Zugang',

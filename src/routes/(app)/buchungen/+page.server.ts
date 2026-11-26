@@ -16,6 +16,8 @@ import { buildTree } from '#lib/server/category-rules.js';
 import { categoryGroups } from '#lib/server/recurring-form.js';
 import { listTags } from '#lib/server/tags.js';
 import { budgetHint } from '#lib/server/budgets.js';
+import { TransferError, counterAccounts, linkTransfer } from '#lib/server/transfers.js';
+import { transferLabel } from '#lib/transfers.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const PAGE = 100;
@@ -54,7 +56,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				return [c.id, parent ? `${parent.name} › ${c.name}` : c.name];
 			})
 		),
-		tags: allTags.map((t) => ({ value: t.id, label: t.name }))
+		tags: allTags.map((t) => ({ value: t.id, label: t.name })),
+		/** "Umbuchung auf/von" in the form: every active account, by name. */
+		counterAccounts: await counterAccounts()
 	};
 };
 
@@ -62,13 +66,24 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 async function create(request: Request, user: NonNullable<App.Locals['user']>) {
 	const { ctx } = await bookingFormContext(user);
 	const input = readBookingForm(await request.formData(), ctx.today);
-	const { values, errors } = validateBooking(input, ctx);
-	if (!values) return fail(400, { action: 'create', input, errors });
+	const result = validateBooking(input, {
+		...ctx,
+		counterAccountIds: new Set((await counterAccounts()).map((a) => a.value))
+	});
+	if (!result.values) return fail(400, { action: 'create', input, errors: result.errors });
+	const { values, counterAccountId } = result;
+	let transfer = '';
 	try {
-		await createBooking(user, values);
+		const id = await createBooking(user, values);
+		if (counterAccountId) {
+			const linked = await linkTransfer(user, id, counterAccountId);
+			transfer = ` Umbuchung ${transferLabel(values.amount, linked.accountName).toLowerCase()}: ${linked.created ? 'Gegenbuchung angelegt' : 'mit der Buchung dort verknüpft'}.`;
+		}
 	} catch (e) {
 		if (e instanceof BookingError)
 			return fail(400, { action: 'create', input, errors: { accountId: e.message } });
+		if (e instanceof TransferError)
+			return fail(400, { action: 'create', input, errors: { counterAccountId: e.message } });
 		throw e;
 	}
 	const account = (await listAccountsFor(user)).find((a) => a.id === values.accountId);
@@ -81,7 +96,7 @@ async function create(request: Request, user: NonNullable<App.Locals['user']>) {
 	);
 	return {
 		action: 'create',
-		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.${balance}${hint ? ` ${hint}.` : ''}`
+		created: `${formatEuro(values.amount)} auf ${account?.name ?? 'dem Konto'} gebucht.${balance}${transfer}${hint ? ` ${hint}.` : ''}`
 	};
 }
 

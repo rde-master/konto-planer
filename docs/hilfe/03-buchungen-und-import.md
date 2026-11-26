@@ -6,6 +6,16 @@ Mit dem **+** unten rechts erfasst du eine Ausgabe oder Einnahme von jeder Seite
 
 **Vorlagen** (Einstellungen › Vorlagen) füllen häufige Buchungen mit einem Tipp aus, z. B. „Bäcker“ mit Konto und Kategorie.
 
+## Umbuchung zwischen zwei Konten
+
+Geht Geld von einem eigenen Konto auf ein anderes (Girokonto → Sparbuch, Girokonto → Kreditkarte), ist das eine **Umbuchung**: beim einen Konto ein Ausgang, beim anderen ein Eingang. In den Auswertungen und Budgets zählt sie weder als Ausgabe noch als Einnahme.
+
+- **Neu erfassen:** Unter Buchungen › **+** im Feld **Umbuchung auf/von** das andere Konto wählen. Eine Ausgabe geht dorthin, eine Einnahme kommt von dort. Vom Sparbuch aufs Girokonto buchst du als Einnahme auf dem Girokonto.
+- **Bestehende Buchung:** an der Buchung unter „Verwaltung“ **Als Umbuchung kennzeichnen** und das andere Konto wählen. Steht dort schon eine Buchung über denselben Betrag (bis drei Tage davor oder danach), werden beide verknüpft; sonst legt die App die Gegenbuchung an.
+- **Auflösen:** an der Buchung **Umbuchung auflösen**. Eine Gegenbuchung, die die App angelegt hat, kannst du dabei gleich löschen; sie liegt dann 30 Tage im Papierkorb.
+
+Änderst du Betrag oder Datum einer von Hand erfassten Umbuchung, zieht die von der App angelegte Gegenbuchung mit. Regelmäßige Umbuchungen legst du als Dauerposten der Art „Umbuchung“ an; der Import erkennt Umbuchungen selbst, wenn die IBAN des anderen Kontos in der Zeile steht.
+
 ## Splitbuchung, Tags und Logos
 
 - **Aufteilen**: Eine Buchung lässt sich auf mehrere Kategorien verteilen (z. B. Supermarkt: Lebensmittel und Drogerie).

@@ -403,7 +403,24 @@ export async function updateBooking(
 		)
 			throw new BookingError('Auf diesem Konto darfst du nicht buchen.');
 	}
-	await db.transaction(async (tx) => {
+	const counterAccountId = await db.transaction(async (tx) => {
+		// The other side of a transfer made by hand follows amount and day.
+		let counterAccount: string | null = null;
+		if (current.counterBookingId) {
+			const [counter] = await tx
+				.select({ accountId: bookings.accountId, source: bookings.source })
+				.from(bookings)
+				.where(eq(bookings.id, current.counterBookingId));
+			if (counter?.accountId === values.accountId)
+				throw new BookingError('Eine Umbuchung braucht zwei verschiedene Konten.');
+			if (counter?.source === 'manual') {
+				await tx
+					.update(bookings)
+					.set({ amount: -values.amount, bookingDate: values.bookingDate, updatedAt: new Date() })
+					.where(eq(bookings.id, current.counterBookingId));
+				counterAccount = counter.accountId;
+			}
+		}
 		await tx
 			.update(bookings)
 			.set({ ...values, updatedAt: new Date() })
@@ -419,7 +436,9 @@ export async function updateBooking(
 				entityLabel: label(values, after.category),
 				...changes
 			});
+		return counterAccount;
 	});
+	if (counterAccountId) await syncInterest([counterAccountId]);
 	await syncSettlements();
 }
 
