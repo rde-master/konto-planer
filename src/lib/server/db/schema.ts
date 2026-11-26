@@ -30,6 +30,8 @@ export const users = pgTable('users', {
 	role: userRole('role').notNull().default('user'),
 	/** Home Assistant notify services that get this user's notifications ("mobile_app_…"). */
 	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
+	/** Monthly report by e-mail (opt-in). */
+	monthlyReport: boolean('monthly_report').notNull().default(false),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });

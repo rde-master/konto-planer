@@ -224,6 +224,7 @@ const FIELD_LABELS: Record<string, string> = {
 	manualTransferDone: 'Überwiesen (Fälligkeit)',
 	savingSuggestion: 'Sparvorschlag',
 	subscriptionHint: 'Neues Abo',
+	monthlyReport: 'Monatsbericht',
 	settlementAccountId: 'Abrechnungskonto',
 	statementDay: 'Abrechnungstag',
 	debitDay: 'Abbuchungstag',
