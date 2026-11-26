@@ -10,7 +10,7 @@ Unter **Konten › +** (nur Admin) legst du an:
 - **Sparbuch**: Geld zum Zurücklegen, mit Zinsen und Sparzielen.
 - **Kreditkarte**: Umsätze werden einmal im Monat vom gewählten Girokonto ausgeglichen (siehe [Kreditkarte](04-planen-und-sparen.md#kreditkarte)).
 
-Wichtig ist der **Startsaldo mit Datum** („Stand am“): Der Kontostand ist dieser Betrag plus alle Buchungen ab diesem Tag. Ältere Buchungen werden gespeichert, zählen aber nicht mit. Stimmt der Stand später nicht, hilft **Kontostand korrigieren** auf der Kontoseite.
+Wichtig ist der **Startsaldo mit Datum** („Stand am“): Der Kontostand ist dieser Betrag plus alle Buchungen ab diesem Tag. Ältere Buchungen werden gespeichert, zählen aber nicht mit. Stimmt der Stand später nicht, hilft **Kontostand korrigieren** auf der Kontoseite. Ist das Konto im Minus (Dispo, offene Umsätze der Kreditkarte), wechselt der Knopf **+/−** neben dem Betrag das Vorzeichen – die Zahlentastatur am Handy hat kein Minuszeichen.
 
 Die IBAN ist optional; der Umsatzimport prüft damit, ob die Datei zum Konto passt.
 

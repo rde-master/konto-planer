@@ -116,6 +116,7 @@
 				name="openingBalance"
 				value={amount(values.openingBalance)}
 				inputmode="decimal"
+				signed
 				autocomplete="off"
 				placeholder="0,00"
 				error={errors?.openingBalance}
@@ -131,6 +132,11 @@
 		</ul>
 		<p class="mt-1.5 px-4 text-[13px] text-label-2">
 			Kontostand laut Bank an diesem Tag. Buchungen ab diesem Tag kommen dazu, ältere zählen nicht.
+			{#if type === 'kreditkarte'}
+				Offene Umsätze auf der Karte sind ein Minusbetrag – das Vorzeichen wechselt der Knopf „+/−“.
+			{:else if type === 'giro'}
+				Ist das Konto im Minus, wechselt der Knopf „+/−“ das Vorzeichen.
+			{/if}
 		</p>
 	</section>
 
