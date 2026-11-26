@@ -1,0 +1,32 @@
+# Demo instance with invented data (no login, reset every night, no e-mail/push/Home Assistant).
+# Start: docker compose -f docker-compose.demo.yml up -d   → http://localhost:3001
+name: konto-planer-demo
+
+services:
+  app:
+    image: ghcr.io/rde-master/konto-planer:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://demo:demo@db:5432/demo
+      ORIGIN: ${DEMO_ORIGIN:-http://localhost:3001}
+      DEMO_MODE: 'true'
+      BACKUP_BEFORE_MIGRATION: 'false'
+      TZ: Europe/Berlin
+    ports:
+      - '${DEMO_PORT:-3001}:3000'
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U demo -d demo']
+      interval: 10s
+      timeout: 5s
+      retries: 5

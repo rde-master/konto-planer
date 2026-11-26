@@ -6,6 +6,20 @@ Selbst gehostete Web-App für das Heimnetz: SvelteKit und PostgreSQL als Docker-
 
 **Anleitung:** [Einrichtung](docs/hilfe/01-einrichtung.md) · [Erste Schritte](docs/hilfe/02-erste-schritte.md) · [Buchungen und Import](docs/hilfe/03-buchungen-und-import.md) · [Planen und Sparen](docs/hilfe/04-planen-und-sparen.md) · [Benachrichtigungen](docs/hilfe/05-benachrichtigungen.md) · [Widgets, Kurzbefehl, Kalender, API](docs/hilfe/06-widgets-und-mehr.md) · [Gemeinsam nutzen](docs/hilfe/07-gemeinsam.md) – dieselben Texte stehen in der App unter Mehr › Hilfe.
 
+<p>
+  <img src="docs/screenshots/uebersicht-handy-hell.png" alt="Übersicht am iPhone" width="240">
+  <img src="docs/screenshots/konto-handy-dunkel.png" alt="Konto mit Mindestbestand, dunkel" width="240">
+</p>
+<img src="docs/screenshots/auswertungen-desktop.png" alt="Auswertungen am Desktop" width="720">
+
+## Demo ausprobieren
+
+```sh
+docker compose -f docker-compose.demo.yml up -d
+```
+
+Dann http://localhost:3001 öffnen: erfundener Haushalt „Beispiel“ mit Konten, Dauerposten, Kreditkarte und sechs Monaten Buchungen, ohne Anmeldung. Änderungen werden jede Nacht zurückgesetzt; E-Mail, Push und Home Assistant sind abgeschaltet. Die Screenshots oben entstehen mit `BASE_URL=http://localhost:3001 node scripts/screenshots.mjs` aus dieser Demo.
+
 ## Installation
 
 Voraussetzung: Docker mit Compose und ein Reverse Proxy mit HTTPS.

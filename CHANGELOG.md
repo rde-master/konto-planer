@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.60.0] – Demo-Modus
+
+### Neu
+
+- Demo-Instanz zum Ausprobieren: `docker compose -f docker-compose.demo.yml up -d` startet Konto Planer mit dem erfundenen Haushalt „Beispiel“ – vier Konten samt Kreditkarte, Dauerposten mit Verträgen, sechs Monate Alltagsbuchungen, Budgets und ein Sparziel
+- In der Demo keine Anmeldung, alles bedienbar; ein Hinweis oben erinnert daran, dass Änderungen jede Nacht zurückgesetzt werden
+- E-Mail, Push und Home Assistant sind in der Demo abgeschaltet
+- Screenshots für README und Dokumentation entstehen per Skript aus der Demo (Handy hell und dunkel, Desktop)
+
 ## [0.59.0] – Anleitung
 
 ### Neu

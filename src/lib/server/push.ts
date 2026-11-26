@@ -5,6 +5,7 @@ import { appSettings, pushSubscriptions } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import { decrypt, encrypt } from './secrets.js';
 import { getSettings } from './settings.js';
+import { DEMO_DISABLED, isDemo } from './demo-mode.js';
 import { deviceLabel, parseSubscription, pushPayload } from '../push.js';
 
 export class PushError extends Error {}
@@ -163,6 +164,7 @@ export async function pushToUser(userId: string, title: string, body: string, ur
 		.select()
 		.from(pushSubscriptions)
 		.where(eq(pushSubscriptions.userId, userId));
+	if (isDemo()) throw new PushError(DEMO_DISABLED);
 	if (!targets.length) throw new PushError('Kein Gerät für Push angemeldet.');
 	const vapid = await vapidKeys();
 	const payload = pushPayload(title, body, url);

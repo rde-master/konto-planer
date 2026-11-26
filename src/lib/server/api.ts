@@ -4,6 +4,7 @@ import { apiTokens, appSettings, users } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import type { Viewer } from './account-rules.js';
 import { generateSessionToken, hashSessionToken } from './session-token.js';
+import { isDemo } from './demo-mode.js';
 import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
@@ -245,6 +246,10 @@ export async function setHaSensors(actor: NonNullable<Actor>, on: boolean) {
 
 /** Writes the status as sensors to Home Assistant; returns the number of sensors. */
 export async function pushHaSensors({ force = false } = {}): Promise<number> {
+	if (isDemo()) {
+		if (force) throw new ApiError('In der Demo ist Home Assistant abgeschaltet.');
+		return 0;
+	}
 	if (!force && !(await haSensorsEnabled())) return 0;
 	const { ha } = await notifySettings();
 	if (!ha) throw new ApiError('Home Assistant ist noch nicht eingerichtet.');

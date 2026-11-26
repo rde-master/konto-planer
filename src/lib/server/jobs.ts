@@ -6,7 +6,8 @@ export const JOB_LABELS: Record<string, string> = {
 	notifications: 'Meldungen',
 	monthly_report: 'Monatsbericht',
 	ha_sensors: 'Home-Assistant-Sensoren',
-	trash: 'Papierkorb aufräumen'
+	trash: 'Papierkorb aufräumen',
+	demo_reset: 'Demo zurücksetzen (nachts)'
 };
 
 /** Runs a background job and records start, duration and result (errors are logged, not thrown). */

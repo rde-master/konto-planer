@@ -23,6 +23,8 @@ import { runNotifications } from './notify.js';
 import { runMonthlyReports } from './monthly-report.js';
 import { pushHaSensors } from './api.js';
 import { trackJob } from './jobs.js';
+import { isDemo } from './demo-mode.js';
+import { nightlyDemoReset } from './demo.js';
 
 export class DueError extends Error {}
 
@@ -235,6 +237,7 @@ export function startDueScheduler() {
 		void trackJob('monthly_report', () => runMonthlyReports());
 		void trackJob('ha_sensors', () => pushHaSensors());
 		void trackJob('trash', () => purgeExpired());
+		if (isDemo()) void trackJob('demo_reset', () => nightlyDemoReset());
 	};
 	void run();
 	timer = setInterval(() => void run(), 60 * 60 * 1000);

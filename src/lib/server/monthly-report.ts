@@ -11,6 +11,7 @@ import { getSettings } from './settings.js';
 import { metricsFor, reportBookings, reportCategories } from './reports.js';
 import { increasesOn } from './watch.js';
 import { NotifyError, notifySettings, sendEmail } from './notify.js';
+import { isDemo } from './demo-mode.js';
 import { buildReport, reportMonth, SEND_UNTIL_DAY, type ReportData } from '../monthly-report.js';
 import { expensesByCategory, inOutByMonth, monthRange } from '../reports.js';
 import { cancelSoon, contractStatus } from '../contracts.js';
@@ -145,7 +146,7 @@ export async function sendReportNow(user: Recipient, today = todayBerlin()) {
 /** Hourly job: in the first days of a month from 8 o'clock, once per user and month. */
 export async function runMonthlyReports(now = new Date()): Promise<number> {
 	const today = berlinDay(now);
-	if (Number(today.slice(8)) > SEND_UNTIL_DAY || berlinHour(now) < SEND_HOUR) return 0;
+	if (isDemo() || Number(today.slice(8)) > SEND_UNTIL_DAY || berlinHour(now) < SEND_HOUR) return 0;
 	const { smtp } = await notifySettings();
 	if (!smtp) return 0;
 	const month = reportMonth(today);

@@ -22,7 +22,17 @@
 	});
 </script>
 
-<AppShell quick={data.quickEntry}>{@render children()}</AppShell>
+<AppShell quick={data.quickEntry}>
+	{#if data.demo}
+		<p
+			role="note"
+			class="mb-4 rounded-[var(--radius-row)] bg-accent/10 px-4 py-2 text-center text-[13px] text-accent"
+		>
+			Demo mit erfundenen Daten – Änderungen werden nachts zurückgesetzt.
+		</p>
+	{/if}
+	{@render children()}
+</AppShell>
 
 {#if data.whatsNew.length}
 	<Sheet bind:open={newsOpen} title="Was ist neu" closeLabel="Fertig">
