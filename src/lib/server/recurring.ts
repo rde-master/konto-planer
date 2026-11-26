@@ -432,6 +432,13 @@ export async function createRecurring(
 	return id;
 }
 
+/** "Gekündigt am": sets the cancellation day of a contract (the end follows as usual). */
+export async function markCancelled(actor: NonNullable<Actor> & Viewer, id: string, day: string) {
+	const current = await requireEditable(actor, id);
+	if (!current.contract) throw new RecurringError('Dieser Dauerposten hat keine Vertragsdaten.');
+	await updateRecurring(actor, id, valuesOf(current), { ...current.contract, cancelledOn: day });
+}
+
 export async function updateRecurring(
 	actor: NonNullable<Actor> & Viewer,
 	id: string,

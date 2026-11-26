@@ -43,13 +43,22 @@ export async function addAttachment(
 	recurringId: string,
 	file: File
 ) {
+	return storeAttachment(actor, recurringId, new Uint8Array(await file.arrayBuffer()), file.name);
+}
+
+/** Stores a PDF (uploaded or created by the app) at a recurring item; returns its id. */
+export async function storeAttachment(
+	actor: NonNullable<Actor> & Viewer,
+	recurringId: string,
+	bytes: Uint8Array,
+	name: string
+): Promise<string> {
 	const item = await requireEditable(actor, recurringId);
-	const bytes = new Uint8Array(await file.arrayBuffer());
 	const problem = attachmentError(bytes.byteLength, bytes);
 	if (problem) throw new RecurringError(problem);
 
 	const id = randomUUID();
-	const fileName = cleanFileName(file.name);
+	const fileName = cleanFileName(name);
 	const target = filePath(id);
 	await mkdir(attachmentDir(), { recursive: true });
 	// Write to a temporary name first so a crash never leaves a half-written PDF.
@@ -84,6 +93,7 @@ export async function addAttachment(
 		await rm(target, { force: true });
 		throw e;
 	}
+	return id;
 }
 
 export async function deleteAttachment(

@@ -32,6 +32,13 @@ export const users = pgTable('users', {
 	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
 	/** Monthly report by e-mail (opt-in). */
 	monthlyReport: boolean('monthly_report').notNull().default(false),
+	/** Sender address for letters (cancellations). */
+	postalAddress: jsonb('postal_address').$type<{
+		name: string;
+		street: string;
+		postalCode: string;
+		city: string;
+	} | null>(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });

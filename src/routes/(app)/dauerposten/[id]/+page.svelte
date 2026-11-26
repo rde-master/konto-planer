@@ -412,6 +412,9 @@
 					value={formatDay(contract.termEnd)}
 				/>{/if}
 			{#if reminder}<ListRow label="Bald kündbar ab" value={formatDay(reminder)} />{/if}
+			{#if item.canEdit && !item.archivedAt && contractState.state !== 'ends'}
+				<ListRow label="Kündigungsschreiben erstellen" href={`dauerposten/${item.id}/kuendigung`} />
+			{/if}
 		</ListGroup>
 	{/if}
 
