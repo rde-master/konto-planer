@@ -6,7 +6,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<Page title="Was ist neu" back={{ path: 'einstellungen', label: 'Einstellungen' }}>
+<Page title="Was ist neu" back={{ path: 'einstellungen', label: 'Einstellungen' }} layout="narrow">
 	<div class="rounded-[var(--radius-card)] bg-card p-5">
 		<ChangeList entries={data.entries} />
 	</div>

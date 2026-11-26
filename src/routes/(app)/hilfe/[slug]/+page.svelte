@@ -6,7 +6,7 @@
 	let { data }: PageProps = $props();
 </script>
 
-<Page title={data.title} back={{ path: 'hilfe', label: 'Hilfe' }}>
+<Page title={data.title} back={{ path: 'hilfe', label: 'Hilfe' }} layout="narrow">
 	<article class="help rounded-[var(--radius-card)] bg-card p-5 text-[16px] leading-relaxed">
 		<!-- Rendered from docs/hilfe in the repo; renderHelp() escapes all text. -->
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->

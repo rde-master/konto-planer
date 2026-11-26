@@ -85,7 +85,7 @@
 	{/snippet}
 
 	{#if activeFilters.length}
-		<div class="mb-5 flex flex-wrap items-center gap-2" aria-label="Aktive Filter">
+		<div class="kp-span mb-5 flex flex-wrap items-center gap-2" aria-label="Aktive Filter">
 			{#each activeFilters as chip (chip)}
 				<span class="rounded-full bg-fill px-3 py-1 text-[13px] font-medium">{chip}</span>
 			{/each}
@@ -100,7 +100,7 @@
 	{/if}
 
 	{#each groups as group (group.day)}
-		<section class="mb-8">
+		<section class="kp-flow mb-8">
 			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
 				{dayLabel(group.items[0].at)}
 			</h2>
@@ -143,7 +143,7 @@
 	{#if data.hasMore}
 		<a
 			href={resolve(`einstellungen/protokoll?${olderQuery}`)}
-			class="mb-8 flex min-h-11 items-center justify-center rounded-full bg-fill text-[17px] font-semibold text-accent"
+			class="kp-span mb-8 flex min-h-11 items-center justify-center rounded-full bg-fill text-[17px] font-semibold text-accent"
 		>
 			Ältere Einträge
 		</a>

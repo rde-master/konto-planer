@@ -173,3 +173,56 @@
 		scroll-behavior: auto !important;
 	}
 }
+
+/*
+ * Desktop: pages flow in two columns (see Page.svelte). Sections, lists and cards stay whole;
+ * wrappers like forms may break between their sections. `kp-span` goes across both columns.
+ */
+@media (min-width: 80rem) {
+	.kp-columns {
+		columns: 2;
+		column-gap: 2rem;
+	}
+	.kp-columns section,
+	.kp-columns > ul,
+	.kp-columns > ol,
+	.kp-columns > div,
+	.kp-columns > p,
+	.kp-columns > a,
+	.kp-columns li,
+	.kp-columns .kp-keep {
+		break-inside: avoid;
+	}
+	/* A form keeps its fields and button together; long lists may flow on (kp-flow). */
+	.kp-columns form {
+		break-inside: avoid;
+	}
+	.kp-columns .kp-flow,
+	.kp-columns .kp-flow > ul {
+		break-inside: auto;
+	}
+	.kp-columns .kp-flow > ul {
+		/* overflow: hidden would keep the list in one piece; clip still rounds the corners. */
+		overflow: clip;
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+	}
+	.kp-columns h2,
+	.kp-columns h3 {
+		break-after: avoid;
+	}
+	.kp-columns .kp-span,
+	.kp-columns > nav,
+	.kp-columns > [role='alert'],
+	.kp-columns > [role='status'],
+	.kp-columns > [role='note'] {
+		column-span: all;
+	}
+}
+
+/* Very wide screens: three columns. */
+@media (min-width: 120rem) {
+	.kp-columns {
+		columns: 3;
+	}
+}

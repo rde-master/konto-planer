@@ -12,7 +12,7 @@
 	const message = $derived(form && 'message' in form ? form.message : null);
 </script>
 
-<Page title={data.initial.name} back={{ path: 'widgets', label: 'Widgets' }}>
+<Page title={data.initial.name} back={{ path: 'widgets', label: 'Widgets' }} layout="wide">
 	{#if message}
 		<p
 			role="alert"

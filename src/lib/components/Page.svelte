@@ -8,8 +8,14 @@
 		title,
 		back,
 		actions,
+		layout = 'columns',
 		children
 	}: {
+		/**
+		 * Desktop layout: "columns" = wide, sections flow in two columns (default); "wide" = wide
+		 * single column (the page arranges itself); "narrow" = reading width.
+		 */
+		layout?: 'columns' | 'wide' | 'narrow';
 		title: string;
 		/** Parent page for the iOS-style back button. */
 		back?: { path: Path; label: string };
@@ -17,6 +23,9 @@
 		children: Snippet;
 	} = $props();
 
+	const width = $derived(
+		layout === 'narrow' ? 'max-w-3xl' : 'max-w-3xl xl:max-w-[84rem] min-[120rem]:max-w-[112rem]'
+	);
 	let titleEl: HTMLElement | undefined = $state();
 	let collapsed = $state(false);
 
@@ -41,7 +50,7 @@
 		collapsed ? 'rounded-none border-x-0 border-t-0 glass' : 'border-0 bg-transparent shadow-none'
 	]}
 >
-	<div class="mx-auto grid h-13 max-w-3xl grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8">
+	<div class={['mx-auto grid h-13 grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8', width]}>
 		<span class="min-w-0">
 			{#if back}
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
@@ -67,9 +76,11 @@
 	</div>
 </header>
 
-<div class="mx-auto max-w-3xl px-4 md:px-8">
+<div class={['mx-auto px-4 md:px-8', width]}>
 	<h1 bind:this={titleEl} class="pt-1 pb-4 text-[34px] leading-tight font-bold tracking-tight">
 		{title}
 	</h1>
-	{@render children()}
+	<div class={layout === 'columns' ? 'kp-columns' : undefined}>
+		{@render children()}
+	</div>
 </div>

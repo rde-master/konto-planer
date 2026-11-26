@@ -26,6 +26,13 @@ const browser = await chromium.launch();
 for (const v of variants) {
 	const context = await browser.newContext(v.options);
 	const page = await context.newPage();
+	// After an update the app shows "Was ist neu" once – close it before taking pictures.
+	await page.goto(BASE + '/');
+	await page
+		.getByRole('dialog', { name: 'Was ist neu' })
+		.getByRole('button', { name: 'Fertig' })
+		.click({ timeout: 2000 })
+		.catch(() => {});
 	for (const p of pages) {
 		await page.goto(BASE + p.path);
 		if (p.click) await page.getByRole('link', { name: p.click }).first().click();

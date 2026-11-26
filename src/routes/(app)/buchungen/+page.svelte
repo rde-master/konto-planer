@@ -189,7 +189,7 @@
 		role="search"
 		method="GET"
 		action={resolve('buchungen')}
-		class="mb-3 flex gap-2"
+		class="kp-span mb-3 flex gap-2"
 		onsubmit={search}
 	>
 		<!-- Without JavaScript the form submits the other filters, too. -->
@@ -223,7 +223,7 @@
 	</form>
 
 	{#if chips.length}
-		<ul class="mb-3 flex flex-wrap gap-2" aria-label="Aktive Filter">
+		<ul class="kp-span mb-3 flex flex-wrap gap-2" aria-label="Aktive Filter">
 			{#each chips as chip (chip.label)}
 				{@const q = query(chip.without)}
 				<li>
@@ -243,13 +243,13 @@
 	{/if}
 
 	{#if data.total}
-		<p class="mb-3 px-4 text-[15px] text-label-2 tabular" aria-label="Treffer">
+		<p class="kp-span mb-3 px-4 text-[15px] text-label-2 tabular" aria-label="Treffer">
 			{`${data.total.count} ${data.total.count === 1 ? 'Buchung' : 'Buchungen'} · Summe ${formatEuro(data.total.sum)}`}
 		</p>
 	{/if}
 
 	{#if data.accountFilter.length > 1}
-		<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<ul class="kp-span mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
 			<SelectField
 				label="Konto"
 				name="konto"
@@ -321,7 +321,7 @@
 	{#if data.more}
 		<a
 			href={resolve(`buchungen?${moreQuery}`)}
-			class="block rounded-[var(--radius-row)] bg-card px-4 py-3 text-center text-accent"
+			class="kp-span block rounded-[var(--radius-row)] bg-card px-4 py-3 text-center text-accent"
 			data-sveltekit-noscroll
 		>
 			Ältere Buchungen anzeigen
