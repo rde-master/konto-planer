@@ -102,3 +102,38 @@ test('a widget is designed in the editor and changed later without a new script'
 	expect(body.blocks.some((b) => b.label?.startsWith('Nächste'))).toBe(false);
 	await api.dispose();
 });
+
+test('lock screen widgets: circular ring and one line', async ({ page, playwright }) => {
+	await login(page);
+	await page.goto('/widgets');
+	const section = page.getByRole('region', { name: 'Verfügbar bis Gehalt' });
+	await section.getByText('Rund', { exact: true }).click();
+	await expect(section.getByRole('img', { name: 'Vorschau' })).toBeVisible();
+	await section.getByRole('button', { name: 'Widget anlegen' }).click();
+	const script = await section.getByTestId('widget-script').inputValue();
+	const token = /const TOKEN = "([^"]+)"/.exec(script)![1];
+
+	const api = await playwright.request.newContext();
+	const res = await api.get('/api/widget', { headers: { authorization: `Bearer ${token}` } });
+	const body = (await res.json()) as {
+		size: string;
+		blocks: unknown[];
+		lock: { lines: string[]; gauge: { value: number; label: string } | null };
+	};
+	expect(body.size).toBe('lockCircle');
+	expect(body.blocks).toEqual([]);
+	expect(body.lock.gauge?.label).toMatch(/^−?\d/);
+	await api.dispose();
+
+	// In the editor the size can become a line above the clock.
+	await page.goto('/widgets');
+	await page
+		.getByRole('region', { name: 'Meine Widgets' })
+		.getByRole('link', { name: /Verfügbar bis Gehalt · Rund/ })
+		.click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Verfügbar bis Gehalt' })).toBeVisible();
+	await page.getByRole('radio', { name: 'Zeile', exact: true }).click();
+	await expect(page.getByRole('img', { name: 'Vorschau' })).toContainText('€');
+	await page.getByRole('button', { name: 'Sichern' }).click();
+	await expect(page.getByRole('status')).toContainText('Gesichert');
+});

@@ -12,7 +12,9 @@ import { openPayments } from '../due.js';
 import {
 	DEFAULT_STYLE,
 	TEMPLATE_LAYOUTS,
+	isLockSize,
 	layoutBlocks,
+	lockContent,
 	parseLayout,
 	widgetPalette,
 	type WidgetLayout,
@@ -252,7 +254,8 @@ export async function widgetResponse(request: Request) {
 		size,
 		generatedAt: new Date().toISOString(),
 		appUrl: origin?.startsWith('http') ? origin : null,
-		blocks: layoutBlocks(layout.items, size, data),
+		blocks: isLockSize(size) ? [] : layoutBlocks(layout.items, size, data),
+		lock: isLockSize(size) ? lockContent(layout.items, size, data) : null,
 		style: widgetPalette(layout.style, data.accounts[0]?.color ?? null)
 	};
 }

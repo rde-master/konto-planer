@@ -299,4 +299,4 @@ Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Re
 
 ## Offene Punkte
 
-Alle Fragen sind geklärt. Der Agent prüft vor 0.43.0, ob iOS Push aus der Web-App in dieser Einrichtung unterstützt, und vor 0.56.0, ob Scriptable Sperrbildschirm-Widgets unterstützt.
+Alle Fragen sind geklärt. Push aus der Web-App (0.44.0) und Sperrbildschirm-Widgets über Scriptable (0.56.0, ab iOS 16: rechteckig, rund, Zeile) werden unterstützt.
