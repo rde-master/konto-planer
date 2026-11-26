@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { THEME_COOKIE, parseTheme } from '#lib/theme.js';
 import { bookingFormContext } from '#lib/server/bookings.js';
 import { quickTemplates } from '#lib/server/templates.js';
+import { unseenChanges } from '#lib/server/changelog.js';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, cookies }) => {
@@ -14,6 +15,8 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 		user: locals.user,
 		theme: parseTheme(cookies.get(THEME_COOKIE)),
 		/** Options of the quick entry (plus button on every page). */
-		quickEntry: { ...options, templates }
+		quickEntry: { ...options, templates },
+		/** "Was ist neu" after an update (once per user and version). */
+		whatsNew: await unseenChanges(locals.user)
 	};
 };

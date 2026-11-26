@@ -34,7 +34,7 @@ async function lastAppliedMigration(): Promise<number | null> {
 }
 
 /** pg_dump in custom format; credentials go via PG* env vars, never via the command line. */
-async function dump(databaseUrl: string, file: string) {
+export async function dump(databaseUrl: string, file: string) {
 	const url = new URL(databaseUrl);
 	const partial = `${file}.partial`;
 	await run('pg_dump', ['--format=custom', '--no-owner', `--file=${partial}`], {
@@ -51,7 +51,7 @@ async function dump(databaseUrl: string, file: string) {
 	await rename(partial, file);
 }
 
-async function prune(dir: string) {
+export async function prune(dir: string) {
 	for (const name of backupsToDelete(await readdir(dir))) {
 		await rm(path.join(dir, name));
 		console.log(`[backup] old backup removed: ${name}`);

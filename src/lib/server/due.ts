@@ -22,6 +22,7 @@ import { purgeExpired } from './trash.js';
 import { runNotifications } from './notify.js';
 import { runMonthlyReports } from './monthly-report.js';
 import { pushHaSensors } from './api.js';
+import { trackJob } from './jobs.js';
 
 export class DueError extends Error {}
 
@@ -229,21 +230,11 @@ let timer: ReturnType<typeof setInterval> | undefined;
 export function startDueScheduler() {
 	if (timer) return;
 	const run = () => {
-		void syncDues().catch((e: unknown) =>
-			console.error('Fälligkeiten: Abgleich fehlgeschlagen', e)
-		);
-		void runNotifications().catch((e: unknown) =>
-			console.error('Benachrichtigungen: Versand fehlgeschlagen', e)
-		);
-		void runMonthlyReports().catch((e: unknown) =>
-			console.error('Monatsbericht: Versand fehlgeschlagen', e)
-		);
-		void pushHaSensors().catch((e: unknown) =>
-			console.error('Home Assistant: Sensoren nicht gesendet', e)
-		);
-		void purgeExpired().catch((e: unknown) =>
-			console.error('Papierkorb: Aufräumen fehlgeschlagen', e)
-		);
+		void trackJob('dues', () => syncDues());
+		void trackJob('notifications', () => runNotifications());
+		void trackJob('monthly_report', () => runMonthlyReports());
+		void trackJob('ha_sensors', () => pushHaSensors());
+		void trackJob('trash', () => purgeExpired());
 	};
 	void run();
 	timer = setInterval(() => void run(), 60 * 60 * 1000);

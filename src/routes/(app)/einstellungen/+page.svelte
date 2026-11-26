@@ -5,6 +5,8 @@
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
 	import Zap from '@lucide/svelte/icons/zap';
 	import CalendarDays from '@lucide/svelte/icons/calendar-days';
+	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Activity from '@lucide/svelte/icons/activity';
 	import Bell from '@lucide/svelte/icons/bell';
 	import BellRing from '@lucide/svelte/icons/bell-ring';
 	import Page from '#lib/components/Page.svelte';
@@ -116,6 +118,12 @@
 			icon={CalendarDays}
 			iconColor="bg-[#ff9500]"
 		/>
+		<ListRow
+			label="Was ist neu"
+			href="einstellungen/neuigkeiten"
+			icon={Sparkles}
+			iconColor="bg-[#af52de]"
+		/>
 	</ListGroup>
 
 	{#if data.user.role === 'admin'}
@@ -132,6 +140,12 @@
 				href="einstellungen/protokoll"
 				icon={ScrollText}
 				iconColor="bg-[#ff9500]"
+			/>
+			<ListRow
+				label="Systemstatus"
+				href="einstellungen/system"
+				icon={Activity}
+				iconColor="bg-[#8e8e93]"
 			/>
 		</ListGroup>
 

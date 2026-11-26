@@ -26,14 +26,26 @@ const stampFormat = new Intl.DateTimeFormat('sv-SE', {
 	hourCycle: 'h23'
 });
 
-/** e.g. "2026-11-23_12-08-34_vor-0.4.0.dump" – sorts chronologically by name (Berlin time). */
-export function backupFileName(appVersion: string, date: Date): string {
+/**
+ * e.g. "2026-11-23_12-08-34_vor-0.4.0.dump" (before a migration) or "…_manuell-0.58.0.dump"
+ * – sorts chronologically by name (Berlin time).
+ */
+export function backupFileName(
+	appVersion: string,
+	date: Date,
+	kind: 'vor' | 'manuell' = 'vor'
+): string {
 	const stamp = stampFormat.format(date).replace(' ', '_').replaceAll(':', '-');
 	const version = appVersion.replace(/[^0-9A-Za-z.-]/g, '');
-	return `${stamp}_vor-${version}.dump`;
+	return `${stamp}_${kind}-${version}.dump`;
 }
 
-const BACKUP_RE = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_vor-[0-9A-Za-z.-]+\.dump$/;
+const BACKUP_RE = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(vor|manuell)-[0-9A-Za-z.-]+\.dump$/;
+
+/** Whether a file name is one of our backups (also guards downloads against path tricks). */
+export function isBackupFile(name: string): boolean {
+	return BACKUP_RE.test(name);
+}
 
 /** Backup files to delete so that only the newest `keep` remain. Ignores unrelated files. */
 export function backupsToDelete(fileNames: string[], keep = BACKUPS_TO_KEEP): string[] {
