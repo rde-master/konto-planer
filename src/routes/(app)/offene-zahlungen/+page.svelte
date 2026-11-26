@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { gotoReplace } from '#lib/back.svelte.js';
 	import { resolve } from '$app/paths';
 	import CalendarClock from '@lucide/svelte/icons/calendar-clock';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -33,7 +33,7 @@
 	}
 
 	function filter(accountId: string) {
-		void goto(query(accountId || null, data.days), { replace: true });
+		void gotoReplace(query(accountId || null, data.days));
 	}
 
 	const RANGE_LABELS: Record<number, string> = { 30: '30 Tage', 90: '3 Monate', 365: '1 Jahr' };

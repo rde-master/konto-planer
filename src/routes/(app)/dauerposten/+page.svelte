@@ -3,6 +3,7 @@
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { nextBankDay } from '#lib/bank-calendar.js';
 	import { enhance } from '$app/forms';
+	import { gotoReplace } from '#lib/back.svelte.js';
 	import { resolve } from '$app/paths';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
@@ -454,7 +455,10 @@
 				return async ({ result, update }) => {
 					pending = false;
 					if (result.type === 'success') createOpen = false;
-					await update({ reset: false });
+					if (result.type === 'redirect' && fromBooking) {
+						// The prefilled form is no page to come back to: the new item takes its place.
+						await gotoReplace(result.location, { invalidateAll: true });
+					} else await update({ reset: false });
 				};
 			}}
 		>

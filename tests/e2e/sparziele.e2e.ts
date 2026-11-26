@@ -95,7 +95,8 @@ test('a goal linked to a payment relieves the minimum balance', async ({ page })
 	await sheet.getByRole('button', { name: 'Anlegen' }).click();
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText('Sparziel „Reise“ angelegt.');
-	const row = page.getByRole('link', { name: /^Reise/ });
+	// With a space: the back button may name the account "Reisekonto".
+	const row = page.getByRole('link', { name: /^Reise / });
 	await expect(row).toContainText(/800,00\s€ \/ 1\.200,00\s€/);
 	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '67');
 
@@ -111,7 +112,7 @@ test('a goal linked to a payment relieves the minimum balance', async ({ page })
 test('setting aside the full amount; the savings account shows what is free', async ({ page }) => {
 	await login(page);
 	await page.goto('/sparziele');
-	await page.getByRole('link', { name: /^Reise/ }).click();
+	await page.getByRole('link', { name: /^Reise / }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Reise' })).toBeVisible();
 	await expect(page.getByLabel('Fehlt noch')).toHaveText(/400,00\s€/);
 	await expect(page.getByLabel('Zieldatum')).toHaveText(formatDay(nextBankDay(addDays(today, 10))));
@@ -172,7 +173,7 @@ test('on the payment day the set-aside amount is transferred; it can be taken ba
 test('deleting a goal; changes are logged', async ({ page }) => {
 	await login(page);
 	await page.goto('/sparziele');
-	await page.getByRole('link', { name: /^Reise/ }).click();
+	await page.getByRole('link', { name: /^Reise / }).click();
 	await page.getByRole('button', { name: 'Sparziel löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Sparziel löschen' })
