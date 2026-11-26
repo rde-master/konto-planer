@@ -17,6 +17,7 @@ import {
 } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
 import { decrypt, encrypt } from './secrets.js';
+import { DEMO_DISABLED, isDemo } from './demo-mode.js';
 import { getSettings } from './settings.js';
 import { toContract } from './recurring.js';
 import { listAccountsFor } from './accounts.js';
@@ -218,6 +219,7 @@ export async function sendEmail(
 	text: string,
 	html?: string
 ) {
+	if (isDemo()) throw new NotifyError(DEMO_DISABLED);
 	const transport = nodemailer.createTransport({
 		host: smtp.host,
 		port: smtp.port,
@@ -230,6 +232,7 @@ export async function sendEmail(
 }
 
 async function haFetch(ha: HaSettings, path: string, init?: RequestInit) {
+	if (isDemo()) throw new NotifyError(DEMO_DISABLED);
 	const res = await fetch(`${ha.url}/api${path}`, {
 		...init,
 		headers: { Authorization: `Bearer ${ha.token}`, 'Content-Type': 'application/json' },
@@ -654,7 +657,7 @@ async function editorsOf(accountId: string): Promise<string[]> {
  * per notification, user and channel. Returns the number of messages sent.
  */
 export async function runNotifications({ force = false, now = new Date() } = {}): Promise<number> {
-	if (!force && berlinHour(now) < SEND_HOUR) return 0;
+	if (isDemo() || (!force && berlinHour(now) < SEND_HOUR)) return 0;
 	const today = todayBerlin(now);
 	const { smtp, ha } = await notifySettings();
 	const pushers = await pushUsers();

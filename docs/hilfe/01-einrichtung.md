@@ -2,6 +2,10 @@
 
 Dieses Kapitel ist für den Admin, der Konto Planer auf einem eigenen Server betreibt. Alle anderen können direkt mit den [ersten Schritten](02-erste-schritte.md) beginnen.
 
+## Erst einmal ausprobieren
+
+Mit `docker compose -f docker-compose.demo.yml up -d` startet eine **Demo** unter http://localhost:3001: erfundene Daten, keine Anmeldung, jede Nacht zurückgesetzt, ohne E-Mail, Push und Home Assistant. Die echte Installation ist davon getrennt.
+
 ## Voraussetzungen
 
 - Ein Rechner im Heimnetz mit Docker und Docker Compose (z. B. NAS, Mini-PC, Raspberry Pi 4/5)

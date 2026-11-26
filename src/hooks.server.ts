@@ -3,8 +3,10 @@ import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building } from '$app/env';
 import { prepareDatabase } from '#lib/server/db/migrate.js';
 import { startDueScheduler } from '#lib/server/due.js';
+import { demoUserId, isDemo, prepareDemo } from '#lib/server/demo.js';
 import {
 	clearSessionCookie,
+	createSession,
 	hasAnyUser,
 	setSessionCookie,
 	validateSession
@@ -15,6 +17,8 @@ import { THEME_COOKIE, parseTheme } from '#lib/theme.js';
 export const init: ServerInit = async () => {
 	if (building) return;
 	await prepareDatabase();
+	// Demo instance: invented data on an empty database.
+	await prepareDemo();
 	// Background job: provisionally book due items (at start and hourly).
 	startDueScheduler();
 };
@@ -35,6 +39,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		} else {
 			clearSessionCookie(event.cookies);
 		}
+	}
+
+	// Demo instance: every visitor is the demo user (no login page).
+	if (isDemo() && !event.locals.user && !pathname.startsWith('/api/')) {
+		const id = await demoUserId();
+		if (id) {
+			const session = await createSession(id, event.request.headers.get('user-agent'));
+			setSessionCookie(event.cookies, session.token, session.expiresAt);
+			event.locals.user = (await validateSession(session.token))?.user ?? null;
+		}
+		if (pathname === '/login') redirect(303, '/');
 	}
 
 	if (pathname !== '/api/health') {
