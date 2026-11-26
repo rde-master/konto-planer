@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { widgetBlocks, widgetScript, type WidgetData } from './widgets';
+import {
+	layoutBlocks,
+	parseLayout,
+	widgetBlocks,
+	widgetPalette,
+	widgetScript,
+	DEFAULT_STYLE,
+	type WidgetData
+} from './widgets';
 
 const data: WidgetData = {
 	accounts: [
@@ -31,12 +39,12 @@ describe('widgetBlocks', () => {
 	it('available: big number, minimum, balance; payments from medium on', () => {
 		const small = widgetBlocks('available', 'small', data);
 		expect(small[0]).toEqual({ type: 'title', text: 'Giro · bis 30.11.' });
-		expect(small[1]).toMatchObject({ type: 'big', color: 'text' });
+		expect(small[1]).toMatchObject({ type: 'big', color: 'accent' });
 		expect(text((small[1] as { value: string }).value)).toBe('600,00 €');
 		expect(small.find((b) => b.type === 'bar')).toEqual({
 			type: 'bar',
 			value: 0.4,
-			color: 'green'
+			color: 'accent'
 		});
 		expect(small.filter((b) => b.type === 'row')).toHaveLength(2);
 		expect(widgetBlocks('available', 'large', data).filter((b) => b.type === 'row')).toHaveLength(
@@ -78,5 +86,81 @@ describe('widgetScript', () => {
 		};
 		const AsyncFunction = proto.constructor;
 		expect(() => new AsyncFunction(s)).not.toThrow();
+	});
+});
+
+describe('layoutBlocks', () => {
+	it('leaves out what does not fit the size', () => {
+		const many = {
+			...data,
+			payments: Array.from({ length: 12 }, (_, i) => ({
+				name: `P${i}`,
+				date: '2026-12-01',
+				amount: -100
+			}))
+		};
+		const items = [
+			{ kind: 'title' as const, text: 'Zahlungen' },
+			{ kind: 'payments' as const, count: 12 }
+		];
+		expect(layoutBlocks(items, 'small', many)).toHaveLength(6);
+		expect(layoutBlocks(items, 'large', many)).toHaveLength(13);
+	});
+	it('shows the next payment and a custom title', () => {
+		const b = layoutBlocks(
+			[{ kind: 'title', text: 'Mein Widget' }, { kind: 'nextPayment' }],
+			'small',
+			data
+		);
+		expect(b[0]).toEqual({ type: 'title', text: 'Mein Widget' });
+		expect(b[1]).toMatchObject({ type: 'row', label: 'Nächste: Miete' });
+	});
+});
+
+describe('parseLayout', () => {
+	it('accepts editor JSON and clamps values', () => {
+		const l = parseLayout({
+			items: [
+				{ kind: 'title', text: 'x'.repeat(60) },
+				{ kind: 'payments', count: 99 }
+			],
+			style: { appearance: 'dark', accent: 'green', background: 'gradient', fontSize: 'large' }
+		});
+		expect(l?.items[0]).toEqual({ kind: 'title', text: 'x'.repeat(40) });
+		expect(l?.items[1]).toEqual({ kind: 'payments', count: 12 });
+		expect(l?.style).toEqual({
+			appearance: 'dark',
+			accent: 'green',
+			background: 'gradient',
+			fontSize: 'large'
+		});
+	});
+	it('rejects unknown blocks and falls back for unknown style', () => {
+		expect(parseLayout({ items: [{ kind: 'bild' }] })).toBeNull();
+		expect(parseLayout({ items: [], style: { accent: 'neon' } })?.style).toEqual(DEFAULT_STYLE);
+		expect(parseLayout('kaputt')).toBeNull();
+	});
+});
+
+describe('widgetPalette', () => {
+	it('uses the account colour and follows the system', () => {
+		const p = widgetPalette(DEFAULT_STYLE, 'green');
+		expect(p.accent).toEqual(['#34c759', '#30d158']);
+		expect(p.bg).toEqual(['#ffffff', '#1c1c1e']);
+		expect(p.gradient).toBeNull();
+		expect(p.scale).toBe(1);
+	});
+	it('fixes light or dark and builds a gradient', () => {
+		const p = widgetPalette(
+			{ appearance: 'dark', accent: 'blue', background: 'gradient', fontSize: 'small' },
+			null
+		);
+		expect(p.gradient?.[0]).toEqual(['#0a84ff', '#0a84ff']);
+		expect(p.text).toEqual(['#ffffff', '#ffffff']);
+		expect(p.scale).toBe(0.85);
+		expect(widgetPalette({ ...DEFAULT_STYLE, appearance: 'light' }, 'red').bg).toEqual([
+			'#ffffff',
+			'#ffffff'
+		]);
 	});
 });

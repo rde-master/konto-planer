@@ -50,3 +50,55 @@ test('a widget template becomes a Scriptable script with its own token', async (
 	).toBe(401);
 	await api.dispose();
 });
+
+test('a widget is designed in the editor and changed later without a new script', async ({
+	page,
+	playwright
+}) => {
+	await login(page);
+	await page.goto('/widgets');
+	await page.getByRole('link', { name: 'Eigenes Widget im Editor gestalten' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Neues Widget' })).toBeVisible();
+	await page.getByLabel('Name').fill('Mein Testwidget');
+	await page.getByLabel('Text der Überschrift').fill('Haushalt');
+	await page.getByLabel('Neuer Baustein').selectOption({ label: 'Nächste Zahlung' });
+	await page.getByRole('button', { name: 'Hinzufügen' }).click();
+	await expect(page.getByRole('listitem', { name: 'Nächste Zahlung' })).toBeVisible();
+	await page.getByLabel('Hintergrund').selectOption({ label: 'Verlauf' });
+	await expect(page.getByRole('img', { name: 'Vorschau' })).toContainText('Haushalt');
+	await page.getByRole('button', { name: 'Widget anlegen' }).click();
+
+	const script = await page.getByTestId('widget-script').inputValue();
+	const token = /const TOKEN = "([^"]+)"/.exec(script)![1];
+	const api = await playwright.request.newContext();
+	const get = async () => {
+		const res = await api.get('/api/widget', { headers: { authorization: `Bearer ${token}` } });
+		expect(res.status()).toBe(200);
+		return (await res.json()) as {
+			name: string;
+			size: string;
+			blocks: { type: string; text?: string; label?: string }[];
+			style: { gradient: unknown; scale: number };
+		};
+	};
+	let body = await get();
+	expect(body.name).toBe('Mein Testwidget');
+	expect(body.blocks[0]).toEqual({ type: 'title', text: 'Haushalt' });
+	expect(body.style.gradient).not.toBeNull();
+
+	// Edit: bigger, larger font, without the next payment – same script.
+	await page.getByRole('link', { name: 'Weiter bearbeiten' }).click();
+	await page.getByRole('radio', { name: 'Groß' }).click();
+	await page.getByLabel('Schriftgröße').selectOption({ label: 'Groß' });
+	await page
+		.getByRole('listitem', { name: 'Nächste Zahlung' })
+		.getByRole('button', { name: 'Entfernen' })
+		.click();
+	await page.getByRole('button', { name: 'Sichern' }).click();
+	await expect(page.getByRole('status')).toContainText('Gesichert');
+	body = await get();
+	expect(body.size).toBe('large');
+	expect(body.style.scale).toBe(1.2);
+	expect(body.blocks.some((b) => b.label?.startsWith('Nächste'))).toBe(false);
+	await api.dispose();
+});

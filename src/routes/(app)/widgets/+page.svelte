@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import WidgetPreview from '#lib/components/WidgetPreview.svelte';
@@ -146,6 +147,12 @@
 					</details>
 					<Button type="submit">Widget anlegen</Button>
 				</form>
+				<a
+					href={resolve(`widgets/neu?vorlage=${t}`)}
+					class="mt-3 block text-center text-[15px] text-accent"
+				>
+					Im Editor anpassen
+				</a>
 				{#if created && created.template === t}
 					<div class="mt-4" aria-label="Skript">
 						<Button type="button" variant="tinted" onclick={() => copy(created.script)}>
@@ -163,6 +170,13 @@
 		</section>
 	{/each}
 
+	<a
+		href={resolve('widgets/neu')}
+		class="mb-8 flex min-h-[50px] w-full items-center justify-center rounded-full bg-card text-[17px] font-semibold text-accent active:opacity-70"
+	>
+		Eigenes Widget im Editor gestalten
+	</a>
+
 	<section class="mb-8" aria-label="Meine Widgets">
 		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Meine Widgets</h2>
 		<ul
@@ -170,8 +184,8 @@
 		>
 			{#each data.widgets as w (w.id)}
 				<li class="flex min-h-11 items-center gap-3 px-4 py-2" aria-label={w.name}>
-					<span class="min-w-0 flex-1">
-						<span class="block truncate">
+					<a href={resolve(`widgets/${w.id}`)} class="min-w-0 flex-1">
+						<span class="block truncate text-accent">
 							{w.name} · {SIZE_LABELS[w.size as WidgetSize] ?? w.size}
 						</span>
 						<span class="block truncate text-[13px] text-label-2">
@@ -179,7 +193,7 @@
 								? `zuletzt ${formatDateTime(w.lastUsedAt)}`
 								: 'noch nicht abgerufen'}
 						</span>
-					</span>
+					</a>
 					<form method="POST" action="?/revoke" use:enhance>
 						<input type="hidden" name="id" value={w.id} />
 						<button type="submit" class="text-[15px] text-danger">Widerrufen</button>
