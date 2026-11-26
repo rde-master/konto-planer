@@ -14,6 +14,10 @@ Wichtig ist der **Startsaldo mit Datum** („Stand am“): Der Kontostand ist di
 
 Die IBAN ist optional; der Umsatzimport prüft damit, ob die Datei zum Konto passt.
 
+## Monatsübersicht eines Kontos
+
+Auf der Kontoseite zeigt **Monatsübersicht** für die letzten zwölf Monate, was vom Konto abgegangen ist: die Summe aller **Abbuchungen** (jede Buchung mit Minusbetrag – Lastschriften, Kartenzahlungen, Überweisungen, auch Umbuchungen auf eigene Konten und die Kreditkartenabrechnung), ihre Anzahl, die Eingänge und den Saldo des Monats. „Umgebucht“ nennt den Teil der Abbuchungen, der auf eigene Konten ging. Ein Tipp auf einen Monat öffnet die Buchungsliste mit genau diesen Abbuchungen. Gezählt wird ab dem Startsaldo-Datum und bis heute; der laufende Monat ist mit „bisher“ gekennzeichnet.
+
 ## Dauerposten erfassen
 
 Unter **Dauerposten** trägst du alles ein, was regelmäßig kommt oder geht: Gehalt, Miete, Strom, Versicherungen, Abos, Umbuchungen aufs Sparbuch. Je Posten wählst du Betrag, Intervall und erste Fälligkeit. Fällt die Fälligkeit auf ein Wochenende oder einen Feiertag, rechnet die App mit dem nächsten Bankarbeitstag.

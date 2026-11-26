@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.67.0] – Monatsübersicht je Konto
+
+### Neu
+
+- Kontoseite: neuer Abschnitt „Monatsübersicht“ mit den letzten zwölf Monaten – je Monat die Summe aller Abbuchungen, ihre Anzahl, die Eingänge und der Saldo
+- Abbuchungen sind alles, was vom Konto abgeht: Lastschriften, Kartenzahlungen, Überweisungen, auch Umbuchungen auf eigene Konten und die Kreditkartenabrechnung. Der umgebuchte Teil steht zusätzlich dabei
+- Ein Tipp auf einen Monat öffnet die Buchungsliste mit genau diesen Abbuchungen; von dort führt Zurück wieder zum Konto
+
 ## [0.66.0] – Umbuchung zwischen zwei Konten
 
 ### Neu

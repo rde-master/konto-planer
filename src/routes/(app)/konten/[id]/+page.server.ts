@@ -37,6 +37,7 @@ import { readAccountForm } from '#lib/server/account-form.js';
 import { fieldError, formString } from '#lib/server/validation.js';
 import { nextSettlements } from '#lib/server/credit-cards.js';
 import { balanceDates } from '#lib/server/import-reminder.js';
+import { accountMonths } from '#lib/server/account-months.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -72,6 +73,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		access: isAdmin ? await listAccess(account.id) : [],
 		hasData: isAdmin ? await accountHasData(account.id) : true,
 		bookingCount: await countBookings(account.id),
+		/** What came in and went out in each of the last twelve months. */
+		months: await accountMonths(account),
 		balance,
 		interest:
 			account.type === 'sparbuch' && !account.archivedAt ? await interestInfo(user, account) : null,
