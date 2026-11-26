@@ -4,6 +4,7 @@
 	import Users from '@lucide/svelte/icons/users';
 	import ScrollText from '@lucide/svelte/icons/scroll-text';
 	import Zap from '@lucide/svelte/icons/zap';
+	import CalendarDays from '@lucide/svelte/icons/calendar-days';
 	import Bell from '@lucide/svelte/icons/bell';
 	import BellRing from '@lucide/svelte/icons/bell-ring';
 	import Page from '#lib/components/Page.svelte';
@@ -102,6 +103,12 @@
 			href="einstellungen/meine-benachrichtigungen"
 			icon={Bell}
 			iconColor="bg-[#ff3b30]"
+		/>
+		<ListRow
+			label="Kalender-Abo"
+			href="einstellungen/kalender"
+			icon={CalendarDays}
+			iconColor="bg-[#ff9500]"
 		/>
 	</ListGroup>
 
