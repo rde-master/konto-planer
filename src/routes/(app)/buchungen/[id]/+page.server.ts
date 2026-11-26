@@ -22,6 +22,7 @@ import { validateSplit } from '#lib/splits.js';
 import { TagError, listTags, readTagForm, setBookingTags, tagsOf } from '#lib/server/tags.js';
 import { db } from '#lib/server/db/index.js';
 import { LogoError } from '#lib/server/logos.js';
+import { canBecomeRecurring } from '#lib/recurring-from-booking.js';
 import { setPayeeLogoFromForm } from '#lib/server/web-logos.js';
 import {
 	SettleError,
@@ -74,7 +75,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		accounts,
 		categoryGroups: options.categoryGroups,
 		/** Accounts a template may name: only those the user can book on. */
-		templateAccounts: options.bookingAccounts
+		templateAccounts: options.bookingAccounts,
+		/** "Dauerposten daraus machen": real payments without an item, on an account to book on. */
+		canMakeRecurring:
+			booking.canTag &&
+			canBecomeRecurring(booking) &&
+			options.bookingAccounts.some((a) => a.value === booking.accountId)
 	};
 };
 

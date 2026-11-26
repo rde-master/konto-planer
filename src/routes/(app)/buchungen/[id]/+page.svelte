@@ -20,6 +20,9 @@
 	import TemplateFields from '#lib/components/TemplateFields.svelte';
 	import { templateValuesFromInput, type TemplateFormValues } from '#lib/templates.js';
 	import Zap from '@lucide/svelte/icons/zap';
+	import Repeat from '@lucide/svelte/icons/repeat';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
@@ -273,7 +276,20 @@
 				chosen={booking.logoChosen}
 			/>
 		{/if}
-		<ListGroup header="Verwaltung">
+		<ListGroup
+			header="Verwaltung"
+			footer={data.canMakeRecurring
+				? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
+				: undefined}
+		>
+			{#if data.canMakeRecurring}
+				<ListRow
+					label="Dauerposten daraus machen"
+					icon={Repeat}
+					iconColor="bg-[#34c759]"
+					onclick={() => goto(resolve(`dauerposten?aus=${booking.id}`))}
+				/>
+			{/if}
 			<ListRow
 				label="Als Vorlage sichern"
 				icon={Zap}
@@ -440,7 +456,19 @@
 			</ListGroup>
 		{/if}
 		{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal', 'settlement'].includes(booking.source)}
-			<ListGroup>
+			<ListGroup
+				footer={data.canMakeRecurring
+					? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
+					: undefined}
+			>
+				{#if data.canMakeRecurring}
+					<ListRow
+						label="Dauerposten daraus machen"
+						icon={Repeat}
+						iconColor="bg-[#34c759]"
+						onclick={() => goto(resolve(`dauerposten?aus=${booking.id}`))}
+					/>
+				{/if}
 				<ListRow
 					label="Als Vorlage sichern"
 					icon={Zap}

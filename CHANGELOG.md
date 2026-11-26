@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.64.0] – Dauerposten aus einer Buchung
+
+### Neu
+
+- An jeder Buchung (manuell oder importiert): „Dauerposten daraus machen“ – das Formular öffnet sich mit Bezeichnung, Betrag, Konto, Kategorie, Empfänger und IBAN aus der Buchung; Intervall prüfen, anlegen, fertig
+- Die Buchung zählt als erste Zahlung des neuen Dauerpostens und wird nicht noch einmal vorläufig gebucht
+- Nach dem Anlegen geht es direkt zum neuen Dauerposten
+
 ## [0.63.1] – Knöpfe am Desktop erkennbar
 
 ### Behoben
