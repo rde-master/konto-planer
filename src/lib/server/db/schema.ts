@@ -803,6 +803,23 @@ export const recurringTags = pgTable(
 );
 
 /**
+ * Payee names of a recurring item learned from assignments by hand (`payeeCore()` of the
+ * booking's payee). The import recognises the item by them like by its own payee.
+ */
+export const recurringAliases = pgTable(
+	'recurring_aliases',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		recurringId: uuid('recurring_id')
+			.notNull()
+			.references(() => recurringItems.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('recurring_aliases_item_name_idx').on(t.recurringId, t.name)]
+);
+
+/**
  * Logo chosen by hand for a payee (key as `payeeKey()`: IBAN, otherwise the name). `slug` of
  * Simple Icons, or "-" for no logo (initials). Without a row the logo is matched by name.
  */

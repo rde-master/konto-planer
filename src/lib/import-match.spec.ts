@@ -290,6 +290,69 @@ describe('matching by name', () => {
 	});
 });
 
+describe('assigned by hand', () => {
+	const streaming = item({
+		id: 'stream',
+		name: 'Streaming',
+		counterparty: 'Filmdienst Beispiel',
+		startDate: '2026-09-24',
+		amounts: [{ amount: 13_99, validFrom: '2026-01-01' }]
+	});
+	const paper = item({
+		id: 'paper',
+		name: 'Zeitung',
+		startDate: '2026-09-20',
+		amounts: [{ amount: 30_00, validFrom: '2026-01-01' }]
+	});
+	const ctx = { ...base, items: [streaming, paper] };
+
+	it('goes to the chosen item and its nearest open due date, whatever name and amount', () => {
+		const row = { ...cardRow(2, '2026-12-10', 'ZAHLDIENST*77 08.12.', -21_50), assign: 'stream' };
+		const [hit] = analyzeRows([row], ctx);
+		expect(hit.recurring).toMatchObject({ id: 'stream', via: 'manual', amountDiffers: true });
+		expect(hit.recurring?.due?.dueDate).toBe('2026-12-24');
+		// Without a due date within 31 days the booking still belongs to the item.
+		const [far] = analyzeRows([{ ...row, bookingDate: '2026-07-01' }], ctx);
+		expect(far.recurring).toMatchObject({ id: 'stream', via: 'manual', due: null });
+	});
+
+	it('takes its due date before the automatic assignment', () => {
+		const result = analyzeRows(
+			[
+				cardRow(2, '2026-11-23', 'Filmdienst Beispiel', -13_99),
+				{ ...cardRow(3, '2026-11-25', 'Irgendwer', -13_99), assign: 'stream' }
+			],
+			ctx
+		);
+		expect(result[1].recurring?.due?.dueDate).toBe('2026-11-24');
+		// The earlier row would have matched by name; its due date is taken now.
+		expect(result[0].status).toBe('new');
+	});
+
+	it('"no recurring item" switches the automatic assignment off', () => {
+		const auto = cardRow(2, '2026-11-25', 'Filmdienst Beispiel 24.11.', -13_99);
+		expect(analyzeRows([auto], ctx)[0].status).toBe('recurring');
+		expect(analyzeRows([{ ...auto, assign: null }], ctx)[0].status).toBe('new');
+	});
+
+	it('ignores an item of the other direction or of another account', () => {
+		const income = { ...cardRow(2, '2026-11-25', 'Erstattung', 13_99), assign: 'stream' };
+		expect(analyzeRows([income], ctx)[0].status).toBe('new');
+		const unknown = { ...cardRow(2, '2026-11-25', 'Irgendwer', -5_00), assign: 'nobody' };
+		expect(analyzeRows([unknown], ctx)[0].status).toBe('new');
+	});
+
+	it('a learned name is recognised at the next import', () => {
+		const learned = { ...ctx, items: [streaming, { ...paper, aliases: ['kiosk am markt'] }] };
+		const [dec] = analyzeRows([cardRow(2, '2026-12-22', 'KIOSK AM MARKT 21.12.', -32_00)], learned);
+		expect(dec.recurring).toMatchObject({ id: 'paper', via: 'name', amountDiffers: true });
+		// Not learned: no match.
+		expect(
+			analyzeRows([cardRow(2, '2026-12-22', 'KIOSK AM MARKT 21.12.', -32_00)], ctx)[0].status
+		).toBe('new');
+	});
+});
+
 describe('suggestions', () => {
 	it('detects intervals', () => {
 		expect(detectInterval(['2026-10-01', '2026-11-02'])).toBe('monthly');

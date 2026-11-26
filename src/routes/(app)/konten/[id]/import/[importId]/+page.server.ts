@@ -28,11 +28,19 @@ export const actions: Actions = {
 			);
 		const strings = (name: string) =>
 			new Set(data.getAll(name).filter((v): v is string => typeof v === 'string'));
+		// Rows assigned by hand: "assign-<line>" = recurring item, or "none".
+		const assign = new Map<number, string | null>();
+		for (const [key, value] of data) {
+			const line = /^assign-(\d+)$/.exec(key)?.[1];
+			if (line && typeof value === 'string' && value)
+				assign.set(Number(line), value === 'none' ? null : value);
+		}
 		const choice = {
 			lines: numbers('line'),
 			amountLines: numbers('newAmount'),
 			suggestions: strings('suggest'),
-			salaries: strings('salary')
+			salaries: strings('salary'),
+			assign
 		};
 		try {
 			await commitImport(locals.user!, params.id, params.importId, choice);

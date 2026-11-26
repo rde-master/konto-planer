@@ -8,6 +8,7 @@ import {
 	bookings,
 	budgets,
 	categories,
+	recurringAliases,
 	recurringAmounts,
 	savingsGoals,
 	users
@@ -212,6 +213,8 @@ export async function seedDemo(today = todayBerlin()) {
 	await db
 		.insert(recurringAmounts)
 		.values({ recurringId: strom, amount: 8_900, validFrom: dayOf(today, -1, 15) });
+	// A name learned from a booking assigned by hand ("Namen im Import").
+	await db.insert(recurringAliases).values({ recurringId: strom, name: 'energie beispielstadt' });
 	await add(
 		item({
 			accountId: giro.id,

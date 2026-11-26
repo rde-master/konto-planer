@@ -18,6 +18,8 @@ export type MatchItem = Schedule & {
 	categoryId: string | null;
 	/** Amount varies from payment to payment (no amount check when matching by name). */
 	variable?: boolean;
+	/** Payee names learned from assignments by hand (as `payeeCore()`). */
+	aliases?: string[];
 	amounts: AmountEntry[];
 };
 
@@ -53,7 +55,7 @@ export type ImportContext = {
 export type RecurringMatch = {
 	id: string;
 	name: string;
-	via: 'mandate' | 'iban' | 'name' | 'amount';
+	via: 'manual' | 'mandate' | 'iban' | 'name' | 'amount';
 	/** Due item the row fulfils (null if none lies near). */
 	due: (ExpectedDue & { storedId: string | null; replaceBookingId: string | null }) | null;
 	/** Planned amount differs from the bank's (positive cents). */
@@ -86,6 +88,15 @@ export function namesMatch(a: string | null, b: string | null): boolean {
 	return samePayee(a, b);
 }
 
+/** A row assigned by hand takes the nearest open due date within this many days. */
+export const MANUAL_WINDOW = 31;
+
+/**
+ * Assignment by hand: the id of a recurring item, null for "no recurring item", undefined for
+ * the automatic assignment.
+ */
+export type Assignment = string | null | undefined;
+
 /** Largest deviation from the planned amount for a match by name alone (30 %). */
 export const NAME_AMOUNT_TOLERANCE = 0.3;
 
@@ -104,22 +115,27 @@ function containsWords(text: string | null, part: string | null): boolean {
 
 /**
  * The row names the item: its payee matches the row's (or stands in the purpose when the
- * bank gives no payee), or the item's own name stands there as whole words.
+ * bank gives no payee), the item's own name stands there as whole words, or the payee is a
+ * name learned from an assignment by hand.
  */
 export function rowNamesItem(
-	item: { name: string; counterparty: string | null },
+	item: { name: string; counterparty: string | null; aliases?: string[] },
 	row: { counterparty: string | null; purpose: string | null }
 ): boolean {
 	if (row.counterparty)
 		return (
 			(item.counterparty !== null && samePayee(item.counterparty, row.counterparty)) ||
-			containsWords(row.counterparty, item.name)
+			containsWords(row.counterparty, item.name) ||
+			(item.aliases?.includes(payeeCore(row.counterparty)) ?? false)
 		);
 	return containsWords(row.purpose, item.counterparty) || containsWords(row.purpose, item.name);
 }
 
 /** Effect of an item on the account: -1 out, +1 in, 0 none. */
-function sideOf(item: MatchItem, accountId: string): -1 | 0 | 1 {
+export function sideOf(
+	item: Pick<MatchItem, 'kind' | 'accountId' | 'targetAccountId'>,
+	accountId: string
+): -1 | 0 | 1 {
 	if (item.kind === 'transfer')
 		return item.accountId === accountId ? -1 : item.targetAccountId === accountId ? 1 : 0;
 	if (item.accountId !== accountId) return 0;
@@ -130,10 +146,11 @@ function sideOf(item: MatchItem, accountId: string): -1 | 0 | 1 {
  * Status and assignment of every row. Order: duplicates (checksum stored or repeated in the
  * file), recurring items (mandate and creditor ID, then IBAN, then name with a due date
  * ±10 days, then amount and date ±3 days – without an IBAN ±10 days if only one item fits),
- * manual bookings (same amount ±3 days), transfers to own accounts.
+ * manual bookings (same amount ±3 days), transfers to own accounts. Rows assigned by hand
+ * (`assign`) come first: they take their due date before the automatic assignment looks.
  */
 export function analyzeRows(
-	rows: (ImportRow & { checksum: string })[],
+	rows: (ImportRow & { checksum: string; assign?: Assignment })[],
 	ctx: ImportContext
 ): AnalyzedRow[] {
 	const seen = new Set(ctx.known);
@@ -153,6 +170,29 @@ export function analyzeRows(
 	);
 	const out = new Map<number, AnalyzedRow>();
 
+	/** Open due dates of the item around the day, nearest first. */
+	const openDues = (item: MatchItem, date: string, tolerance: number) =>
+		duesBetween(item, item.amounts, addDays(date, -tolerance), addDays(date, tolerance))
+			.filter((d) => !taken.has(`${item.id}|${d.dueDate}`))
+			.sort((a, b) => days(a.bookingDate, date) - days(b.bookingDate, date));
+
+	type Found = { item: MatchItem; via: RecurringMatch['via']; due: ExpectedDue | null };
+	// Assigned by hand: these rows choose their due date first.
+	const byHand = new Map<number, Found>();
+	const first = new Set(ctx.known);
+	for (const r of ordered) {
+		if (first.has(r.checksum)) continue;
+		first.add(r.checksum);
+		if (typeof r.assign !== 'string') continue;
+		const sign = r.amount < 0 ? -1 : 1;
+		const item = items.find((x) => x.item.id === r.assign && x.side === sign)?.item;
+		if (!item) continue;
+		const dues = openDues(item, r.bookingDate, MANUAL_WINDOW);
+		const due = dues.find((d) => d.amount === Math.abs(r.amount)) ?? dues[0] ?? null;
+		if (due) taken.add(`${item.id}|${due.dueDate}`);
+		byHand.set(r.line, { item, via: 'manual', due });
+	}
+
 	for (const [position, r] of ordered.entries()) {
 		const base = { ...r, recurring: null, replace: null, transfer: null };
 		if (seen.has(r.checksum)) {
@@ -162,27 +202,21 @@ export function analyzeRows(
 		seen.add(r.checksum);
 		const sign = r.amount < 0 ? -1 : 1;
 		const own = r.counterpartyIban ? ownByIban.get(r.counterpartyIban) : undefined;
-		const candidates = items.filter((x) => x.side === sign);
+		// "No recurring item" by hand: nothing is looked for.
+		const candidates = r.assign === null ? [] : items.filter((x) => x.side === sign);
 
-		const near = (item: MatchItem, tolerance: number) =>
-			duesBetween(
-				item,
-				item.amounts,
-				addDays(r.bookingDate, -tolerance),
-				addDays(r.bookingDate, tolerance)
-			)
-				.filter((d) => !taken.has(`${item.id}|${d.dueDate}`))
-				.sort((a, b) => days(a.bookingDate, r.bookingDate) - days(b.bookingDate, r.bookingDate));
+		const near = (item: MatchItem, tolerance: number) => openDues(item, r.bookingDate, tolerance);
 
-		let found: { item: MatchItem; via: RecurringMatch['via']; due: ExpectedDue | null } | null =
-			null;
-		const byMandate = candidates.find(
-			({ item }) =>
-				item.mandateReference &&
-				r.mandateReference &&
-				norm(item.mandateReference) === norm(r.mandateReference) &&
-				(!item.creditorId || !r.creditorId || norm(item.creditorId) === norm(r.creditorId))
-		);
+		let found: Found | null = byHand.get(r.line) ?? null;
+		const byMandate = found
+			? undefined
+			: candidates.find(
+					({ item }) =>
+						item.mandateReference &&
+						r.mandateReference &&
+						norm(item.mandateReference) === norm(r.mandateReference) &&
+						(!item.creditorId || !r.creditorId || norm(item.creditorId) === norm(r.creditorId))
+				);
 		if (byMandate)
 			found = { item: byMandate.item, via: 'mandate', due: near(byMandate.item, 10)[0] ?? null };
 		const amount = Math.abs(r.amount);
