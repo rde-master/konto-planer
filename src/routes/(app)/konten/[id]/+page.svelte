@@ -766,6 +766,8 @@
 						label="Tatsächlicher Stand in €"
 						name="actual"
 						value={adjustValues.actual}
+						inputmode="decimal"
+						signed
 						autocomplete="off"
 						placeholder="z. B. 1.234,56 oder -50,00"
 						required

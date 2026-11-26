@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.64.1] – Minusbetrag am Handy eingeben
+
+### Behoben
+
+- Startsaldo und „Kontostand korrigieren“: neben dem Betrag steht jetzt ein Knopf „+/−“, der das Vorzeichen wechselt – die Zahlentastatur am Handy hat kein Minuszeichen, ein negativer Stand (Kreditkarte, Dispo) ließ sich dort nicht eingeben
+- „Kontostand korrigieren“ öffnet am Handy jetzt ebenfalls die Zahlentastatur
+
 ## [0.64.0] – Dauerposten aus einer Buchung
 
 ### Neu

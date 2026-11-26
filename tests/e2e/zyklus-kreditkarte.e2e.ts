@@ -147,3 +147,44 @@ test('card statements are imported from the bank export', async ({ page }) => {
 			.getByRole('listitem', { name: `Abrechnung ${formatDay(next)}` })
 	).toContainText(/192,50\s€/);
 });
+
+test('a negative balance can be entered without a minus key', async ({ page }) => {
+	// The phone's number pad has no minus: the +/− button sets the sign.
+	await login(page);
+	await page.goto('/konten');
+	await page.getByRole('button', { name: 'Konto anlegen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neues Konto' });
+	await sheet.getByText('Kreditkarte', { exact: true }).click();
+	await sheet.getByLabel('Name').fill('Minuskarte');
+	const amount = sheet.getByLabel('Betrag in €');
+	const sign = sheet.getByRole('button', { name: 'Vorzeichen wechseln' });
+	await expect(amount).toHaveAttribute('inputmode', 'decimal');
+	await amount.fill('250');
+	await sign.click();
+	await expect(amount).toHaveValue('-250');
+	await expect(amount).toBeFocused();
+	await sign.click();
+	await expect(amount).toHaveValue('250');
+	// Sign first, digits afterwards.
+	await amount.fill('');
+	await sign.click();
+	await amount.pressSequentially('250,40');
+	await expect(amount).toHaveValue('-250,40');
+	await sheet.getByLabel('Stand am').fill(today);
+	await sheet.getByLabel('Abbuchung von').selectOption({ label: GIRO });
+	await sheet.getByLabel('Abrechnungstag (1–31)').fill(String(statementDay));
+	await sheet.getByLabel('Abbuchungstag (1–31)').fill(String(debitDay));
+	await sheet.getByRole('button', { name: 'Anlegen' }).click();
+	await expect(sheet).toBeHidden();
+
+	await openAccount(page, 'Minuskarte');
+	await expect(balance(page)).toHaveText(/−250,40\s€/);
+
+	await page.getByRole('button', { name: 'Kontostand korrigieren' }).click();
+	const adjust = page.getByRole('dialog', { name: 'Kontostand korrigieren' });
+	await adjust.getByLabel('Tatsächlicher Stand in €').fill('300');
+	await adjust.getByRole('button', { name: 'Vorzeichen wechseln' }).click();
+	await adjust.getByRole('button', { name: 'Korrigieren' }).click();
+	await expect(adjust).toBeHidden();
+	await expect(balance(page)).toHaveText(/−300,00\s€/);
+});
