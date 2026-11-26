@@ -227,6 +227,8 @@ const FIELD_LABELS: Record<string, string> = {
 	monthlyReport: 'Monatsbericht',
 	postalAddress: 'Anschrift',
 	calendarFeed: 'Kalender-Abo',
+	apiToken: 'API-Zugang',
+	haSensors: 'Sensoren an Home Assistant',
 	calendarInclude: 'Kalender-Inhalt',
 	settlementAccountId: 'Abrechnungskonto',
 	statementDay: 'Abrechnungstag',

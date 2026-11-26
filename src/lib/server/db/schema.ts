@@ -324,6 +324,8 @@ export const appSettings = pgTable(
 		/** Home Assistant base URL and long-lived access token (encrypted). */
 		haUrl: text('ha_url'),
 		haTokenEnc: text('ha_token_enc'),
+		/** Push status values hourly as sensors to Home Assistant. */
+		haSensors: boolean('ha_sensors').notNull().default(false),
 		// Web push: VAPID key pair, created on first use; the private key is encrypted.
 		vapidPublicKey: text('vapid_public_key'),
 		vapidPrivateKeyEnc: text('vapid_private_key_enc'),
@@ -1113,3 +1115,22 @@ export const calendarFeeds = pgTable('calendar_feeds', {
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	lastFetchedAt: timestamp('last_fetched_at', { withTimezone: true })
 });
+
+/** Read-only API token of a user ("API-Zugang"); only the hash is stored. */
+export const apiTokens = pgTable(
+	'api_tokens',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		purpose: text('purpose').notNull(),
+		/** Accounts the token may read; null = all the user sees. */
+		accountIds: jsonb('account_ids').$type<string[] | null>(),
+		tokenHash: text('token_hash').notNull().unique(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		lastUsedAt: timestamp('last_used_at', { withTimezone: true })
+	},
+	(t) => [index('api_tokens_user_idx').on(t.userId)]
+);

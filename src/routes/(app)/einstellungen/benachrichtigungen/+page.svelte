@@ -161,6 +161,28 @@
 		<form method="POST" action="?/testHa" use:enhance class="mt-3">
 			<Button type="submit" variant="tinted">Verbindung testen</Button>
 		</form>
+		<form
+			method="POST"
+			action="?/haSensors"
+			use:enhance={() =>
+				async ({ update }) =>
+					update({ reset: false })}
+			class="mt-6"
+		>
+			<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+				<ToggleField
+					label="Werte als Sensoren senden"
+					name="haSensors"
+					initial={data.haSensors}
+					hint="Stündlich: verfügbar, Stand je Konto, nächste Zahlung, Warnungen"
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Erscheinen in Home Assistant als sensor.konto_planer_… (alle Konten). Alternativ liest Home
+				Assistant die Werte selbst über einen API-Zugang (Einstellungen › API-Zugänge).
+			</p>
+			<div class="mt-3"><Button type="submit">Sichern und senden</Button></div>
+		</form>
 	</section>
 
 	{#each data.rules as rule (rule.type)}
