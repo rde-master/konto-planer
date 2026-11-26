@@ -16,10 +16,10 @@
 <button
 	{...rest}
 	class={[
-		'flex min-h-[50px] w-full items-center justify-center rounded-full px-5 text-[17px] font-semibold transition-opacity active:opacity-70 disabled:opacity-40',
+		'kp-button flex min-h-[50px] w-full items-center justify-center rounded-full px-5 text-[17px] font-semibold transition-[opacity,background-color,box-shadow] active:opacity-70 disabled:opacity-40',
 		variant === 'filled' && 'bg-accent text-accent-contrast',
-		variant === 'tinted' && 'bg-fill text-accent',
-		variant === 'plain' && 'text-accent',
+		variant === 'tinted' && 'kp-button-tinted bg-fill text-accent',
+		variant === 'plain' && 'kp-button-plain text-accent',
 		variant === 'destructive' && 'bg-danger text-white',
 		className
 	]}

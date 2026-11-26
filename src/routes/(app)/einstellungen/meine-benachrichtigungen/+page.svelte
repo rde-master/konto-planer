@@ -87,7 +87,7 @@
 							<input type="hidden" name="id" value={d.id} />
 							<button
 								type="submit"
-								class="text-[15px] text-danger"
+								class="kp-text-button text-[15px] text-danger"
 								aria-label="{d.label} entfernen"
 							>
 								Entfernen

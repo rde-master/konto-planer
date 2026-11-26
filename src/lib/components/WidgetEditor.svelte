@@ -197,7 +197,7 @@
 						type="button"
 						onclick={add}
 						disabled={items.length >= 12}
-						class="text-[17px] text-accent disabled:opacity-30"
+						class="kp-text-button text-[17px] text-accent disabled:opacity-30"
 					>
 						Hinzufügen
 					</button>

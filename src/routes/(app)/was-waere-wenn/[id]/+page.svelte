@@ -145,7 +145,11 @@
 					<span class="flex-1">{describeChange(c, names, fmt)}</span>
 					<form method="POST" action="?/remove" use:enhance>
 						<input type="hidden" name="changeId" value={c.id} />
-						<button type="submit" class="text-[15px] text-danger" aria-label="Änderung entfernen">
+						<button
+							type="submit"
+							class="kp-text-button text-[15px] text-danger"
+							aria-label="Änderung entfernen"
+						>
 							Entfernen
 						</button>
 					</form>

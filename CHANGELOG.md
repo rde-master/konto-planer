@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.63.1] – Knöpfe am Desktop erkennbar
+
+### Behoben
+
+- Aktionen wie „Logo ändern“, „Aufteilen“, „Umbenennen“ oder „Archivieren“ sahen aus wie normale Einträge; sie sind jetzt farbig wie Knöpfe
+- Am Desktop zeigt die Maus überall die Hand, und Zeilen sowie Knöpfe reagieren beim Überfahren
+- Kleine Text-Knöpfe („Entfernen“, „Überwiesen“, „Widerrufen“, „Holen“ …) haben am Desktop eine Knopfform, graue und schlichte Knöpfe eine Kontur
+
 ## [0.63.0] – Grafiken auf der Übersicht
 
 ### Neu

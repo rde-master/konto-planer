@@ -139,7 +139,7 @@
 			{#if data.templates.length > 1}
 				<button
 					type="button"
-					class="shrink-0 text-[17px] text-accent"
+					class="kp-text-button shrink-0 text-[17px] text-accent"
 					onclick={() => (ordering = !ordering)}
 				>
 					{ordering ? 'Fertig' : 'Ordnen'}

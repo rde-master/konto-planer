@@ -319,7 +319,9 @@
 						{#if due.status === 'skipped' && item.canManage}
 							<form method="POST" action="?/restoreDue" use:enhance>
 								<input type="hidden" name="dueId" value={due.id} />
-								<button type="submit" class="text-[15px] text-accent">Wiederherstellen</button>
+								<button type="submit" class="kp-text-button text-[15px] text-accent">
+									Wiederherstellen
+								</button>
 							</form>
 						{:else}
 							<span

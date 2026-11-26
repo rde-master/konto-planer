@@ -247,13 +247,15 @@
 								<div class="mt-2 flex gap-4">
 									<form method="POST" action="?/hintCreate" use:enhance>
 										<input type="hidden" name="id" value={h.id} />
-										<button type="submit" class="text-[15px] text-accent">
+										<button type="submit" class="kp-text-button text-[15px] text-accent">
 											Als Dauerposten anlegen
 										</button>
 									</form>
 									<form method="POST" action="?/hintDismiss" use:enhance>
 										<input type="hidden" name="id" value={h.id} />
-										<button type="submit" class="text-[15px] text-label-2">Ignorieren</button>
+										<button type="submit" class="kp-text-button text-[15px] text-label-2">
+											Ignorieren
+										</button>
 									</form>
 								</div>
 							{/if}
@@ -323,7 +325,9 @@
 								<form method="POST" action="?/transferred" use:enhance>
 									<input type="hidden" name="recurringId" value={t.recurringId} />
 									<input type="hidden" name="dueDate" value={t.dueDate} />
-									<button type="submit" class="text-[15px] text-accent">Überwiesen</button>
+									<button type="submit" class="kp-text-button text-[15px] text-accent">
+										Überwiesen
+									</button>
 								</form>
 							{/if}
 						</li>

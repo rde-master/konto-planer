@@ -41,6 +41,24 @@ test.describe('desktop', () => {
 		expect(await columns(page)).toBe('none');
 	});
 
+	test('actions look like buttons: coloured, with the hand cursor', async ({ page }) => {
+		await login(page);
+		await page.goto('/einstellungen');
+		const action = page.getByRole('button', { name: 'Passwort ändern' });
+		const entry = page.getByText('Benutzername', { exact: true });
+		const style = (l: typeof action, prop: 'color' | 'cursor') =>
+			l.evaluate((e, p) => getComputedStyle(e.querySelector('span.flex-1') ?? e)[p], prop);
+		expect(await action.evaluate((e) => getComputedStyle(e).cursor)).toBe('pointer');
+		// The action row is coloured differently from a plain entry.
+		expect(await style(action, 'color')).not.toBe(await style(entry, 'color'));
+		// Hovering highlights the row.
+		const before = await action.evaluate((e) => getComputedStyle(e).backgroundColor);
+		await action.hover();
+		await expect
+			.poll(() => action.evaluate((e) => getComputedStyle(e).backgroundColor))
+			.not.toBe(before);
+	});
+
 	test('three columns on very wide screens', async ({ page }) => {
 		await page.setViewportSize({ width: 2000, height: 1100 });
 		await login(page);
