@@ -31,6 +31,7 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 ## Design
 
 iOS-Stil (Liquid Glass): schwebende Tab-Leiste am Handy, Seitenleiste am Desktop, große Titel, Blätter von unten, gruppierte Listen, iOS-Blau als Akzent, Hell/Dunkel nach System und umschaltbar. `prefers-reduced-transparency`, `prefers-contrast`, `prefers-reduced-motion` beachten.
+**Desktop:** `Page` hat `layout` – `columns` (Standard: ab 80rem zwei, ab 120rem drei CSS-Spalten, Klasse `kp-columns` in `layout.css`), `wide` (Seite ordnet selbst, z. B. Widget-Editor) oder `narrow` (Lesetexte). Abschnitte (`section`, Listen, Formulare) bleiben ganz; `kp-span` für Elemente über alle Spalten (Filter, Reiter; `nav`, Meldungen automatisch), `kp-flow` für lange Listen, die umbrechen dürfen. Neue Seiten am Desktop bei 1440 px prüfen (Viewport-Screenshot, nicht `fullPage` – das verfälscht den Spaltenumbruch).
 **Keine Apple-Schrift- oder Symboldateien ins Repo** – Systemschrift (`-apple-system, system-ui`) und ein frei lizenziertes Symbolset verwenden.
 
 ## Fachliche Entscheidungen (ergänzen den Plan)

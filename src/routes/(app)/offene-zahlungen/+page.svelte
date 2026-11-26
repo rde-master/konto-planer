@@ -41,7 +41,7 @@
 
 <Page title="Offene Zahlungen" back={{ path: 'mehr', label: 'Mehr' }}>
 	{#if data.accountFilter.length > 1}
-		<ul class="mb-4 overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<ul class="kp-span mb-4 overflow-hidden rounded-[var(--radius-row)] bg-card">
 			<SelectField
 				label="Konto"
 				name="konto"
@@ -69,7 +69,7 @@
 	</nav>
 
 	{#if data.rows.length === 0}
-		<div class="rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">
+		<div class="kp-span rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">
 			<CalendarClock class="mx-auto mb-3 size-10 text-label-3" />
 			<p class="text-[17px] font-semibold">Keine offenen Zahlungen</p>
 			<p class="mt-1 text-[15px] text-label-2">
@@ -77,7 +77,7 @@
 			</p>
 		</div>
 	{:else}
-		<p class="mb-4 px-4 text-[13px] text-label-2">
+		<p class="kp-span mb-4 px-4 text-[13px] text-label-2">
 			Ausgänge {formatEuro(out)} · Saldo {total > 0 ? '+' : ''}{formatEuro(total)}. Termine am
 			Wochenende oder Bankfeiertag stehen beim nächsten Bankarbeitstag.
 		</p>

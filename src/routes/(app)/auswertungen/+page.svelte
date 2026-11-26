@@ -90,7 +90,7 @@
 	</nav>
 
 	{#if data.view !== 'kennzahlen'}
-		<ul class="mb-6 overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<ul class="kp-span mb-6 overflow-hidden rounded-[var(--radius-row)] bg-card">
 			<SelectField
 				label="Konten"
 				name="konto"
@@ -117,7 +117,7 @@
 			{/each}
 		</nav>
 		{@const total = data.categories.reduce((s, c) => s + c.amount, 0)}
-		<section class="mb-8" aria-label="Ausgaben nach Kategorie">
+		<section class="kp-flow mb-8" aria-label="Ausgaben nach Kategorie">
 			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
 				<span class="flex-1">Ausgaben nach Kategorie</span>
 				<span class="tabular" aria-label="Ausgaben gesamt">{formatEuro(total)}</span>
@@ -465,7 +465,10 @@
 			</a>
 		</nav>
 		{@const maxMonth = Math.max(1, ...data.calendar.map((m) => m.expenses))}
-		<ul class="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Monate {data.year}">
+		<ul
+			class="kp-span mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6"
+			aria-label="Monate {data.year}"
+		>
 			{#each data.calendar as m (m.month)}
 				<li>
 					<a

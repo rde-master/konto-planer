@@ -293,7 +293,10 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.58.0 | Systemstatus |
 | 0.59.0 | Anleitung für Einrichtung und Bedienung |
 | 0.60.0 | Demo-Modus |
-| 1.0.0 | Abschluss: Tests der gesamten Bedienung am Handy, Freigabe |
+| 0.61.0 | Desktop-Layout: breite Seiten in zwei Spalten (aus den manuellen Tests) |
+| 0.62.0 | Mehr Firmenlogos: von der Firmen-Webseite und über den Google-Symboldienst |
+| 0.63.0 | Grafiken auf der Übersicht |
+| 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.
 

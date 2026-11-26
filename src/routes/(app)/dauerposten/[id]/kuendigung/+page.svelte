@@ -63,6 +63,7 @@
 	{/if}
 
 	<form
+		class="kp-flow"
 		method="POST"
 		action="?/create"
 		use:enhance={() => {

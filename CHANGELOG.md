@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.61.0] – Desktop-Layout
+
+### Neu
+
+- Am Desktop nutzen die Seiten jetzt die Breite: ab etwa 1280 Pixel Fensterbreite laufen die Abschnitte in zwei Spalten, auf sehr breiten Monitoren in drei
+- Suche, Filter, Reiter und Monatswahl gehen über die ganze Breite; Formulare bleiben mit ihrem Knopf zusammen
+- Lange Listen wie Protokoll und Kategorien-Auswertung fließen über die Spalten; der Jahreskalender zeigt sechs Monate je Reihe
+- Widget-Editor: Vorschau links, Einstellungen rechts
+- Lesetexte (Hilfe, Was ist neu) bleiben in angenehmer Lesebreite; am Handy ändert sich nichts
+
 ## [0.60.0] – Demo-Modus
 
 ### Neu
