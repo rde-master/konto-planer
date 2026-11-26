@@ -22,11 +22,24 @@
 	import { CUTOFF_MODE_LABELS, CUTOFF_MODES } from '#lib/minimum.js';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
+	import { EMPTY_FILTER, filterQuery } from '#lib/search.js';
 	import { formatIban } from '#lib/iban.js';
 	import { formatDay } from '#lib/dates.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	/** Booking list with the month's outgoing bookings of this account. */
+	function monthHref(m: { from: string; to: string }) {
+		const query = filterQuery({
+			...EMPTY_FILTER,
+			accountId: data.account.id,
+			from: m.from,
+			to: m.to,
+			direction: 'out'
+		});
+		return resolve(`buchungen?${query.slice(1)}`);
+	}
 
 	const account = $derived(data.account);
 	const archived = $derived(account.archivedAt !== null);
@@ -609,6 +622,50 @@
 			{/if}
 		{/if}
 	</ul>
+
+	{#if data.months.length}
+		<section class="mb-8" aria-label="Monatsübersicht">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Monatsübersicht</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.months as m (m.month)}
+					<li>
+						<a
+							href={monthHref(m)}
+							aria-label="{m.label}: Abbuchungen {formatEuro(m.outgoing)}"
+							class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
+						>
+							<span class="min-w-0 flex-1">
+								<span class="flex items-baseline gap-3">
+									<span class="min-w-0 flex-1 truncate text-[17px]">
+										{m.label}
+									</span>
+									<span class="shrink-0 text-[17px] tabular">{formatEuro(m.outgoing)}</span>
+								</span>
+								<span class="block text-[13px] text-label-2 tabular">
+									{m.outCount === 1 ? '1 Abbuchung' : `${m.outCount} Abbuchungen`}{m.current
+										? ' bisher'
+										: ''}{#if m.transfersOut}{` · umgebucht ${formatEuro(m.transfersOut)}`}{/if}
+								</span>
+								<span class="block text-[13px] text-label-2 tabular">
+									Eingänge {formatEuro(m.incoming)} · Saldo {m.net > 0 ? '+' : ''}{formatEuro(
+										m.net
+									)}
+								</span>
+							</span>
+							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+						</a>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Abbuchungen sind alles, was vom Konto abgeht. „Umgebucht“ ist der Teil davon, der auf eigene
+				Konten ging{account.type === 'giro' ? ' – auch die Kreditkartenabrechnung' : ''}. Ein Tipp
+				zeigt die Abbuchungen des Monats.
+			</p>
+		</section>
+	{/if}
 
 	{#if canEdit}
 		<form
