@@ -225,6 +225,7 @@ const FIELD_LABELS: Record<string, string> = {
 	savingSuggestion: 'Sparvorschlag',
 	subscriptionHint: 'Neues Abo',
 	monthlyReport: 'Monatsbericht',
+	postalAddress: 'Anschrift',
 	settlementAccountId: 'Abrechnungskonto',
 	statementDay: 'Abrechnungstag',
 	debitDay: 'Abbuchungstag',

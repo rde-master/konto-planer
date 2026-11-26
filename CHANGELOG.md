@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.51.0] – Kündigungsschreiben als PDF
+
+### Neu
+
+- Am Dauerposten mit Vertrag: „Kündigungsschreiben erstellen“ – ein fertiger Brief als PDF (DIN 5008, passend für Fensterumschläge)
+- Absender aus deiner gespeicherten Anschrift (beim ersten Mal eingeben und merken), Empfänger aus der Kündigungsadresse des Vertrags; beides vor dem Erstellen änderbar
+- Inhalt: ordentliche Kündigung zum nächstmöglichen Zeitpunkt mit dem berechneten Vertragsende, Kundennummer; wählbar: Bitte um schriftliche Bestätigung, Widerruf des Lastschrift-Mandats (mit Mandatsreferenz), Widerspruch gegen Rückgewinnung und Bitte um Datenlöschung
+- Das PDF wird als Anhang am Dauerposten gespeichert; danach lässt sich „Gekündigt am heute“ mit einem Tipp eintragen (das Ende des Dauerpostens folgt wie gewohnt)
+
 ## [0.50.0] – Monatsbericht per E-Mail
 
 ### Neu
