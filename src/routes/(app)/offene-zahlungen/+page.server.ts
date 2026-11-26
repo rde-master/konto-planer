@@ -1,6 +1,6 @@
 import { listAccountsFor } from '#lib/server/accounts.js';
 import { listRecurringFor } from '#lib/server/recurring.js';
-import { openPayments } from '#lib/due.js';
+import { upcomingPayments } from '#lib/server/credit-cards.js';
 import { addDays } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
 import type { PageServerLoad } from './$types';
@@ -19,12 +19,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	);
 	const names = new Map(accounts.map((a) => [a.id, a.name]));
 	// Today's due items are already booked provisionally; open ones start tomorrow.
-	const rows = openPayments(
-		items.filter((i) => !i.archivedAt),
-		ids,
-		addDays(today, 1),
-		addDays(today, days)
-	).map((r) => ({ ...r, accountName: names.get(r.accountId) ?? '' }));
+	const rows = (
+		await upcomingPayments(
+			items.filter((i) => !i.archivedAt),
+			ids,
+			addDays(today, 1),
+			addDays(today, days),
+			today
+		)
+	).map((r) => ({
+		...r,
+		key: `${r.recurringId ?? r.cardId}|${r.accountId}|${r.dueDate}`,
+		accountName: names.get(r.accountId) ?? '',
+		// The card may not be visible to someone who only sees the giro account.
+		cardId: r.cardId && names.has(r.cardId) ? r.cardId : null,
+		settlement: r.cardId !== null
+	}));
 	return {
 		rows,
 		days,

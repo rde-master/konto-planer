@@ -242,7 +242,7 @@ export async function syncSettlements(today = todayBerlin()): Promise<number> {
 	return changed;
 }
 
-export type SettlementEvent = { date: string; amount: number; label: string };
+export type SettlementEvent = { date: string; amount: number; label: string; cardId: string };
 
 /**
  * Future settlements (debit day after today, up to `until`) as events per account: negative on
@@ -260,11 +260,64 @@ export async function settlementEvents(
 		for (const s of await pendingFor(card, today, until)) {
 			if (s.debitDate <= today || s.debitDate > until || !s.amount) continue;
 			const label = `Kreditkarte ${card.name}`;
-			add(giro.id, { date: s.debitDate, amount: -s.amount, label });
-			add(card.id, { date: s.debitDate, amount: s.amount, label: `Abbuchung von ${giro.name}` });
+			add(giro.id, { date: s.debitDate, amount: -s.amount, label, cardId: card.id });
+			add(card.id, {
+				date: s.debitDate,
+				amount: s.amount,
+				label: `Abbuchung von ${giro.name}`,
+				cardId: card.id
+			});
 		}
 	}
 	return out;
+}
+
+export type UpcomingPayment = {
+	/** Recurring item, or null for a credit card statement (then `cardId` is set). */
+	recurringId: string | null;
+	cardId: string | null;
+	name: string;
+	accountId: string;
+	dueDate: string;
+	bookingDate: string;
+	/** Effect on the account: negative = out. */
+	amount: number;
+};
+
+/**
+ * Everything still to come on the given accounts with bank day in [from, to]: the due dates of
+ * the recurring items (`openPayments()`) plus the card statements not debited yet – out of the
+ * giro account, into the card. Sorted by day. Use this for lists of open payments.
+ */
+export async function upcomingPayments(
+	items: PlannedItem[],
+	accountIds: Set<string>,
+	from: string,
+	to: string,
+	today = todayBerlin()
+): Promise<UpcomingPayment[]> {
+	const planned: UpcomingPayment[] = openPayments(items, accountIds, from, to).map((p) => ({
+		...p,
+		cardId: null
+	}));
+	const statements = [...(await settlementEvents([...accountIds], today, to))]
+		.filter(([accountId]) => accountIds.has(accountId))
+		.flatMap(([accountId, events]) =>
+			events
+				.filter((e) => e.date >= from)
+				.map((e) => ({
+					recurringId: null,
+					cardId: e.cardId,
+					name: e.label,
+					accountId,
+					dueDate: e.date,
+					bookingDate: e.date,
+					amount: e.amount
+				}))
+		);
+	return [...planned, ...statements].sort(
+		(a, b) => a.bookingDate.localeCompare(b.bookingDate) || a.name.localeCompare(b.name, 'de')
+	);
 }
 
 /** Next settlements of one card for its account page. */

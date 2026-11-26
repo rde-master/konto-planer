@@ -13,7 +13,7 @@ import { budgetsFor } from './budgets.js';
 import { bookingFormContext } from './bookings.js';
 import { balanceDates } from './import-reminder.js';
 import { haSetState, listRules, missingPayments, notifySettings } from './notify.js';
-import { openPayments } from '../due.js';
+import { upcomingPayments } from './credit-cards.js';
 import { haSensors, statusJson, TOKEN_PURPOSES, type StatusAccount } from '../api.js';
 import { addDays } from '../recurring.js';
 import { formatDay, todayBerlin } from '../dates.js';
@@ -145,11 +145,12 @@ export async function statusFor(
 		listRules()
 	]);
 	const plans = await plansFor(viewer, accounts, balances);
-	const upcoming = openPayments(
+	const upcoming = await upcomingPayments(
 		items.filter((i) => !i.archivedAt),
 		ids,
 		today,
-		addDays(today, 90)
+		addDays(today, 90),
+		today
 	);
 	const tolerance = rules.find((r) => r.type === 'payment_missing')?.toleranceDays ?? 3;
 	const missing = ids.size ? await missingPayments(today, tolerance, [...ids]) : [];
