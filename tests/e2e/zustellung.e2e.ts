@@ -325,3 +325,22 @@ test('a manual transfer is reminded until it is marked as transferred', async ({
 		page.getByRole('button').filter({ hasText: 'Garagenmiete Melde' }).first()
 	).toBeVisible();
 });
+
+test('the monthly report can be switched on and sent right away', async ({ page }) => {
+	await login(page);
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	const report = page.getByRole('region', { name: 'Monatsbericht' });
+	await report.getByRole('switch', { name: 'Monatsbericht per E-Mail' }).check();
+	await report.getByRole('button', { name: 'Sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Monatsbericht eingeschaltet.');
+	await expect(report.getByRole('switch', { name: 'Monatsbericht per E-Mail' })).toBeChecked();
+
+	const before = mails.length;
+	await report.getByRole('button', { name: 'Bericht für den Vormonat jetzt senden' }).click();
+	await expect(page.getByRole('status')).toHaveText('Monatsbericht verschickt.');
+	const mail = mails.slice(before).at(-1);
+	expect(mail?.to).toBe('erika@example.org');
+	expect(mail?.data).toContain('text/html');
+	expect(mail?.data).toContain('Einnahmen');
+	expect(mail?.data).toContain(ACCOUNT);
+});

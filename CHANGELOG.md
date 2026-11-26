@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.50.0] – Monatsbericht per E-Mail
+
+### Neu
+
+- Monatsbericht per E-Mail, von jedem selbst unter „Meine Benachrichtigungen“ einschaltbar; er kommt am 1. eines Monats ab 8 Uhr für den Vormonat (bei Ausfall des Servers bis zum 7. nachgeholt)
+- Inhalt für die Konten, die du siehst: Einnahmen, Ausgaben und Saldo, Ausgaben je Kategorie mit Vergleich zum Vormonat, größte Posten, Budgets, Kontostand am Monatsende und heute verfügbar, Gespartes mit Sparquote, Preiserhöhungen und anstehende Kündigungsfristen
+- Übersichtliche HTML-Mail im App-Stil (ohne externe Bilder) mit zusätzlichem Textteil
+- „Bericht für den Vormonat jetzt senden“ zum Ausprobieren; verschickte Berichte stehen in der Liste „Zuletzt verschickt“
+
 ## [0.49.0] – Import-Erinnerung
 
 ### Neu

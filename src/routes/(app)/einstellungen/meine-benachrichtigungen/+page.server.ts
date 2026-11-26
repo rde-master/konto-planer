@@ -11,13 +11,18 @@ import {
 } from '#lib/server/notify.js';
 import { PushError, listDevices, pushToUser, unsubscribe, vapidKeys } from '#lib/server/push.js';
 import { formString } from '#lib/server/validation.js';
+import { sendReportNow } from '#lib/server/monthly-report.js';
+import { audit } from '#lib/server/audit.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const [{ smtp, ha }, [me], devices, vapid] = await Promise.all([
 		notifySettings(),
-		db.select({ targets: users.notifyTargets }).from(users).where(eq(users.id, user.id)),
+		db
+			.select({ targets: users.notifyTargets, monthlyReport: users.monthlyReport })
+			.from(users)
+			.where(eq(users.id, user.id)),
 		listDevices(user.id),
 		vapidKeys()
 	]);
@@ -38,6 +43,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		// Saved devices stay selectable even if Home Assistant does not list them right now.
 		services: [...new Set([...services, ...targets])].sort(),
 		targets,
+		monthlyReport: me?.monthlyReport ?? false,
 		vapidPublicKey: vapid.publicKey,
 		devices
 	};
@@ -50,6 +56,36 @@ export const actions: Actions = {
 			.filter((v): v is string => typeof v === 'string' && /^[a-z0-9_]+$/.test(v));
 		await setNotifyTargets(locals.user!, chosen);
 		return { success: 'Geräte gesichert.' };
+	},
+
+	report: async ({ request, locals }) => {
+		const on = formString(await request.formData(), 'monthlyReport') === 'on';
+		const actor = locals.user!;
+		await db.transaction(async (tx) => {
+			await tx
+				.update(users)
+				.set({ monthlyReport: on, updatedAt: new Date() })
+				.where(eq(users.id, actor.id));
+			await audit(tx, {
+				actor,
+				entityType: 'user',
+				action: 'update',
+				entityId: actor.id,
+				entityLabel: 'Benachrichtigungen',
+				after: { monthlyReport: on }
+			});
+		});
+		return { success: on ? 'Monatsbericht eingeschaltet.' : 'Monatsbericht ausgeschaltet.' };
+	},
+
+	reportNow: async ({ locals }) => {
+		try {
+			await sendReportNow(locals.user!);
+		} catch (e) {
+			if (e instanceof NotifyError) return fail(400, { message: e.message });
+			throw e;
+		}
+		return { success: 'Monatsbericht verschickt.' };
 	},
 
 	removeDevice: async ({ request, locals }) => {

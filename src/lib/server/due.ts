@@ -20,6 +20,7 @@ import { syncSettlements } from './credit-cards.js';
 import { syncGoals } from './goals.js';
 import { purgeExpired } from './trash.js';
 import { runNotifications } from './notify.js';
+import { runMonthlyReports } from './monthly-report.js';
 
 export class DueError extends Error {}
 
@@ -232,6 +233,9 @@ export function startDueScheduler() {
 		);
 		void runNotifications().catch((e: unknown) =>
 			console.error('Benachrichtigungen: Versand fehlgeschlagen', e)
+		);
+		void runMonthlyReports().catch((e: unknown) =>
+			console.error('Monatsbericht: Versand fehlgeschlagen', e)
 		);
 		void purgeExpired().catch((e: unknown) =>
 			console.error('Papierkorb: Aufräumen fehlgeschlagen', e)

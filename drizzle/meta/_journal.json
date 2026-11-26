@@ -246,6 +246,13 @@
       "when": 1795634023670,
       "tag": "0034_subscription_hints",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795658064444,
+      "tag": "0035_monthly_report",
+      "breakpoints": true
     }
   ]
 }

@@ -211,7 +211,13 @@ export async function saveHomeAssistant(
 
 // --- channels ---------------------------------------------------------------------------------
 
-export async function sendEmail(smtp: SmtpSettings, to: string, subject: string, text: string) {
+export async function sendEmail(
+	smtp: SmtpSettings,
+	to: string,
+	subject: string,
+	text: string,
+	html?: string
+) {
 	const transport = nodemailer.createTransport({
 		host: smtp.host,
 		port: smtp.port,
@@ -220,7 +226,7 @@ export async function sendEmail(smtp: SmtpSettings, to: string, subject: string,
 		connectionTimeout: 10_000,
 		greetingTimeout: 10_000
 	});
-	await transport.sendMail({ from: smtp.from, to, subject, text });
+	await transport.sendMail({ from: smtp.from, to, subject, text, ...(html ? { html } : {}) });
 }
 
 async function haFetch(ha: HaSettings, path: string, init?: RequestInit) {

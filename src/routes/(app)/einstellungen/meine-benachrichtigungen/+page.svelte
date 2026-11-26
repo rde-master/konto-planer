@@ -5,6 +5,7 @@
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import PushSetup from '#lib/components/PushSetup.svelte';
+	import ToggleField from '#lib/components/ToggleField.svelte';
 	import { formatDateTime } from '#lib/dates.js';
 	import type { PageProps } from './$types';
 
@@ -33,6 +34,36 @@
 	>
 		<ListRow label="Adresse" value={data.email ?? 'keine'} />
 	</ListGroup>
+
+	<section class="mb-8" aria-label="Monatsbericht">
+		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Monatsbericht</h2>
+		<form
+			method="POST"
+			action="?/report"
+			use:enhance={() =>
+				async ({ update }) =>
+					update({ reset: false })}
+		>
+			<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+				<ToggleField
+					label="Monatsbericht per E-Mail"
+					name="monthlyReport"
+					initial={data.monthlyReport}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Am 1. eines Monats ab 8 Uhr: Einnahmen, Ausgaben, Kategorien, größte Posten, Budgets,
+				Kontostände, Sparquote, Preiserhöhungen und anstehende Kündigungsfristen des Vormonats – für
+				die Konten, die du siehst.
+			</p>
+			<div class="mt-3"><Button type="submit">Sichern</Button></div>
+		</form>
+		{#if data.smtpReady && data.email}
+			<form method="POST" action="?/reportNow" use:enhance class="mt-3">
+				<Button type="submit" variant="tinted">Bericht für den Vormonat jetzt senden</Button>
+			</form>
+		{/if}
+	</section>
 
 	<section class="mb-8" aria-label="Push">
 		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Push aus der Web-App</h2>
