@@ -141,7 +141,7 @@
 								</a>
 							{:else}
 								{#if data.savings.length}
-									<button type="button" class="text-accent" onclick={() => start(r)}>
+									<button type="button" class="kp-text-button text-accent" onclick={() => start(r)}>
 										Als Sparziel anlegen
 									</button>
 								{:else}

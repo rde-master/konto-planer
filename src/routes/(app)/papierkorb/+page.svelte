@@ -66,7 +66,7 @@
 								<input type="hidden" name="id" value={item.id} />
 								<button
 									type="submit"
-									class="text-[15px] text-accent active:opacity-60"
+									class="kp-text-button text-[15px] text-accent active:opacity-60"
 									aria-label="{item.label} wiederherstellen"
 								>
 									Wiederherstellen
@@ -78,7 +78,7 @@
 								<input type="hidden" name="id" value={item.id} />
 								<button
 									type="submit"
-									class="text-[15px] text-danger active:opacity-60"
+									class="kp-text-button text-[15px] text-danger active:opacity-60"
 									aria-label="{item.label} endgültig löschen"
 								>
 									Löschen

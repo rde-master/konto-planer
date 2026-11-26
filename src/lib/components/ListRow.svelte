@@ -34,7 +34,12 @@
 			<Icon class="size-[18px]" strokeWidth={2.2} />
 		</span>
 	{/if}
-	<span class={['flex-1 truncate', destructive && 'text-danger']}>{label}</span>
+	<!-- A row that does something is coloured like a button, so it is not mistaken for an entry. -->
+	<span
+		class={['flex-1 truncate', destructive ? 'text-danger' : onclick && !href && 'text-accent']}
+	>
+		{label}
+	</span>
 	{#if value}<span class="truncate text-label-2 tabular">{value}</span>{/if}
 	{@render trailing?.()}
 	{#if href}<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />{/if}

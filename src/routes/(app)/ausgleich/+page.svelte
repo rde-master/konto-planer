@@ -96,7 +96,7 @@
 						<button
 							type="button"
 							onclick={() => start(d)}
-							class="text-[15px] text-accent active:opacity-60"
+							class="kp-text-button text-[15px] text-accent active:opacity-60"
 							aria-label="Ausgleich {d.fromName} an {d.toName} erfassen"
 						>
 							Ausgleichen
@@ -174,7 +174,7 @@
 								<input type="hidden" name="id" value={s.id} />
 								<button
 									type="submit"
-									class="text-[15px] text-danger"
+									class="kp-text-button text-[15px] text-danger"
 									aria-label="Ausgleich vom {formatDay(s.date)} löschen"
 								>
 									Löschen

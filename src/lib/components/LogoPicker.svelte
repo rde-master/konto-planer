@@ -145,7 +145,7 @@
 			<button
 				type="submit"
 				disabled={webPending || !web.trim()}
-				class="shrink-0 text-[17px] text-accent disabled:opacity-40"
+				class="kp-text-button shrink-0 text-[17px] text-accent disabled:opacity-40"
 			>
 				{webPending ? 'Lädt …' : 'Holen'}
 			</button>

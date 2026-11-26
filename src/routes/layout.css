@@ -140,6 +140,54 @@
 		outline: 3px solid var(--kp-accent);
 		outline-offset: 2px;
 	}
+
+	/* Everything that reacts to a click shows the hand (Tailwind 4 no longer does this). */
+	button:not(:disabled),
+	[role='button'],
+	[role='radio'],
+	[role='switch'],
+	summary,
+	select,
+	label[for],
+	input[type='checkbox'],
+	input[type='radio'],
+	input[type='file'] {
+		cursor: pointer;
+	}
+}
+
+/*
+ * Mouse devices (desktop): buttons must be recognisable as buttons, not look like entries.
+ * Rows that react to a tap also react to the pointer; small text buttons get a pill shape.
+ */
+@media (hover: hover) and (pointer: fine) {
+	:is(a, button).active\:bg-fill:hover {
+		background-color: var(--kp-fill);
+	}
+	:is(a, button).active\:opacity-60:hover {
+		opacity: 0.75;
+	}
+	.kp-button:not(:disabled):hover {
+		box-shadow: inset 0 0 0 100vmax rgb(0 0 0 / 0.08);
+	}
+	.kp-button-tinted,
+	.kp-button-plain {
+		box-shadow: inset 0 0 0 1px var(--kp-separator);
+	}
+	.kp-button-plain {
+		background-color: var(--kp-card);
+	}
+	.kp-text-button {
+		border-radius: 9999px;
+		background-color: var(--kp-fill);
+		padding: 0.3rem 0.8rem;
+		font-weight: 500;
+		white-space: nowrap;
+		transition: background-color 0.15s;
+	}
+	.kp-text-button:not(:disabled):hover {
+		background-color: var(--kp-fill-strong);
+	}
 }
 
 @utility glass {

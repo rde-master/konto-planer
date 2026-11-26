@@ -488,7 +488,7 @@
 									<input type="hidden" name="rateId" value={r.id} />
 									<button
 										type="submit"
-										class="text-[15px] text-danger"
+										class="kp-text-button text-[15px] text-danger"
 										aria-label="Zinssatz ab {formatDay(r.validFrom)} löschen"
 									>
 										Löschen
@@ -700,7 +700,7 @@
 					<form method="POST" action="?/archive" use:enhance>
 						<button
 							type="submit"
-							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left active:bg-fill"
+							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
 						>
 							Archivieren
 						</button>

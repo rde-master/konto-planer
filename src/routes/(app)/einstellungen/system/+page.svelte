@@ -192,7 +192,7 @@
 					</span>
 					<a
 						href={resolve(`einstellungen/system/sicherung/${b.name}`)}
-						class="text-[15px] text-accent"
+						class="kp-text-button text-[15px] text-accent"
 						download
 						data-sveltekit-reload
 					>

@@ -202,7 +202,7 @@
 							<input type="hidden" name="extraId" value={x.id} />
 							<button
 								type="submit"
-								class="text-[15px] text-danger"
+								class="kp-text-button text-[15px] text-danger"
 								aria-label="Sondertilgung vom {formatDay(x.date)} löschen"
 							>
 								Löschen

@@ -215,7 +215,7 @@
 					</a>
 					<form method="POST" action="?/revoke" use:enhance>
 						<input type="hidden" name="id" value={w.id} />
-						<button type="submit" class="text-[15px] text-danger">Widerrufen</button>
+						<button type="submit" class="kp-text-button text-[15px] text-danger">Widerrufen</button>
 					</form>
 				</li>
 			{:else}

@@ -66,7 +66,7 @@
 				<button
 					type="button"
 					onclick={start}
-					class="mt-2 text-[17px] text-accent active:opacity-60"
+					class="kp-text-button mt-2 text-[17px] text-accent active:opacity-60"
 				>
 					Tags ändern
 				</button>
