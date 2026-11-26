@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	layoutBlocks,
+	lockContent,
+	compactEuro,
+	TEMPLATE_LAYOUTS,
 	parseLayout,
 	widgetBlocks,
 	widgetPalette,
@@ -161,6 +164,26 @@ describe('widgetPalette', () => {
 		expect(widgetPalette({ ...DEFAULT_STYLE, appearance: 'light' }, 'red').bg).toEqual([
 			'#ffffff',
 			'#ffffff'
+		]);
+	});
+});
+
+describe('lockContent', () => {
+	const items = TEMPLATE_LAYOUTS.available;
+	it('rectangular: three short lines', () => {
+		const c = lockContent(items, 'lockRect', data);
+		expect(c.lines.map(text)).toEqual(['Giro · bis 30.11.', '600,00 €', 'Mindestbestand 900,00 €']);
+		expect(c.gauge).toBeNull();
+	});
+	it('circular: ring and short number', () => {
+		expect(lockContent(items, 'lockCircle', data).gauge).toEqual({ value: 0.4, label: '600' });
+		expect(compactEuro(123_456)).toBe('1,2T');
+		expect(compactEuro(-8_500)).toBe('−85');
+		expect(compactEuro(100_000)).toBe('1T');
+	});
+	it('inline: one line with the cut-off day', () => {
+		expect(lockContent(items, 'lockInline', data).lines.map(text)).toEqual([
+			'600,00 € frei bis 30.11.'
 		]);
 	});
 });

@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.56.0] – Sperrbildschirm-Widgets
+
+### Neu
+
+- Widgets für den Sperrbildschirm (ab iOS 16, über Scriptable): rechteckig (bis drei Zeilen), rund (Ring mit verfügbarem Anteil und Betrag in der Mitte, z. B. „1,2T“) und als Zeile über der Uhr („612,00 € frei bis 30.11.“)
+- Als zusätzliche Größen „Sperrbildschirm“, „Rund“ und „Zeile“ auf der Musterseite und im Editor, mit passender Vorschau; der Inhalt kommt aus den gewählten Bausteinen
+- Auf dem iPhone: Sperrbildschirm gedrückt halten › Anpassen › Widgets hinzufügen › Scriptable, dann das Skript wählen
+
+### Hinweis
+
+- Für Sperrbildschirm-Widgets das Skript neu kopieren (bestehende Skripte kennen die neuen Formen noch nicht)
+
 ## [0.55.0] – Widget-Editor
 
 ### Neu

@@ -16,7 +16,9 @@
 		ITEM_LABELS,
 		SIZE_LABELS,
 		WIDGET_SIZES,
+		isLockSize,
 		layoutBlocks,
+		lockContent,
 		widgetPalette,
 		type ItemKind,
 		type LayoutItem,
@@ -53,6 +55,7 @@
 			: data.payments
 	});
 	const blocks = $derived(layoutBlocks(items, size, preview));
+	const lock = $derived(isLockSize(size) ? lockContent(items, size, preview) : null);
 	const palette = $derived(widgetPalette(style, chosen[0]?.color ?? null));
 	const layoutJson = $derived(JSON.stringify({ items, style }));
 
@@ -87,14 +90,14 @@
 {#each accountIds as id (id)}<input type="hidden" name="account" value={id} />{/each}
 
 <div class="mb-6 flex justify-center md:sticky md:top-16 md:z-10">
-	<WidgetPreview {blocks} {size} {palette} />
+	<WidgetPreview {blocks} {size} {palette} {lock} />
 </div>
 
 <section class="mb-6">
 	<ul class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card">
 		<FormField label="Name" name="name" bind:value={name} maxlength={40} autocomplete="off" />
 		<li class="px-4 py-2">
-			<div class="flex gap-2" role="radiogroup" aria-label="Größe">
+			<div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Größe">
 				{#each WIDGET_SIZES as s (s)}
 					<button
 						type="button"
@@ -102,7 +105,7 @@
 						aria-checked={size === s}
 						onclick={() => (size = s)}
 						class={[
-							'flex-1 rounded-full px-3 py-1.5 text-[15px]',
+							'min-w-[30%] flex-1 rounded-full px-3 py-1.5 text-[15px]',
 							size === s ? 'bg-accent text-white' : 'bg-fill'
 						]}
 					>

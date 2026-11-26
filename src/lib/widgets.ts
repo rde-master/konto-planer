@@ -5,7 +5,14 @@ import { ACCOUNT_COLORS, type AccountColor } from './colors.js';
 
 export const WIDGET_TEMPLATES = ['available', 'payments', 'accounts'] as const;
 export type WidgetTemplate = (typeof WIDGET_TEMPLATES)[number];
-export const WIDGET_SIZES = ['small', 'medium', 'large'] as const;
+export const WIDGET_SIZES = [
+	'small',
+	'medium',
+	'large',
+	'lockRect',
+	'lockCircle',
+	'lockInline'
+] as const;
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
 export const TEMPLATE_INFO: Record<WidgetTemplate, { title: string; text: string }> = {
@@ -19,8 +26,16 @@ export const TEMPLATE_INFO: Record<WidgetTemplate, { title: string; text: string
 export const SIZE_LABELS: Record<WidgetSize, string> = {
 	small: 'Klein',
 	medium: 'Mittel',
-	large: 'Groß'
+	large: 'Groß',
+	lockRect: 'Sperrbildschirm',
+	lockCircle: 'Rund',
+	lockInline: 'Zeile'
 };
+
+/** Lock screen widgets (iOS 16+): rectangular, circular, one line above the clock. */
+export function isLockSize(size: WidgetSize): boolean {
+	return size.startsWith('lock');
+}
 
 export type BlockColor = 'text' | 'sub' | 'red' | 'green' | 'accent';
 export type Block =
@@ -162,7 +177,14 @@ export function parseLayout(value: unknown): WidgetLayout | null {
 const short = (day: string) => formatDay(day).slice(0, 6);
 const money = (cents: number) => formatEuro(cents);
 /** Room per size in lines (title and rows 1, big number 2, bar ½). */
-const CAPACITY: Record<WidgetSize, number> = { small: 6, medium: 6, large: 14 };
+const CAPACITY: Record<WidgetSize, number> = {
+	small: 6,
+	medium: 6,
+	large: 14,
+	lockRect: 3,
+	lockCircle: 2,
+	lockInline: 1
+};
 const COST: Record<Block['type'], number> = { title: 1, big: 2, row: 1, bar: 0.5, spacer: 0 };
 
 /** Blocks of a layout for the given data; what does not fit the size is left out. */
@@ -259,6 +281,67 @@ export function layoutBlocks(items: LayoutItem[], size: WidgetSize, d: WidgetDat
 /** Blocks of a template (the sample page). */
 export function widgetBlocks(template: WidgetTemplate, size: WidgetSize, d: WidgetData): Block[] {
 	return layoutBlocks(TEMPLATE_LAYOUTS[template], size, d);
+}
+
+// --- lock screen -------------------------------------------------------------------------
+
+export type LockContent = {
+	/** Rectangular: up to three lines; inline: one. */
+	lines: string[];
+	/** Circular: ring (0..1) and a short number in the middle. */
+	gauge: { value: number; label: string } | null;
+};
+
+/** Short number for the circular widget: "612", "1,2T", "−85". */
+export function compactEuro(cents: number): string {
+	const e = Math.round(cents / 100);
+	const sign = e < 0 ? '−' : '';
+	const a = Math.abs(e);
+	if (a < 1000) return `${sign}${a}`;
+	if (a < 100_000) return `${sign}${(a / 1000).toFixed(1).replace('.', ',').replace(',0', '')}T`;
+	return `${sign}${Math.round(a / 1000)}T`;
+}
+
+/** The lock screen version of a layout: same blocks, as short text lines and a ring. */
+export function lockContent(items: LayoutItem[], size: WidgetSize, d: WidgetData): LockContent {
+	const blocks = layoutBlocks(items, 'large', d);
+	const lines = blocks
+		.map((b) =>
+			b.type === 'title'
+				? b.text
+				: b.type === 'big'
+					? b.value
+					: b.type === 'row'
+						? `${b.label}${b.value ? ` ${b.value}` : ''}`
+						: null
+		)
+		.filter((l): l is string => !!l);
+	const giro = d.accounts.filter((a) => a.available !== null);
+	const available = giro.reduce((s, a) => s + (a.available ?? 0), 0);
+	const balance = giro.reduce((s, a) => s + a.balance, 0);
+	const total = d.accounts.reduce((s, a) => s + a.balance, 0);
+	const main =
+		items.some((i) => i.kind === 'available') || !items.some((i) => i.kind === 'balance');
+	if (size === 'lockCircle')
+		return {
+			lines: [],
+			gauge: {
+				value: balance > 0 ? Math.max(0, Math.min(1, available / balance)) : 0,
+				label: compactEuro(main && giro.length ? available : total)
+			}
+		};
+	if (size === 'lockInline') {
+		const cutoff = giro
+			.map((a) => a.cutoff)
+			.filter((c) => c !== null)
+			.sort()[0];
+		const text =
+			main && giro.length
+				? `${formatEuro(available)} frei${cutoff ? ` bis ${formatDay(cutoff).slice(0, 6)}` : ''}`
+				: (lines[1] ?? lines[0] ?? '');
+		return { lines: [text], gauge: null };
+	}
+	return { lines: lines.slice(0, 3), gauge: null };
 }
 
 // --- colours ------------------------------------------------------------------------------
@@ -393,8 +476,59 @@ function bar(value, color, width) {
 }
 
 const { d, live, error } = await load();
+function ring(value, label) {
+  // Ring of the circular lock screen widget (drawn from points; Scriptable has no arcs).
+  const dc = new DrawContext();
+  dc.size = new Size(60, 60);
+  dc.opaque = false;
+  dc.respectScreenScale = true;
+  const arc = (from, to) => {
+    const p = new Path();
+    const pts = [];
+    for (let a = from; a <= to; a += 0.05) pts.push(new Point(30 + 26 * Math.sin(a), 30 - 26 * Math.cos(a)));
+    p.addLines(pts);
+    return p;
+  };
+  dc.setLineWidth(5);
+  dc.setStrokeColor(new Color("#ffffff", 0.3));
+  dc.addPath(arc(0, Math.PI * 2));
+  dc.strokePath();
+  if (value > 0) {
+    dc.setStrokeColor(Color.white());
+    dc.addPath(arc(0, Math.PI * 2 * value));
+    dc.strokePath();
+  }
+  dc.setTextColor(Color.white());
+  dc.setFont(Font.boldRoundedSystemFont(label.length > 4 ? 13 : 16));
+  dc.setTextAlignedCenter();
+  dc.drawTextInRect(label, new Rect(0, 20, 60, 22));
+  return dc.getImage();
+}
+
 const style = palette(d && d.style);
+const size = (d && d.size) || config.widgetFamily || "small";
 const w = new ListWidget();
+const lock = d && d.lock;
+if (lock) {
+  // Lock screen: the system tints the widget, so no colours here.
+  if (lock.gauge) {
+    w.addAccessoryWidgetBackground = true;
+    const img = w.addImage(ring(lock.gauge.value, lock.gauge.label));
+    img.centerAlignImage();
+  } else {
+    lock.lines.forEach((line, i) => {
+      const t = w.addText(line);
+      t.font = i === 0 && lock.lines.length > 1 ? Font.semiboldSystemFont(13) : Font.systemFont(13);
+      t.lineLimit = 1;
+      t.minimumScaleFactor = 0.7;
+    });
+  }
+  if (!live && !lock.gauge && size !== "lockInline") {
+    const f = w.addText("offline");
+    f.font = Font.systemFont(9);
+  }
+  if (d.appUrl) w.url = d.appUrl;
+} else {
 if (style.gradient) {
   const g = new LinearGradient();
   g.colors = [pair(style.gradient[0]), pair(style.gradient[1])];
@@ -402,7 +536,6 @@ if (style.gradient) {
   w.backgroundGradient = g;
 } else w.backgroundColor = C.bg;
 w.setPadding(12, 14, 12, 14);
-const size = (d && d.size) || config.widgetFamily || "small";
 const width = size === "small" ? 130 : 300;
 if (!d) {
   const t = w.addText("Konto Planer: keine Verbindung");
@@ -450,6 +583,7 @@ if (!d) {
   f.font = Font.systemFont(9);
   f.textColor = live ? C.sub : C.red;
   if (d.appUrl) w.url = d.appUrl;
+}
 }
 w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 if (config.runsInWidget) Script.setWidget(w);

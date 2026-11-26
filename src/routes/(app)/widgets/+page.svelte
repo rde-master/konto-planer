@@ -9,6 +9,9 @@
 		TEMPLATE_INFO,
 		WIDGET_SIZES,
 		WIDGET_TEMPLATES,
+		isLockSize,
+		lockContent,
+		TEMPLATE_LAYOUTS,
 		widgetBlocks,
 		type WidgetSize,
 		type WidgetTemplate
@@ -39,6 +42,17 @@
 			? data.data.payments.filter((p) => ids.includes(p.accountId ?? ''))
 			: data.data.payments;
 		return widgetBlocks(t, sizes[t], { accounts, payments });
+	}
+	function lockPreview(t: WidgetTemplate) {
+		const ids = chosen[t];
+		return lockContent(TEMPLATE_LAYOUTS[t], sizes[t], {
+			accounts: ids.length
+				? data.data.accounts.filter((a) => ids.includes(a.id ?? ''))
+				: data.data.accounts,
+			payments: ids.length
+				? data.data.payments.filter((p) => ids.includes(p.accountId ?? ''))
+				: data.data.payments
+		});
 	}
 	function toggle(t: string, id: string, on: boolean) {
 		chosen[t] = on ? [...chosen[t], id] : chosen[t].filter((x) => x !== id);
@@ -88,7 +102,11 @@
 			<div class="rounded-[var(--radius-card)] bg-fill/50 p-4">
 				<p class="mb-3 text-[15px] text-label-2">{TEMPLATE_INFO[t].text}</p>
 				<div class="mb-4 flex justify-center">
-					<WidgetPreview blocks={preview(t)} size={sizes[t]} />
+					<WidgetPreview
+						blocks={preview(t)}
+						size={sizes[t]}
+						lock={isLockSize(sizes[t]) ? lockPreview(t) : null}
+					/>
 				</div>
 				<form
 					method="POST"
@@ -101,14 +119,14 @@
 				>
 					<input type="hidden" name="template" value={t} />
 					<div
-						class="mb-3 flex gap-2"
+						class="mb-3 flex flex-wrap gap-2"
 						role="radiogroup"
 						aria-label="Größe {TEMPLATE_INFO[t].title}"
 					>
 						{#each WIDGET_SIZES as s (s)}
 							<label
 								class={[
-									'flex-1 cursor-pointer rounded-full px-3 py-1.5 text-center text-[15px]',
+									'min-w-[30%] flex-1 cursor-pointer rounded-full px-3 py-1.5 text-center text-[15px]',
 									sizes[t] === s ? 'bg-accent text-white' : 'bg-card'
 								]}
 							>
