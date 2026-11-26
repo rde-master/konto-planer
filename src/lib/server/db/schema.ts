@@ -1148,6 +1148,8 @@ export const widgets = pgTable(
 		size: text('size').notNull(),
 		/** Accounts shown; empty = all the user sees. */
 		accountIds: jsonb('account_ids').$type<string[]>().notNull().default([]),
+		/** Blocks and style from the editor; null = the template's layout. */
+		layout: jsonb('layout').$type<import('../../widgets.js').WidgetLayout | null>(),
 		tokenHash: text('token_hash').notNull().unique(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		lastUsedAt: timestamp('last_used_at', { withTimezone: true })

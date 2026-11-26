@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.55.0] – Widget-Editor
+
+### Neu
+
+- Widget-Editor mit Live-Vorschau: aus einer Vorlage oder leer starten, bestehende Widgets unter „Meine Widgets“ öffnen und ändern
+- Bausteine frei zusammenstellen und mit Pfeilen sortieren: Überschrift (eigener Text oder automatisch), Verfügbar bis Stichtag, Fortschrittsbalken, Mindestbestand, Kontostand, nächste Zahlung, offene Zahlungen (Anzahl wählbar), Konten, Abstand; was nicht in die Größe passt, fällt unten weg
+- Gestaltung: Erscheinungsbild (wie iPhone, immer hell, immer dunkel), Akzentfarbe (Kontofarbe oder iOS-Farbe), Hintergrund (Standard, Verlauf, Schwarz/Weiß) und Schriftgröße
+- Änderungen kommen ohne neues Kopieren beim nächsten Aktualisieren aufs iPhone
+- „Neues Skript“ erzeugt einen neuen Zugang, falls das Skript verloren ging
+
+### Hinweis
+
+- Widgets aus 0.54 zeigen geänderte Bausteine sofort; damit auch Farben und Schriftgröße ankommen, einmal „Neues Skript“ tippen und das Skript in Scriptable ersetzen
+
 ## [0.54.0] – Widget-Musterseite
 
 ### Neu
