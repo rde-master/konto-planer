@@ -9,6 +9,7 @@ import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import { listRecurringFor } from './recurring.js';
 import { budgetsFor } from './budgets.js';
+import { bookingFormContext } from './bookings.js';
 import { balanceDates } from './import-reminder.js';
 import { haSetState, listRules, missingPayments, notifySettings } from './notify.js';
 import { openPayments } from '../due.js';
@@ -37,7 +38,12 @@ export async function listTokens(userId: string) {
 /** New token; returns it once (only the hash is stored). */
 export async function createToken(
 	actor: NonNullable<Actor> & Viewer,
-	input: { name: string; purpose: string; accountIds: string[] | null }
+	input: {
+		name: string;
+		purpose: string;
+		accountIds: string[] | null;
+		defaultAccountId?: string | null;
+	}
 ) {
 	const name = input.name.trim().replace(/\s+/g, ' ');
 	if (!name) throw new ApiError('Bitte einen Namen eingeben.');
@@ -46,11 +52,26 @@ export async function createToken(
 	const visible = new Set((await listAccountsFor(actor)).map((a) => a.id));
 	const accountIds = input.accountIds ? input.accountIds.filter((id) => visible.has(id)) : null;
 	if (accountIds && !accountIds.length) throw new ApiError('Bitte mindestens ein Konto wählen.');
+	let defaultAccountId: string | null = null;
+	if (purpose === 'shortcut') {
+		const { options } = await bookingFormContext(actor);
+		defaultAccountId =
+			options.bookingAccounts.find((a) => a.value === input.defaultAccountId)?.value ?? null;
+		if (!defaultAccountId)
+			throw new ApiError('Bitte ein Konto wählen, auf das der Kurzbefehl buchen darf.');
+	}
 	const token = generateSessionToken();
 	await db.transaction(async (tx) => {
 		const [row] = await tx
 			.insert(apiTokens)
-			.values({ userId: actor.id, name, purpose, accountIds, tokenHash: hashSessionToken(token) })
+			.values({
+				userId: actor.id,
+				name,
+				purpose,
+				accountIds,
+				defaultAccountId,
+				tokenHash: hashSessionToken(token)
+			})
 			.returning({ id: apiTokens.id });
 		await audit(tx, {
 			actor,
@@ -96,7 +117,13 @@ export async function tokenAuth(request: Request) {
 	if (!row || (row.user.role !== 'admin' && row.user.role !== 'user')) return null;
 	await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, row.token.id));
 	const viewer: Viewer = { id: row.user.id, role: row.user.role };
-	return { viewer, accountIds: row.token.accountIds };
+	return {
+		viewer,
+		name: row.user.name,
+		accountIds: row.token.accountIds,
+		purpose: row.token.purpose,
+		defaultAccountId: row.token.defaultAccountId
+	};
 }
 
 /** The status document for a viewer, limited to `accountIds` (null = all visible). */

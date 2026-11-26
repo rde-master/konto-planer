@@ -1,10 +1,11 @@
 // Read-only API ("Lesende API") and Home Assistant sensors: JSON shape, sensor ids, YAML snippet.
 
-export const TOKEN_PURPOSES = ['home_assistant', 'widget', 'other'] as const;
+export const TOKEN_PURPOSES = ['home_assistant', 'widget', 'shortcut', 'other'] as const;
 export type TokenPurpose = (typeof TOKEN_PURPOSES)[number];
 export const TOKEN_PURPOSE_LABELS: Record<TokenPurpose, string> = {
 	home_assistant: 'Home Assistant',
 	widget: 'Widget',
+	shortcut: 'Kurzbefehl (bucht)',
 	other: 'Sonstiges'
 };
 

@@ -1128,6 +1128,10 @@ export const apiTokens = pgTable(
 		purpose: text('purpose').notNull(),
 		/** Accounts the token may read; null = all the user sees. */
 		accountIds: jsonb('account_ids').$type<string[] | null>(),
+		/** Shortcut tokens: account bookings go to unless a template names another. */
+		defaultAccountId: uuid('default_account_id').references(() => accounts.id, {
+			onDelete: 'set null'
+		}),
 		tokenHash: text('token_hash').notNull().unique(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		lastUsedAt: timestamp('last_used_at', { withTimezone: true })

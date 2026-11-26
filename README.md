@@ -50,6 +50,10 @@ curl -H "Authorization: Bearer <token>" https://konto.example.lan/api/v1/status
 
 Die Antwort enthält Kontostände („Stand vom“), verfügbar und Mindestbestand je Girokonto, nächste Zahlungen, Budgets des Monats und Warnungen; `/api/v1/accounts/<id>` liefert ein Konto. Für Home Assistant zeigt die App beim Anlegen einen fertigen REST-Sensor (YAML). Alternativ sendet die App die Werte stündlich als `sensor.konto_planer_…` an Home Assistant (Einstellungen › Benachrichtigungen, Admin).
 
+### Schnellerfassung per iOS-Kurzbefehl
+
+Ein Zugang mit Zweck „Kurzbefehl (bucht)“ darf als einziger schreiben, und nur Buchungen anlegen. `GET /api/v1/shortcut` liefert die Auswahlliste (`options`: Vorlagen, Kategorien, „Ohne Kategorie“), `POST /api/v1/shortcut` mit JSON `{ "amount": 12.8, "choice": "Lebensmittel", "payee": "Bäcker" }` bucht heute und antwortet mit `message` (Bestätigung, Budget, verfügbar). Die Einrichtung in der App „Kurzbefehle“ steht nach dem Anlegen des Zugangs in der App.
+
 ## Entwicklung
 
 Voraussetzungen: Node 24, pnpm, Docker.

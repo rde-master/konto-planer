@@ -14,6 +14,7 @@
 	const status = $derived(form && 'success' in form ? form.success : null);
 	const message = $derived(form && 'message' in form ? form.message : null);
 	let scope = $state('all');
+	let purpose = $state('home_assistant');
 	let copied = $state<string | null>(null);
 
 	async function copy(text: string, what: string) {
@@ -52,6 +53,37 @@
 			<Button type="button" variant="tinted" onclick={() => copy(created.token ?? '', 'token')}>
 				{copied === 'token' ? 'Kopiert' : 'Token kopieren'}
 			</Button>
+			{#if created.shortcutUrl}
+				<div class="mt-4" aria-label="Kurzbefehl einrichten">
+					<p class="mb-2 text-[15px] font-semibold">Kurzbefehl einrichten (App „Kurzbefehle“)</p>
+					<ol class="mb-3 list-decimal space-y-1 pl-5 text-[13px] text-label-2">
+						<li>
+							Neuer Kurzbefehl › „Inhalte von URL abrufen“: URL unten, Methode GET, Header
+							„Authorization“ = „Bearer “ + Token.
+						</li>
+						<li>„Wörterbuchwert abrufen“ für „options“, dann „Aus Liste wählen“.</li>
+						<li>„Nach Eingabe fragen“ (Zahl) für den Betrag; Einnahmen mit „+“ davor.</li>
+						<li>
+							„Inhalte von URL abrufen“: dieselbe URL, Methode POST, Header wie oben, JSON-Text mit
+							„amount“ (Betrag) und „choice“ (gewählter Eintrag), optional „payee“.
+						</li>
+						<li>„Wörterbuchwert abrufen“ für „message“ und „Mitteilung anzeigen“.</li>
+					</ol>
+					<p class="mb-2 font-mono text-[12px] break-all" data-testid="shortcut-url">
+						{created.shortcutUrl}
+					</p>
+					<Button
+						type="button"
+						variant="tinted"
+						onclick={() => copy(created.shortcutUrl ?? '', 'url')}
+					>
+						{copied === 'url' ? 'Kopiert' : 'URL kopieren'}
+					</Button>
+					<p class="mt-2 text-[13px] text-label-2">
+						Gebucht wird heute; Konto und Empfänger kommen aus der Vorlage, sonst aus „Bucht auf“.
+					</p>
+				</div>
+			{/if}
 			{#if created.yaml}
 				<p class="mt-4 mb-2 text-[15px] font-semibold">Für Home Assistant (configuration.yaml)</p>
 				<pre
@@ -112,9 +144,20 @@
 				<SelectField
 					label="Zweck"
 					name="purpose"
-					value="home_assistant"
+					value={purpose}
+					onchange={(v: string) => {
+						purpose = v;
+					}}
 					options={TOKEN_PURPOSES.map((p) => ({ value: p, label: TOKEN_PURPOSE_LABELS[p] }))}
 				/>
+				{#if purpose === 'shortcut'}
+					<SelectField
+						label="Bucht auf"
+						name="defaultAccountId"
+						value={data.bookingAccounts[0]?.value ?? ''}
+						options={data.bookingAccounts}
+					/>
+				{/if}
 				<SelectField
 					label="Konten"
 					name="scope"
