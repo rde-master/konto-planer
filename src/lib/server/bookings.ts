@@ -1,5 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
 import { isFiltered, type BookingFilter } from '../search.js';
+import { categoryByRules } from '../rules.js';
+import { activeRules } from './rules.js';
 import { db } from './db/index.js';
 import {
 	accounts,
@@ -368,6 +370,15 @@ export async function createBooking(
 	)
 		throw new BookingError('Auf diesem Konto darfst du nicht buchen.');
 	const id = await db.transaction(async (tx) => {
+		// Entered without category: the category rules decide, as they do in an import.
+		const categoryId =
+			values.categoryId ??
+			categoryByRules(await activeRules(tx), {
+				counterparty: values.counterparty,
+				purpose: values.purpose,
+				iban: null
+			});
+		values = { ...values, categoryId };
 		const [created] = await tx
 			.insert(bookings)
 			.values({ ...values, source: 'manual', createdBy: actor.id })

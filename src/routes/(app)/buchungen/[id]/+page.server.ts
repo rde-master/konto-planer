@@ -13,7 +13,7 @@ import { readBookingForm } from '#lib/server/booking-form.js';
 import { TemplateError, createTemplate } from '#lib/server/templates.js';
 import { validateTemplate } from '#lib/server/template-rules.js';
 import { readTemplateForm, templateFormContext } from '#lib/server/template-form.js';
-import { fieldError, formString } from '#lib/server/validation.js';
+import { fieldError, formString, type FieldErrors } from '#lib/server/validation.js';
 import { DueError, changeDue, dueForBooking, skipDue } from '#lib/server/due.js';
 import { parseEuro } from '#lib/money.js';
 import { InterestError, creditForBooking, setCreditAmount } from '#lib/server/interest.js';
@@ -47,6 +47,9 @@ import {
 	transferOf,
 	transferOptions
 } from '#lib/server/transfers.js';
+import { categorizeAlways, ruleOptions } from '#lib/server/payee-category.js';
+import { RuleError } from '#lib/server/rules.js';
+import { validateRule } from '#lib/server/rule-rules.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -100,6 +103,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			inherited: booking.recurringId ? (tagMap.recurring.get(booking.recurringId) ?? []) : []
 		},
 		booking,
+		/** "Immer so einordnen": what a category rule for this booking can go by. */
+		ruleOptions: ruleOptions(booking),
 		due,
 		credit,
 		goalTransfer,
@@ -124,6 +129,35 @@ export const actions: Actions = {
 			return { action: 'assign' as const, success: true, ...result };
 		} catch (e) {
 			if (e instanceof AssignError) return fail(400, { action: 'assign', message: e.message });
+			throw e;
+		}
+	},
+
+	/** "Immer so einordnen": a category rule from this booking, applied to it and its like. */
+	always: async ({ request, locals, params }) => {
+		const data = await request.formData();
+		const booking = await getBookingFor(locals.user!, params.id);
+		if (!booking) error(404, 'Buchung nicht gefunden.');
+		const option = ruleOptions(booking).find((o) => o.field === formString(data, 'field'));
+		const { options } = await bookingFormContext(locals.user!);
+		const input = {
+			field: option?.field ?? '',
+			operator: option?.operator ?? '',
+			value: formString(data, 'value'),
+			categoryId: formString(data, 'categoryId')
+		};
+		const { values, errors } = validateRule(input, {
+			categoryIds: new Set(options.categoryGroups.flatMap((g) => g.options.map((o) => o.value)))
+		});
+		if (errors) return fail(400, { action: 'always' as const, errors, input });
+		try {
+			const result = await categorizeAlways(locals.user!, params.id, values);
+			return { action: 'always' as const, success: true, ...result };
+		} catch (e) {
+			if (e instanceof RuleError) {
+				const errors: FieldErrors = { value: e.message };
+				return fail(400, { action: 'always' as const, errors, input });
+			}
 			throw e;
 		}
 	},
