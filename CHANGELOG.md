@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.73.0] – Bedienung am Handy
+
+### Neu
+
+- Buchungen: Am Handy gibt es nur noch ein Plus. Das runde Plus unten öffnet in der Buchungsliste gleich das vollständige Formular (mit Datum und Umbuchung); das zweite Plus oben entfällt. Auf allen anderen Seiten bleibt es die Schnellerfassung
+- Zurück-Knopf: Ist eine Seite nach unten gescrollt, steht der Zurück-Knopf jetzt über dem kleinen Titel statt daneben. So wird bei langen Namen – etwa in einer Buchung – weder „Buchungen“ zu „B…“ gekürzt noch der Titel abgeschnitten
+
 ## [0.72.0] – Regeln mit mehreren Bedingungen
 
 ### Neu

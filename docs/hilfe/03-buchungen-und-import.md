@@ -2,7 +2,7 @@
 
 ## Buchen
 
-Mit dem **+** unten rechts erfasst du eine Ausgabe oder Einnahme von jeder Seite aus: Betrag, Konto, Kategorie, optional Empfänger. Ohne Datum gilt heute. Unter **Buchungen** findest du alle Buchungen mit Suche und Filtern (Konto, Zeitraum, Betrag, Kategorie, Tag).
+Mit dem **+** unten rechts erfasst du eine Ausgabe oder Einnahme von jeder Seite aus: Betrag, Konto, Kategorie, optional Empfänger. Ohne Datum gilt heute. In der Buchungsliste öffnet das Plus gleich das vollständige Formular mit Datum und Umbuchung. Unter **Buchungen** findest du alle Buchungen mit Suche und Filtern (Konto, Zeitraum, Betrag, Kategorie, Tag).
 
 In der Liste erkennst du auf einen Blick, was eine Buchung ist: Zahlungen, die zu einem **Dauerposten** gehören, sind farbig hinterlegt und tragen den Hinweis „Dauerposten“ – mit dessen Namen, wenn die Bank die Zahlung anders nennt. Der **Punkt links oben** zeigt die Farbe der Kategorie; ohne Punkt hat die Buchung noch keine Kategorie. Ein **gelbes Fragezeichen** am Symbol und das gelbe Wort „vorläufig“ kennzeichnen Buchungen, die die App am Fälligkeitstag selbst gebucht hat und die die Bank noch nicht bestätigt hat.
 
