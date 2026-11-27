@@ -7,6 +7,7 @@ import {
 	bookings,
 	categories,
 	counterpartyCategories,
+	recurringItems,
 	type Booking
 } from './db/schema.js';
 import { payeeKey } from '../import-match.js';
@@ -61,7 +62,20 @@ export type BookingSummary = Booking & {
 	logoChosen: string | null;
 	/** False for bookings before the account's opening date. */
 	counts: boolean;
+	/** Name of the recurring item the booking belongs to (null without one). */
+	recurringName: string | null;
 };
+
+/** Names of recurring items by id. */
+async function recurringNames(ids: (string | null)[]): Promise<Map<string, string>> {
+	const wanted = [...new Set(ids.filter((id) => id !== null))];
+	if (!wanted.length) return new Map();
+	const rows = await db
+		.select({ id: recurringItems.id, name: recurringItems.name })
+		.from(recurringItems)
+		.where(inArray(recurringItems.id, wanted));
+	return new Map(rows.map((r) => [r.id, r.name]));
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -239,6 +253,7 @@ export async function listBookingsFor(
 		rows.slice(0, limit).map((b) => b.id)
 	);
 	const overrides = await logoOverrides(rows.map(keyOf));
+	const names = await recurringNames(rows.map((b) => b.recurringId));
 	return {
 		bookings: rows.slice(0, limit).map((b) => {
 			const account = byId.get(b.accountId)!;
@@ -260,7 +275,8 @@ export async function listBookingsFor(
 				canEdit: editable(account, b),
 				canDelete: deletable(account, b),
 				canCategorize: categorizable(account, b),
-				counts: countsToBalance(account.openingDate, b.bookingDate)
+				counts: countsToBalance(account.openingDate, b.bookingDate),
+				recurringName: b.recurringId ? (names.get(b.recurringId) ?? null) : null
 			};
 		}),
 		more: rows.length > limit,
@@ -294,7 +310,8 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 		canEdit: editable(account, b),
 		canDelete: deletable(account, b),
 		canCategorize: categorizable(account, b),
-		counts: countsToBalance(account.openingDate, b.bookingDate)
+		counts: countsToBalance(account.openingDate, b.bookingDate),
+		recurringName: (await recurringNames([b.recurringId])).get(b.recurringId ?? '') ?? null
 	};
 }
 

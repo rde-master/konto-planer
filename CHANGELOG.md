@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.68.0] – Buchungsliste: Dauerposten und Kategorien auf einen Blick
+
+### Neu
+
+- Buchungsliste: Buchungen, die zu einem Dauerposten gehören, sind farbig hinterlegt und tragen den Hinweis „Dauerposten“ – mit dem Namen des Dauerpostens, wenn die Bank die Zahlung anders nennt („Dauerposten iCloud“). Das gilt für vorläufige wie für importierte Zahlungen
+- So siehst du sofort, welche Zahlung erkannt wurde – und welche noch keinem Dauerposten zugeordnet ist
+- Jede Buchung mit Kategorie zeigt links oben einen Punkt in der Farbe ihrer Kategorie; aufgeteilte Buchungen zeigen bis zu drei Punkte
+
 ## [0.67.1] – Zahlungen nicht mehr doppelt
 
 ### Behoben
