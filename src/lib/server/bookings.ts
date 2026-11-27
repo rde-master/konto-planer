@@ -23,6 +23,7 @@ import { diff } from './audit-rules.js';
 import { canEditAccount, type AccessLevel, type Viewer } from './account-rules.js';
 import { getAccountFor, listAccountsFor } from './accounts.js';
 import { categoryInfo, listCategories } from './categories.js';
+import { adoptCategories } from './recurring-category.js';
 import { buildTree } from './category-rules.js';
 import { categoryGroups } from './recurring-form.js';
 import type { AdjustmentValues, BookingContext, BookingValues } from './booking-rules.js';
@@ -515,6 +516,8 @@ export async function setBookingCategory(
 				...changes
 			});
 	});
+	// A payment of a recurring item without a category: the item takes it over.
+	if (categoryId && current.recurringId) await adoptCategories();
 }
 
 /** Text of a split for the audit log: "Lebensmittel −12,50 €; Drogerie −7,00 €". */

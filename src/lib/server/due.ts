@@ -10,6 +10,7 @@ import {
 	type DueItem,
 	type RecurringItem
 } from './db/schema.js';
+import { adoptCategories } from './recurring-category.js';
 import { audit, type Actor } from './audit.js';
 import type { Viewer } from './account-rules.js';
 import { getRecurringFor } from './recurring.js';
@@ -230,6 +231,8 @@ async function adoptPaid(tx: Tx, item: RecurringItem, rows: DueItem[]): Promise<
  * accounts that are archived stay as they are. Pass ids to sync only those items.
  */
 export async function syncDues(ids?: string[], today = todayBerlin()): Promise<number> {
+	// Items without a category take that of their bookings (before provisional bookings follow).
+	await adoptCategories();
 	const changed = await syncDueItems(ids, today);
 	// Savings goals transfer on the due days of their payments.
 	await syncGoals(today);

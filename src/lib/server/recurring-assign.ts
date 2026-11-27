@@ -9,6 +9,7 @@ import { getBookingFor, type BookingSummary } from './bookings.js';
 import { getRecurringFor } from './recurring.js';
 import { fulfilDue, learnAlias, loadContext } from './imports.js';
 import { syncDues } from './due.js';
+import { adoptCategories } from './recurring-category.js';
 import { syncInterest } from './interest.js';
 import { syncSettlements } from './credit-cards.js';
 import { analyzeRows, sideOf } from '../import-match.js';
@@ -121,6 +122,8 @@ export async function assignBooking(
 		});
 		return { name: item.name, dueDate: match.due?.dueDate ?? null };
 	});
+	// An item without a category takes that of the booking.
+	await adoptCategories();
 	// A provisional booking may be gone: balances that depend on it follow.
 	await syncInterest([booking.accountId]);
 	await syncSettlements();
