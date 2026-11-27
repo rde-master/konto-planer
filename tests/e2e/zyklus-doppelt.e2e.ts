@@ -96,6 +96,11 @@ test('the list marks payments of recurring items and shows the colour of the cat
 	await expect(provisional).toContainText('Dauerposten');
 	await expect(provisional).toHaveClass(/bg-accent/);
 	await expect(provisional.locator('[data-category-dots]')).toHaveCount(0);
+	// Not confirmed by the bank yet: a question mark at the icon, the word in its own colour.
+	await expect(provisional.locator('[data-provisional-mark]')).toHaveText('?');
+	await expect(provisional.getByText('vorläufig', { exact: true })).toHaveClass(
+		/text-provisional-text/
+	);
 
 	// A booking without item is a plain row; with a category it gets its dot.
 	await page.goto('/buchungen');
@@ -111,6 +116,8 @@ test('the list marks payments of recurring items and shows the colour of the cat
 	await expect(plain).not.toContainText('Dauerposten');
 	await expect(plain).not.toHaveClass(/bg-accent/);
 	await expect(plain.locator('[data-category-dots] > span')).toHaveCount(1);
+	await expect(plain.locator('[data-provisional-mark]')).toHaveCount(0);
+	await expect(plain).not.toContainText('vorläufig');
 	const free = await found(page, PAYEE, '3,49');
 	await expect(free.locator('[data-category-dots]')).toHaveCount(0);
 

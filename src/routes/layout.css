@@ -23,6 +23,9 @@
 	--kp-green: #34c759;
 	--kp-green-text: #248a3d;
 	--kp-orange: #ff9500;
+	/* Provisional bookings: the badge, and a darker tone for text on light cards. */
+	--kp-yellow: #ffcc00;
+	--kp-yellow-text: #8f6a00;
 	--kp-glass: rgb(255 255 255 / 0.62);
 	--kp-glass-border: rgb(255 255 255 / 0.7);
 	--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
@@ -48,6 +51,8 @@
 		--kp-green: #30d158;
 		--kp-green-text: #30d158;
 		--kp-orange: #ff9f0a;
+		--kp-yellow: #ffd60a;
+		--kp-yellow-text: #ffd60a;
 		--kp-glass: rgb(36 36 40 / 0.6);
 		--kp-glass-border: rgb(255 255 255 / 0.1);
 		--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
@@ -72,6 +77,8 @@
 	--kp-green: #30d158;
 	--kp-green-text: #30d158;
 	--kp-orange: #ff9f0a;
+	--kp-yellow: #ffd60a;
+	--kp-yellow-text: #ffd60a;
 	--kp-glass: rgb(36 36 40 / 0.6);
 	--kp-glass-border: rgb(255 255 255 / 0.1);
 	--kp-glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
@@ -113,6 +120,8 @@
 	--color-success: var(--kp-green);
 	--color-income: var(--kp-green-text);
 	--color-warning: var(--kp-orange);
+	--color-provisional: var(--kp-yellow);
+	--color-provisional-text: var(--kp-yellow-text);
 	--font-sans:
 		-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
 		sans-serif;

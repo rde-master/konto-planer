@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.71.0] – Vorläufige Buchungen auf einen Blick
+
+### Neu
+
+- Buchungsliste: Vorläufige Buchungen tragen rechts oben am Symbol ein gelbes Fragezeichen – die Bank hat sie noch nicht bestätigt
+- Das Wort „vorläufig“ steht jetzt vorn in der Unterzeile und ist gelb (im hellen Design in einem dunkleren Gelb, damit es lesbar bleibt)
+
 ## [0.70.0] – Finanzfluss
 
 ### Neu
