@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryByRules, ruleLabel, ruleMatches, type Rule } from './rules';
+import { categoryByRules, ruleLabel, ruleMatches, suggestedRule, type Rule } from './rules';
 import { validateRule } from './server/rule-rules';
 
 const subject = {
@@ -71,5 +71,56 @@ describe('validateRule', () => {
 			'operator',
 			'value'
 		]);
+	});
+});
+
+describe('suggestedRule', () => {
+	const matches = (subject: { counterparty: string | null; purpose: string | null }) => {
+		const rule = suggestedRule(subject)!;
+		return ruleMatches(rule, { ...subject, iban: null });
+	};
+
+	it('takes the payee up to the first date or number', () => {
+		expect(suggestedRule({ counterparty: 'NETFLIX.COM 24.11.', purpose: 'Abo' })).toEqual({
+			field: 'counterparty',
+			operator: 'contains',
+			value: 'NETFLIX.COM'
+		});
+		expect(suggestedRule({ counterparty: 'REWE 4711 Markt', purpose: null })?.value).toBe('REWE');
+		expect(suggestedRule({ counterparty: 'AMZN Mktp DE*2X4Y67890', purpose: null })?.value).toBe(
+			'AMZN Mktp DE'
+		);
+		expect(suggestedRule({ counterparty: '1&1 Telecom GmbH', purpose: null })?.value).toBe(
+			'1&1 Telecom GmbH'
+		);
+	});
+
+	it('takes the shop from the purpose of a card payment', () => {
+		const purpose = 'APPLE.COM/BILL IRL CORK EUR 3,49 Umsatz vom 24.11.2026 MC Hauptkarte';
+		expect(suggestedRule({ counterparty: null, purpose })).toEqual({
+			field: 'purpose',
+			operator: 'contains',
+			value: 'APPLE.COM/BILL IRL CORK'
+		});
+		expect(suggestedRule({ counterparty: ' ', purpose: 'Bäcker Umsatz vom 02.11.' })?.value).toBe(
+			'Bäcker'
+		);
+	});
+
+	it('always proposes a text the booking contains', () => {
+		for (const subject of [
+			{ counterparty: 'NETFLIX.COM 24.11.', purpose: null },
+			{ counterparty: 'REWE 4711 Markt', purpose: null },
+			{ counterparty: 'AMZN Mktp DE*2X4Y67890', purpose: null },
+			{ counterparty: '4711', purpose: null },
+			{ counterparty: null, purpose: 'APPLE.COM/BILL IRL CORK EUR 3,49 Umsatz vom 24.11.2026' },
+			{ counterparty: null, purpose: '24.11.2026 Tankstelle' }
+		])
+			expect(matches(subject)).toBe(true);
+	});
+
+	it('has nothing to propose without payee and purpose', () => {
+		expect(suggestedRule({ counterparty: null, purpose: null })).toBeNull();
+		expect(suggestedRule({ counterparty: '', purpose: '  ' })).toBeNull();
 	});
 });

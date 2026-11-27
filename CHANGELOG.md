@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.69.0] – Immer so einordnen: Kategorie je Empfänger
+
+### Neu
+
+- An der Buchung: „Immer so einordnen“ legt fest, dass Buchungen dieses Empfängers automatisch eine Kategorie bekommen. Empfänger und Kategorie sind vorausgefüllt und änderbar
+- Bei Kartenzahlungen ohne Empfänger nimmt die App den Händler aus dem Verwendungszweck („APPLE.COM/BILL IRL CORK“). Datum und Nummern, die sich je Buchung ändern, lässt sie weg; den Text kannst du weiter kürzen
+- Sofort eingeordnet werden die Buchung selbst und alle vorhandenen Buchungen ohne Kategorie, auf die der Text zutrifft. Buchungen mit einer Kategorie bleiben unverändert
+- Neue Buchungen bekommen die Kategorie von selbst – beim Import und jetzt auch beim Erfassen von Hand, wenn du keine Kategorie wählst
+- Dahinter steht eine gewöhnliche Kategorie-Regel: Sie erscheint an erster Stelle unter Kategorien › Regeln und lässt sich dort ändern oder löschen
+
 ## [0.68.0] – Buchungsliste: Dauerposten und Kategorien auf einen Blick
 
 ### Neu

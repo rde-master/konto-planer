@@ -35,6 +35,27 @@ export function payeeLabel(name: string | null | undefined): string {
 	return words.join(' ') || plain;
 }
 
+/**
+ * The leading words of a name up to the first date, number or reference code – unlike
+ * `payeeLabel()` a text the name really contains ("REWE 4711 Markt" → "REWE"). Falls back to
+ * the plain name.
+ */
+export function payeePrefix(name: string | null | undefined): string {
+	const plain = (name ?? '').replace(/\s+/g, ' ').trim();
+	const out: string[] = [];
+	for (const word of plain.split(/[\s*]+/)) {
+		const dated = DATE_PATTERNS.some((p) => {
+			p.lastIndex = 0;
+			return p.test(word);
+		});
+		if (dated || isReference(word)) break;
+		out.push(word);
+	}
+	const prefix = plain.slice(0, out.join(' ').length);
+	// The words are separated as in the name (a "*" would not be found otherwise).
+	return (prefix === out.join(' ') ? prefix : (out[0] ?? '')) || plain;
+}
+
 /** `payeeLabel()` in lower case: the form names are compared and stored as keys in. */
 export function payeeCore(name: string | null | undefined): string {
 	return payeeLabel(name).toLowerCase();

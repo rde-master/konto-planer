@@ -8,6 +8,7 @@ import {
 	bookings,
 	budgets,
 	categories,
+	categoryRules,
 	recurringAliases,
 	recurringAmounts,
 	savingsGoals,
@@ -71,6 +72,14 @@ export async function seedDemo(today = todayBerlin()) {
 	await createDefaultCategories(actor);
 	const cats = await db.select({ id: categories.id, name: categories.name }).from(categories);
 	const cat = (name: string) => cats.find((c) => c.name === name)?.id ?? null;
+	// "Immer so einordnen": the bakery's bookings get their category by a rule.
+	await db.insert(categoryRules).values({
+		field: 'counterparty',
+		operator: 'contains',
+		value: 'Bäckerei Musterkorn',
+		categoryId: cat('Bäckerei'),
+		position: 0
+	});
 
 	const [giro, haushalt, tagesgeld] = await db
 		.insert(accounts)

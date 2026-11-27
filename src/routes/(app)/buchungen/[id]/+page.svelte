@@ -23,6 +23,7 @@
 	import Repeat from '@lucide/svelte/icons/repeat';
 	import Link2 from '@lucide/svelte/icons/link-2';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
+	import WandSparkles from '@lucide/svelte/icons/wand-sparkles';
 	import { transferLabel } from '#lib/transfers.js';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -72,6 +73,39 @@
 			transferOpen = false;
 			untransferOpen = false;
 			await update();
+		};
+	};
+	// "Immer so einordnen": a category rule from this booking.
+	let alwaysOpen = $state(false);
+	let alwaysPending = $state(false);
+	let alwaysKey = $state(0);
+	let alwaysField = $state('');
+	let alwaysText = $state('');
+	function openAlways() {
+		const first = data.ruleOptions[0];
+		alwaysField = first?.field ?? '';
+		alwaysText = first?.value ?? '';
+		alwaysKey++;
+		alwaysOpen = true;
+	}
+	function pickAlwaysField(field: string) {
+		alwaysField = field;
+		alwaysText = data.ruleOptions.find((o) => o.field === field)?.value ?? '';
+	}
+	const alwaysErrors = $derived(
+		form?.action === 'always' && 'errors' in form ? form.errors : undefined
+	);
+	const alwaysDone = $derived(
+		form?.action === 'always' && 'success' in form
+			? { rule: form.rule, category: form.category, applied: form.applied }
+			: undefined
+	);
+	const alwaysEnhance: SubmitFunction = () => {
+		alwaysPending = true;
+		return async ({ result, update }) => {
+			alwaysPending = false;
+			if (result.type === 'success') alwaysOpen = false;
+			await update({ reset: false });
 		};
 	};
 	let templateOpen = $state(false);
@@ -229,6 +263,14 @@
 			onclick={() => (assignOpen = true)}
 		/>
 	{/if}
+	{#if data.ruleOptions.length}
+		<ListRow
+			label="Immer so einordnen"
+			icon={WandSparkles}
+			iconColor="bg-[#af52de]"
+			onclick={openAlways}
+		/>
+	{/if}
 {/snippet}
 
 <Page {title} back={{ path: 'buchungen', label: 'Buchungen' }}>
@@ -249,6 +291,15 @@
 			{assignDone.dueDate
 				? `Die Fälligkeit vom ${formatDay(assignDone.dueDate)} gilt als bezahlt.`
 				: 'In der Nähe liegt keine offene Fälligkeit.'}
+		</p>
+	{:else if alwaysDone}
+		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			Regel gesichert: {alwaysDone.rule} → {alwaysDone.category}.
+			{alwaysDone.applied === 0
+				? 'Keine weitere Buchung ohne Kategorie passt dazu.'
+				: alwaysDone.applied === 1
+					? 'Eine weitere Buchung ohne Kategorie wurde eingeordnet.'
+					: `${alwaysDone.applied} weitere Buchungen ohne Kategorie wurden eingeordnet.`}
 		</p>
 	{:else if transferDone}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
@@ -641,6 +692,55 @@
 				</p>
 			{/if}
 		</form>
+	</Sheet>
+{/if}
+
+{#if data.ruleOptions.length}
+	<Sheet
+		bind:open={alwaysOpen}
+		title="Immer so einordnen"
+		confirmLabel="Sichern"
+		formId="always-form"
+		confirmDisabled={alwaysPending}
+	>
+		{#key alwaysKey}
+			<form id="always-form" method="POST" action="?/always" use:enhance={alwaysEnhance}>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<SelectField
+						label="Erkennen an"
+						name="field"
+						options={data.ruleOptions.map((o) => ({ value: o.field, label: o.label }))}
+						value={alwaysField}
+						onchange={pickAlwaysField}
+					/>
+					<FormField
+						label="Text"
+						name="value"
+						bind:value={alwaysText}
+						error={alwaysErrors?.value}
+						maxlength={100}
+						autocapitalize="off"
+						autocomplete="off"
+					/>
+					<SelectField
+						label="Kategorie"
+						name="categoryId"
+						options={[{ value: '', label: 'Bitte wählen' }]}
+						groups={data.categoryGroups}
+						value={booking.categoryId ?? ''}
+						error={alwaysErrors?.categoryId}
+					/>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Jede Buchung, auf die das zutrifft, bekommt diese Kategorie: neue Buchungen beim Import
+					und beim Erfassen ohne Kategorie, dazu sofort alle vorhandenen ohne Kategorie. Buchungen,
+					die schon eine Kategorie haben, bleiben unverändert. Kürze den Text, wenn er Teile
+					enthält, die sich ändern. Die Regel steht danach unter Kategorien › Regeln.
+				</p>
+			</form>
+		{/key}
 	</Sheet>
 {/if}
 

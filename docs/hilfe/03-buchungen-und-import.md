@@ -53,6 +53,8 @@ Ein Import lässt sich rückgängig machen, solange er der jüngste auf dem Kont
 
 Kategorien haben zwei Ebenen (Haupt- und Unterkategorie); die Farbe kommt von der Hauptkategorie. **Regeln** (Kategorien › Regeln) ordnen importierte Buchungen automatisch zu, z. B. „Empfänger enthält REWE → Lebensmittel“. Wählst du bei einer Buchung eine Kategorie, merkt sich die App das für den Empfänger.
 
+Schneller geht es an der Buchung selbst: **Immer so einordnen** (unter „Verwaltung“) legt die Regel für dich an. Der Empfänger ist vorausgefüllt – bei Kartenzahlungen ohne Empfänger der Name des Händlers aus dem Verwendungszweck –, und zwar ohne Datum und Nummern, die sich von Buchung zu Buchung ändern. Kürze den Text, wenn noch etwas Wechselndes darin steht (aus „APPLE.COM/BILL IRL CORK“ wird „APPLE.COM/BILL“), und wähle die Kategorie. Danach bekommt jede Buchung, auf die der Text zutrifft, diese Kategorie: neue beim Import und beim Erfassen ohne Kategorie, dazu sofort alle vorhandenen ohne Kategorie. Buchungen, die schon eine Kategorie haben, bleiben unverändert. Die Regel steht an erster Stelle unter Kategorien › Regeln und lässt sich dort ändern.
+
 ## Papierkorb
 
 Gelöschte Buchungen, Dauerposten, Kategorien und mehr liegen 30 Tage im **Papierkorb** und lassen sich mit einem Tipp wiederherstellen.
