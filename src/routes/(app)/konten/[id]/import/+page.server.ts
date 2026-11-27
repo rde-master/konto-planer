@@ -3,6 +3,7 @@ import {
 	ImportError,
 	createDraft,
 	importableAccount,
+	openDrafts,
 	recentImports,
 	undoImport,
 	undoableImportId
@@ -16,6 +17,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		account: { id: ctx.account.id, name: ctx.account.name, iban: ctx.account.iban },
 		reason: ctx.reason,
+		/** Uploaded files (also from a shortcut) that still wait for the preview. */
+		drafts: ctx.reason ? [] : await openDrafts(locals.user!, ctx.account.id),
 		recent: await recentImports(ctx.account.id),
 		undoable: ctx.reason ? null : await undoableImportId(ctx.account.id)
 	};

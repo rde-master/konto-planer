@@ -2,6 +2,19 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.75.0] – Umsätze per Kurzbefehl importieren
+
+### Neu
+
+- Den CSV-Export deiner Bank kannst du jetzt per iOS-Kurzbefehl importieren – über „Teilen“ in der Banking-App oder aus „Dateien“. Die Anleitung steht unter „iOS Kurzbefehle“
+- Zwei Varianten zur Wahl: „sofort übernehmen“ (alle neuen Zeilen werden gleich gebucht, der Kurzbefehl meldet Anzahl und Saldo-Abgleich) oder „erst Vorschau“ (die Datei wartet in der App, bis du sie geprüft hast)
+- Das Konto erkennt die App an der IBAN in der Datei. Wie die Datei heißt, ist egal – sie muss nicht auf „.csv“ enden
+- Übersicht: Eine hochgeladene, noch nicht übernommene Datei steht unter „Import prüfen“; auch die Import-Seite des Kontos führt zur offenen Vorschau
+
+### Geändert
+
+- Beim Hochladen in der App lassen sich jetzt auch Dateien ohne die Endung „.csv“ auswählen
+
 ## [0.74.0] – iOS Kurzbefehle
 
 ### Neu

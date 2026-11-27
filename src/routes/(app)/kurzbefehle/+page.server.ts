@@ -12,6 +12,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		/** Address the shortcut sends to. */
 		url: `${url.origin}/api/v1/shortcut`,
+		/** Address for bank exports; with `?vorschau=1` the file only waits for the preview. */
+		importUrl: `${url.origin}/api/v1/shortcut/import`,
 		/** The user's accesses for shortcuts (the token itself is shown only once). */
 		shortcuts: tokens
 			.filter((t) => t.purpose === 'shortcut')

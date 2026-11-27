@@ -16,6 +16,15 @@ Mit einem iOS-Kurzbefehl buchst du, ohne die App zu öffnen: Betrag eingeben, fe
 
 Die einfache Fassung fragt nur nach dem Betrag; die Kategorie setzt die App dann über deine Regeln („Immer so einordnen“). Die erweiterte Fassung lässt dich vorher eine Vorlage oder Kategorie wählen. Gebucht wird immer am heutigen Tag.
 
+### Umsätze per Kurzbefehl importieren
+
+Ein zweiter Kurzbefehl schickt den CSV-Export deiner Bank an die App – über „Teilen“ in der Banking-App oder aus „Dateien“. Die Anleitung steht ebenfalls unter **iOS Kurzbefehle**. Das Konto erkennt die App an der IBAN in der Datei; der Dateiname spielt keine Rolle, er muss nicht auf „.csv“ enden. Du wählst zwischen zwei Adressen:
+
+- **Sofort übernehmen:** Alle neuen Zeilen werden gleich gebucht, mit der automatischen Zuordnung zu Dauerposten und Kategorien. Der Kurzbefehl meldet, wie viele Buchungen neu sind und ob der Saldo zur Bank passt. Neue Dauerposten legt er nicht an und er ändert keine Beträge von Dauerposten. Rückgängig machst du den Import wie jeden anderen auf der Import-Seite des Kontos.
+- **Erst Vorschau:** Die Datei wird nur hochgeladen. Auf der Übersicht erscheint **Import prüfen**; in der Vorschau prüfst du die Zuordnung und übernimmst wie gewohnt.
+
+Eine Kreditkarte ohne IBAN kann die App in der Datei nicht erkennen. Ist sie das Konto des Zugangs, landet die Datei dort immer erst in der Vorschau.
+
 Einen fertigen Kurzbefehl zum Laden gibt es nicht: iOS nimmt nur Kurzbefehle an, die Apple signiert hat (iCloud-Link oder Mac). Den Zugang kannst du auf der Seite jederzeit widerrufen – etwa wenn das iPhone verloren geht.
 
 ## Kalender-Abo

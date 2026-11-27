@@ -15,6 +15,7 @@ import { todayBerlin } from '#lib/dates.js';
 import { formatIban } from '#lib/iban.js';
 import { balanceDates } from '#lib/server/import-reminder.js';
 import { dashboardCharts } from '#lib/server/dashboard.js';
+import { openDrafts } from '#lib/server/imports.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
 	ManualTransferError,
@@ -113,10 +114,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 			)
 		: [];
 	const suggestions = await suggestionsFor(user, today);
-	const [hints, increases] = await Promise.all([hintsFor(user), increasesOn([...ids], today)]);
+	const [hints, increases, drafts] = await Promise.all([
+		hintsFor(user),
+		increasesOn([...ids], today),
+		openDrafts(user)
+	]);
 	const targets = suggestions.length ? await savingsTargets(user) : [];
 	return {
 		today,
+		/** Uploaded bank exports (from the app or a shortcut) that still wait for the preview. */
+		drafts,
 		suggestions,
 		targets,
 		hints: hints.map((h) => ({

@@ -307,6 +307,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.72.0 | Kategorie-Regeln mit mehreren Bedingungen (alle müssen zutreffen), auch nach Buchungstext und Kategorie der Bank; „Immer so einordnen“ als Mehrfachauswahl (aus den manuellen Tests) |
 | 0.73.0 | Bedienung am Handy: ein Plus in der Buchungsliste, Zurück-Knopf über dem kleinen Titel (aus den manuellen Tests) |
 | 0.74.0 | Menüpunkt „iOS Kurzbefehle“: Zugang anlegen und widerrufen, Anleitung Schritt für Schritt, Kurzbefehl nur mit Betrag (aus den manuellen Tests) |
+| 0.75.0 | CSV-Import per iOS-Kurzbefehl: sofort übernehmen oder erst Vorschau, Konto über die IBAN der Datei, „Import prüfen“ auf der Übersicht (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.
