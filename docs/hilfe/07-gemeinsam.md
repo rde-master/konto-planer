@@ -15,3 +15,7 @@ Jede Änderung wird im **Protokoll** (Admin) festgehalten: wer, wann, was – be
 ## Systemstatus
 
 Unter **Einstellungen › Systemstatus** sieht der Admin Version, Hintergrundjobs, Verbindungen, Speicher und Sicherungen.
+
+## Frameworks und Bibliotheken
+
+Unter **Einstellungen › Frameworks und Bibliotheken** steht, womit Konto Planer gebaut ist: die Frameworks, die Bibliotheken und die Werkzeuge für Entwicklung und Tests – mit Version, Lizenz und kurzem Zweck. Oben siehst du die Versionen von Node.js und PostgreSQL, mit denen die App gerade läuft. Die Liste gehört zur installierten Ausgabe der App und ändert sich mit jedem Update.
