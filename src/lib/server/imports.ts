@@ -953,6 +953,46 @@ export async function discardDraft(actor: Viewer, accountId: string, importId: s
 		);
 }
 
+/**
+ * Uploaded files of the viewer that still wait for "Übernehmen" (from the app or a shortcut),
+ * newest first; only on accounts the viewer may still import into.
+ */
+export async function openDrafts(viewer: Viewer, accountId?: string) {
+	const rows = await db
+		.select({
+			id: imports.id,
+			accountId: imports.accountId,
+			fileName: imports.fileName,
+			createdAt: imports.createdAt,
+			rowCount: sql<number>`coalesce(jsonb_array_length(${imports.rows}), 0)::int`,
+			account: accounts
+		})
+		.from(imports)
+		.innerJoin(accounts, eq(accounts.id, imports.accountId))
+		.where(
+			and(
+				eq(imports.status, 'draft'),
+				eq(imports.userId, viewer.id),
+				accountId ? eq(imports.accountId, accountId) : undefined
+			)
+		)
+		.orderBy(desc(imports.createdAt));
+	const out = [];
+	for (const r of rows) {
+		const access = await importableAccount(viewer, r.accountId);
+		if (!access || access.reason) continue;
+		out.push({
+			id: r.id,
+			accountId: r.accountId,
+			accountName: r.account.name,
+			fileName: r.fileName,
+			createdAt: r.createdAt,
+			rowCount: r.rowCount
+		});
+	}
+	return out;
+}
+
 /** Finished imports of an account, newest first. */
 export async function recentImports(accountId: string, limit = 5) {
 	return db

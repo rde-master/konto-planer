@@ -2,6 +2,8 @@
 	import HelpLink from '#lib/components/HelpLink.svelte';
 	import { enhance } from '$app/forms';
 	import FileUp from '@lucide/svelte/icons/file-up';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -30,6 +32,33 @@
 		</p>
 	{/if}
 
+	{#if data.drafts.length}
+		<section class="mb-8" aria-label="Wartet auf Prüfung">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Wartet auf Prüfung</h2>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				{#each data.drafts as d (d.id)}
+					<li>
+						<a
+							href={resolve(`konten/${data.account.id}/import/${d.id}`)}
+							class="flex min-h-11 items-center gap-3 px-4 py-2 active:bg-fill"
+						>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate text-accent">Vorschau öffnen</span>
+								<span class="block truncate text-[13px] text-label-2">
+									{d.fileName} · {formatDateTime(d.createdAt)} · {d.rowCount}
+									{d.rowCount === 1 ? 'Zeile' : 'Zeilen'}
+								</span>
+							</span>
+							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
 	{#if data.reason}
 		<p class="mb-8 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">{data.reason}</p>
 	{:else}
@@ -52,14 +81,14 @@
 				<p class="mt-1 text-[15px] text-label-2">
 					CSV-Datei der Volksbank (Semikolon) für {data.account.name}, IBAN
 					{formatIban(data.account.iban ?? '')}. Zeichensatz, Datums- und Zahlenformat erkennt die
-					App selbst; vor dem Speichern siehst du eine Vorschau.
+					App selbst; vor dem Speichern siehst du eine Vorschau. Die Datei muss nicht auf „.csv“
+					enden.
 				</p>
 				<label class="mt-4 block">
 					<span class="sr-only">CSV-Datei</span>
 					<input
 						type="file"
 						name="file"
-						accept=".csv,text/csv"
 						required
 						class="block w-full text-[15px] file:mr-3 file:rounded-full file:border-0 file:bg-fill file:px-4 file:py-2 file:text-accent"
 					/>

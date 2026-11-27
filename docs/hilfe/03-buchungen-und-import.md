@@ -26,7 +26,7 @@ Geht Geld von einem eigenen Konto auf ein anderes (Girokonto → Sparbuch, Girok
 
 ## Umsatzimport (CSV)
 
-Auf der Kontoseite **CSV importieren** wählen und den Export deiner Bank hochladen (Format der Volksbank, Semikolon-getrennt). Die Vorschau zeigt für jede Zeile, was passiert:
+Auf der Kontoseite **CSV importieren** wählen und den Export deiner Bank hochladen (Format der Volksbank, Semikolon-getrennt; die Datei muss nicht auf „.csv“ enden). Am iPhone geht das auch per Kurzbefehl, siehe „Widgets, Kurzbefehl, Kalender und API“. Eine hochgeladene, noch nicht übernommene Datei steht auf der Übersicht unter **Import prüfen**. Die Vorschau zeigt für jede Zeile, was passiert:
 
 - **neu**: wird als Buchung übernommen
 - **Dauerposten**: gehört zu einer erwarteten Zahlung; die vorläufige Buchung wird ersetzt

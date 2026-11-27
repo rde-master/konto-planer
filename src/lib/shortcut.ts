@@ -88,3 +88,98 @@ export function shortcutReply(o: {
 		.filter(Boolean)
 		.join(' · ');
 }
+
+/** Largest text a shortcut may send as a file (Base64 of 5 MB plus line breaks). */
+export const MAX_FILE_TEXT = 7_500_000;
+
+/**
+ * The bank export a shortcut sends as text in JSON: Base64 ("Base64-codieren", with or without
+ * line breaks) so the file arrives byte for byte whatever iOS calls it – or, if the text
+ * already looks like the export (a semicolon never occurs in Base64), the CSV itself.
+ */
+export function shortcutFile(value: unknown): Uint8Array | null {
+	if (typeof value !== 'string' || !value.trim() || value.length > MAX_FILE_TEXT) return null;
+	if (value.includes(';')) return new TextEncoder().encode(value);
+	const clean = value.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+	if (!/^[A-Za-z0-9+/]+={0,2}$/.test(clean)) return null;
+	let binary: string;
+	try {
+		binary = atob(clean);
+	} catch {
+		return null;
+	}
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	return bytes;
+}
+
+export type ImportTarget = {
+	id: string;
+	type: string;
+	iban: string | null;
+	archived: boolean;
+};
+
+/**
+ * Account a file from the shortcut belongs to: the one with the file's IBAN. `certain` is
+ * false when the file names no known account and the access's own account – a credit card
+ * without IBAN – stands in; such a file is never booked without the preview.
+ */
+export function importTarget(
+	ibans: string[],
+	accounts: ImportTarget[],
+	defaultAccountId: string | null
+): { accountId: string; certain: boolean } | { error: 'several' | 'unknown' } {
+	const inFile = [...new Set(ibans.filter(Boolean))];
+	if (inFile.length > 1) return { error: 'several' };
+	const usable = accounts.filter((a) => !a.archived && a.type !== 'sparbuch');
+	const byIban = inFile.length ? usable.find((a) => a.iban === inFile[0]) : undefined;
+	if (byIban) return { accountId: byIban.id, certain: true };
+	const fallback = usable.find(
+		(a) => a.id === defaultAccountId && a.type === 'kreditkarte' && !a.iban
+	);
+	return fallback ? { accountId: fallback.id, certain: false } : { error: 'unknown' };
+}
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** What the shortcut shows after an import that was booked at once (the app's own words). */
+export function importReply(o: {
+	account: string;
+	created: number;
+	/** Payments of recurring items and bookings of the app the file replaced. */
+	matched: number;
+	duplicates: number;
+	bankBalance: number | null;
+	appBalance: number | null;
+}): string {
+	const balance =
+		o.bankBalance === null || o.appBalance === null
+			? null
+			: o.bankBalance === o.appBalance
+				? `Saldo stimmt: ${formatEuro(o.bankBalance)}`
+				: `Saldo weicht ab: Bank ${formatEuro(o.bankBalance)}, App ${formatEuro(o.appBalance)} – bitte in der App prüfen`;
+	return [
+		`${o.account} importiert: ${o.created} neu`,
+		o.matched ? `${o.matched} ersetzt` : null,
+		o.duplicates ? `${o.duplicates} schon vorhanden` : null,
+		balance
+	]
+		.filter(Boolean)
+		.join(' · ');
+}
+
+/** What the shortcut shows when the file only waits for the preview in the app. */
+export function previewReply(o: { account: string; fresh: number; duplicates: number }): string {
+	return [
+		`${o.account}: ${count(o.fresh, 'neue Buchung wartet', 'neue Buchungen warten')} auf deine Prüfung in der App`,
+		o.duplicates ? `${o.duplicates} schon vorhanden` : null
+	]
+		.filter(Boolean)
+		.join(' · ');
+}
+
+/** Nothing to take over: every row of the file is stored already. */
+export function nothingNewReply(account: string, duplicates: number): string {
+	return `${account}: nichts Neues – ${duplicates === 1 ? 'die Buchung ist' : `alle ${duplicates} Buchungen sind`} schon vorhanden`;
+}

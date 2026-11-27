@@ -15,7 +15,7 @@
 	import { monthName } from '#lib/monthly-report.js';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
-	import { dayLabel, formatDay } from '#lib/dates.js';
+	import { dayLabel, formatDateTime, formatDay } from '#lib/dates.js';
 	import { INTERVAL_LABELS } from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
@@ -222,6 +222,37 @@
 						</li>
 					{/each}
 				</ul>
+			</section>
+		{/if}
+
+		{#if data.drafts.length}
+			<section class="mb-8" aria-label="Import prüfen">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Import prüfen</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.drafts as d (d.id)}
+						<li>
+							<a
+								href={resolve(`konten/${d.accountId}/import/${d.id}`)}
+								class="flex min-h-11 items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-accent">{d.accountName}: Vorschau öffnen</span>
+									<span class="block truncate text-[13px] text-label-2">
+										hochgeladen {formatDateTime(d.createdAt)} · {d.rowCount}
+										{d.rowCount === 1 ? 'Zeile' : 'Zeilen'}
+									</span>
+								</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Die Datei ist hochgeladen, aber noch nicht gebucht. In der Vorschau übernimmst oder
+					verwirfst du sie.
+				</p>
 			</section>
 		{/if}
 

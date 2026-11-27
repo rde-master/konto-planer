@@ -58,8 +58,9 @@
 
 	<p class="mb-6 px-4 text-[15px] text-label-2">
 		Mit einem Kurzbefehl buchst du am iPhone, ohne die App zu öffnen: Betrag eintippen, fertig – vom
-		Home-Bildschirm, mit der Aktionstaste oder per Siri. Dafür braucht der Kurzbefehl einen eigenen
-		Zugang; den legst du hier an und baust den Kurzbefehl dann nach der Anleitung unten.
+		Home-Bildschirm, mit der Aktionstaste oder per Siri. Ein zweiter Kurzbefehl importiert den
+		CSV-Export deiner Bank. Dafür braucht der Kurzbefehl einen eigenen Zugang; den legst du hier an
+		und baust den Kurzbefehl dann nach der Anleitung unten.
 	</p>
 
 	{#if token}
@@ -137,8 +138,8 @@
 			</ul>
 			<Button type="submit">Zugang anlegen</Button>
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Der Zugang darf nur buchen und die Auswahlliste lesen. Gebucht wird am heutigen Tag auf
-				dieses Konto – oder auf das Konto einer gewählten Vorlage.
+				Der Zugang darf nur buchen, Bankexporte importieren und die Auswahlliste lesen. Gebucht wird
+				am heutigen Tag auf dieses Konto – oder auf das Konto einer gewählten Vorlage.
 			</p>
 		</form>
 	{:else}
@@ -223,6 +224,83 @@
 				Im JSON der Buchung (Schritt 3 oben) dann ein zweites Feld <code>choice</code> mit der
 				Variable <strong>Ausgewähltes Objekt</strong> ergänzen. Optional nimmt
 				<code>payee</code> einen Empfänger auf. Eine Vorlage bringt Konto, Kategorie und Empfänger mit.
+			</p>
+		</div>
+	</section>
+
+	<section class="mb-8" aria-label="Anleitung: Umsätze importieren">
+		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
+			Anleitung: Kurzbefehl „Umsätze importieren“
+		</h2>
+		<div class="rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+			<p class="mb-2 text-label-2">
+				Der Kurzbefehl schickt den CSV-Export deiner Bank an die App – aus der Banking-App über
+				„Teilen“ oder aus „Dateien“. Das Konto erkennt die App an der IBAN in der Datei. Wie die
+				Datei heißt, ist egal; sie muss nicht auf „.csv“ enden.
+			</p>
+			<ol class="list-decimal space-y-2 pl-5">
+				<li>
+					Neuen Kurzbefehl anlegen, z. B. „Umsätze importieren“. Unten auf das
+					<strong>ⓘ</strong> tippen und <strong>Im Share-Sheet anzeigen</strong> einschalten. Oben
+					steht nun „Empfange … von Share-Sheet“ – als Typen <strong>Dateien</strong> und
+					<strong>Text</strong> angehakt lassen.
+				</li>
+				<li>
+					Aktion <strong>Base64-codieren</strong> hinzufügen: Eingabe ist die
+					<strong>Kurzbefehleingabe</strong>, Zeilenumbrüche <strong>Keine</strong>. So kommt die
+					Datei unverändert an, samt Umlauten.
+				</li>
+				<li>
+					Aktion <strong>Inhalte von URL abrufen</strong> mit einer der beiden Adressen unten:
+					<ul class="mt-1 list-disc space-y-1 pl-5 text-label-2">
+						<li>Methode: <strong>POST</strong></li>
+						<li>
+							Header: Schlüssel <code>Authorization</code>, Wert die
+							<strong>Kopfzeile</strong> deines Zugangs („Bearer …“)
+						</li>
+						<li>
+							Haupttext der Anfrage: <strong>JSON</strong>, neues Feld vom Typ Text mit Schlüssel
+							<code>file</code>; als Wert die Variable <strong>Base64-codiert</strong> wählen
+						</li>
+					</ul>
+				</li>
+				<li>
+					Aktion <strong>Wörterbuchwert abrufen</strong>: Wert für den Schlüssel
+					<code>message</code> aus „Inhalt der URL“, danach <strong>Mitteilung anzeigen</strong> – dort
+					steht z. B. „Girokonto importiert: 12 neu · 3 ersetzt · Saldo stimmt: 1.234,56 €“.
+				</li>
+			</ol>
+		</div>
+		<div
+			class="mt-4 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+		>
+			{@render value('Adresse „sofort übernehmen“', data.importUrl, 'import', 'import-url')}
+			{@render value(
+				'Adresse „erst Vorschau“',
+				`${data.importUrl}?vorschau=1`,
+				'preview',
+				'import-preview-url'
+			)}
+		</div>
+		<div class="mt-1.5 space-y-1.5 px-4 text-[13px] text-label-2">
+			<p>
+				<strong>Sofort übernehmen:</strong> Alle neuen Zeilen werden gleich gebucht – mit der automatischen
+				Zuordnung zu Dauerposten und Kategorien, Dubletten bleiben weg. Neue Dauerposten legt der Kurzbefehl
+				nicht an und er ändert keine Beträge. Passt etwas nicht: „Letzten Import rückgängig machen“ auf
+				der Import-Seite des Kontos.
+			</p>
+			<p>
+				<strong>Erst Vorschau:</strong> Die Datei wird nur hochgeladen. Auf der Übersicht erscheint
+				„Import prüfen“; dort prüfst du wie gewohnt und tippst auf „Übernehmen“. Wer die Vorschau
+				gleich sehen will, hängt zwei Aktionen an: „Wörterbuchwert abrufen“ für den Schlüssel
+				<code>url</code> und <strong>URLs öffnen</strong> (öffnet Safari; dort einmal anmelden).
+			</p>
+			<p>
+				Die Kopfzeile ist dieselbe wie beim Buchen. Hast du sie nicht mehr, lege oben einen neuen
+				Zugang an. Statt über „Teilen“ kannst du die Datei auch im Kurzbefehl wählen: als erste
+				Aktion <strong>Datei auswählen</strong> und deren Ergebnis in Schritt 2 codieren. Eine Kreditkarte
+				ohne IBAN erkennt die App nicht in der Datei: Ist sie das Konto des Zugangs, landet die Datei
+				dort immer erst in der Vorschau.
 			</p>
 		</div>
 	</section>

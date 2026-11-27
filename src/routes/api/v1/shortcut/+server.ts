@@ -1,16 +1,13 @@
 import { error, json } from '@sveltejs/kit';
-import { tokenAuth } from '#lib/server/api.js';
-import { ShortcutError, bookFromShortcut, optionsFor } from '#lib/server/shortcut.js';
+import {
+	ShortcutError,
+	bookFromShortcut,
+	optionsFor,
+	shortcutAuth as auth
+} from '#lib/server/shortcut.js';
 import type { RequestHandler } from './$types';
 
 // iOS shortcut: GET = choices for "Aus Liste wählen", POST = book. Only shortcut tokens.
-async function auth(request: Request) {
-	const a = await tokenAuth(request);
-	if (!a) error(401, 'Ungültiges oder fehlendes Token.');
-	if (a.purpose !== 'shortcut') error(403, 'Dieser Zugang darf nicht buchen.');
-	return a;
-}
-
 export const GET: RequestHandler = async ({ request }) => {
 	const a = await auth(request);
 	const options = (await optionsFor(a.viewer)).map((o) => o.label);
