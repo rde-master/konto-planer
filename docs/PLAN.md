@@ -101,7 +101,7 @@ Kern sind drei Dinge: der Dauerposten (was regelmäßig passiert), die Fälligke
 
 **Umbuchungen.** Eine Umbuchung ist ein Dauerposten mit Quell- und Zielkonto. Sie zählt auf dem Quellkonto als Ausgang und auf dem Zielkonto automatisch als Eingang, auch wenn die Konten verschiedenen Benutzern gehören. Als Ziel sind alle Konten der App wählbar, angezeigt wird dabei nur der Kontoname. Geld an ein Konto außerhalb der App ist immer eine Zahlung.
 
-**Sparbuch.** Sparkonten haben keine Abbuchungen und keine Mindestbestand-Planung. Eingänge sind Umbuchungen, Geld geht nur per Umbuchung wieder raus. Der Eingang wird automatisch gebucht, sobald die Umbuchung auf dem Girokonto fällig oder importiert ist. Ein Import wird für Sparbücher nicht erwartet; die Zinsen berechnet die App aus Stand und Zinssatz voraus, der Rhythmus der Gutschrift ist einstellbar. Angezeigt werden Stand, Verlauf und Zinssatz.
+**Sparbuch.** Sparkonten haben keine Abbuchungen und keine Mindestbestand-Planung. Eingänge sind Umbuchungen, Geld geht nur per Umbuchung wieder raus. Der Eingang wird automatisch gebucht, sobald die Umbuchung auf dem Girokonto fällig oder importiert ist. Ein Import ist für Sparbücher nicht nötig, aber möglich: Die Zeilen der Bank ersetzen dann die Buchungen, die die App dort selbst angelegt hat (Gegenbuchungen, vorläufige Buchungen, Sparziel-Umbuchungen, berechnete Zinsen). Die Zinsen berechnet die App aus Stand und Zinssatz voraus, der Rhythmus der Gutschrift ist einstellbar. Angezeigt werden Stand, Verlauf und Zinssatz.
 
 **Kreditkarte.** Umsätze, Dauerposten und Import wie beim Girokonto, dazu ein Kreditrahmen mit Warnung. Am Abrechnungstag wird der Saldo festgestellt und am Abbuchungstag (nächster Bankarbeitstag) vom gewählten Girokonto ausgeglichen; fehlt der Tag im Monat, gilt der Monatsletzte. Die künftige Abbuchung (Saldo plus geplante Kartenzahlungen bis zum Abrechnungstag) zählt in Mindestbestand, verfügbarem Betrag und Vorschau des Girokontos. Gebuchte Abrechnungen folgen nachträglich erfassten Umsätzen, bis ein Import sie durch die echte Buchung ersetzt.
 
@@ -310,6 +310,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.75.0 | CSV-Import per iOS-Kurzbefehl: sofort übernehmen oder erst Vorschau, Konto über die IBAN der Datei, „Import prüfen“ auf der Übersicht (aus den manuellen Tests) |
 | 0.76.0 | Dauerposten-Übersicht: Suche, Filter, Sortierung, Kategorie-Punkt, farbiger Rhythmus; Dauerposten ohne Kategorie übernehmen die ihrer Buchungen (aus den manuellen Tests) |
 | 0.77.0 | Einstellungen: Übersicht „Frameworks und Bibliotheken“ mit Versionen und Lizenzen (aus den manuellen Tests) |
+| 0.78.0 | CSV-Import auch für Sparbücher: Zeilen der Bank ersetzen Gegenbuchungen, vorläufige Buchungen, Sparziel-Umbuchungen und berechnete Zinsen (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

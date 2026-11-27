@@ -30,12 +30,22 @@ Auf der Kontoseite **CSV importieren** wählen und den Export deiner Bank hochla
 
 - **neu**: wird als Buchung übernommen
 - **Dauerposten**: gehört zu einer erwarteten Zahlung; die vorläufige Buchung wird ersetzt
-- **ersetzt**: ersetzt eine manuelle Buchung mit gleichem Betrag (±3 Tage)
+- **ersetzt**: ersetzt eine manuelle Buchung mit gleichem Betrag (±3 Tage) – oder eine Buchung, die die App selbst angelegt hat: die Gegenbuchung aus dem Import des anderen Kontos, die Umbuchung für ein Sparziel, die berechnete Kreditkarten-Abrechnung
 - **Dublette**: schon importiert, wird übersprungen
 
 Einen Dauerposten erkennt der Import der Reihe nach an Mandat und Gläubiger-ID, an der IBAN, am Namen (mit einer Fälligkeit in den zehn Tagen davor oder danach) und zuletzt an Betrag und Datum (±3 Tage; bei Zahlungen ohne IBAN wie auf der Kreditkarte ±10 Tage, wenn nur ein Dauerposten mit genau diesem Betrag in Frage kommt). Beim Namen zählt nur, was bleibt: Datum, Uhrzeit und Belegnummern, die vor allem Kreditkartenabrechnungen an den Namen hängen („FILMDIENST 24.11.“), werden nicht mitverglichen. Hat ein Empfänger bei gleicher IBAN einen neuen Namen, gilt die Zahlung weiter als sein Dauerposten, wenn eine Fälligkeit in der Nähe liegt. Nur über den Namen erkannt wird eine Zahlung, wenn der Betrag höchstens 30 % vom Plan abweicht – außer bei Dauerposten mit schwankendem Betrag. So wird eine regelmäßige Kartenzahlung nicht doppelt geführt (vorläufig und importiert), sondern ersetzt die vorläufige Buchung.
 
 Erkennt der Import eine Zahlung nicht – etwa weil sie auf der Karte jedes Mal anders heißt –, wählst du in der Vorschau unter **Dauerposten** den richtigen von Hand (oder „keiner“, wenn die App falsch zugeordnet hat). Die Zahlung nimmt dann die nächstgelegene offene Fälligkeit (bis 31 Tage davor oder danach) und ersetzt deren vorläufige Buchung. Die App merkt sich den Namen: Beim nächsten Import erkennt sie den Dauerposten daran. Die gemerkten Namen stehen am Dauerposten unter **Namen im Import** und lassen sich dort entfernen.
+
+### Sparbuch importieren
+
+Auch ein Sparbuch lässt sich importieren, wenn seine IBAN eingetragen ist. Nötig ist das nicht – die App bucht Eingänge vom Girokonto und die Zinsen selbst –, aber so stimmt der Stand auf den Cent mit der Bank überein. Damit nichts doppelt steht, ersetzen die Zeilen der Bank, was die App schon gebucht hat:
+
+- **Umbuchungen:** Die Gegenbuchung aus dem Import des Girokontos, die vorläufige Buchung eines Dauerauftrags aufs Sparbuch und die Umbuchung für ein Sparziel werden durch die Zeile der Bank ersetzt (gleicher Betrag, bis drei Tage davor oder danach). Die Reihenfolge ist egal: Du kannst zuerst das Girokonto oder zuerst das Sparbuch importieren.
+- **Zinsen:** Eine Zinsgutschrift der Bank (Buchungstext „Abschluss“ oder „Zinsen“ im Text, ohne Auftraggeber) ersetzt die berechnete Gutschrift der Zinsperiode, in deren Nähe sie gebucht ist (bis 15 Tage vor oder nach dem Periodenende). In der Vorschau steht dann „Zinsen bis …, ersetzt berechnete …“. Der Betrag der Bank bleibt, auch wenn die App später neu rechnet. Passt der Zinsrhythmus des Kontos nicht zur Bank – etwa jährlich eingestellt, aber die Bank zahlt monatlich –, stell ihn vorher auf der Kontoseite um; sonst stehen die Zinsen doppelt da.
+- Neue Dauerposten schlägt der Import auf einem Sparbuch nicht vor.
+
+Zu einem Dauerauftrag zwischen zwei eigenen Konten gehört nur die Zahlung in der Nähe seiner Fälligkeit (bis zehn Tage), bevorzugt die mit dem geplanten Betrag. Eine zusätzliche Überweisung aufs Sparbuch bleibt eine eigene Umbuchung.
 
 ## Buchung einem Dauerposten zuordnen
 

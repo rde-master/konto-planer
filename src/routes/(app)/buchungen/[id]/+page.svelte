@@ -485,7 +485,12 @@
 					label="Notiz"
 					value={booking.purpose}
 				/>{/if}
-			<ListRow label="Quelle" value={SOURCE_LABELS[booking.source] ?? booking.source} />
+			<ListRow
+				label="Quelle"
+				value={credit?.confirmed
+					? 'Zinsen (Import)'
+					: (SOURCE_LABELS[booking.source] ?? booking.source)}
+			/>
 		</ListGroup>
 		<SplitSection
 			amount={booking.amount}
@@ -519,9 +524,11 @@
 		{#if credit}
 			<ListGroup
 				header="Zinsgutschrift"
-				footer={credit.amountSet
-					? 'Betrag von Hand gesetzt; er bleibt, auch wenn sich die Berechnung ändert.'
-					: 'Berechnet aus Stand und Zinssatz. Weicht die Bank ab, übernimm ihren Betrag.'}
+				footer={credit.confirmed
+					? 'Betrag der Bank aus dem Import; er bleibt, auch wenn sich die Berechnung ändert.'
+					: credit.amountSet
+						? 'Betrag von Hand gesetzt; er bleibt, auch wenn sich die Berechnung ändert.'
+						: 'Berechnet aus Stand und Zinssatz. Weicht die Bank ab, übernimm ihren Betrag.'}
 			>
 				<ListRow label="Periode bis" value={formatDay(credit.periodEnd)} />
 			</ListGroup>
@@ -590,7 +597,9 @@
 		{/if}
 		<p class="mb-8 px-4 text-[13px] text-label-2">
 			{booking.source === 'interest'
-				? 'Zinsgutschriften berechnet die App selbst.'
+				? credit?.confirmed
+					? 'Diese Zinsgutschrift stammt aus dem Import der Bank.'
+					: 'Zinsgutschriften berechnet die App selbst.'
 				: booking.source === 'goal'
 					? 'Umbuchungen für Sparziele bucht die App selbst.'
 					: booking.source === 'provisional'

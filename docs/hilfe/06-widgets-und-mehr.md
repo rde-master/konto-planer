@@ -23,7 +23,7 @@ Ein zweiter Kurzbefehl schickt den CSV-Export deiner Bank an die App – über �
 - **Sofort übernehmen:** Alle neuen Zeilen werden gleich gebucht, mit der automatischen Zuordnung zu Dauerposten und Kategorien. Der Kurzbefehl meldet, wie viele Buchungen neu sind und ob der Saldo zur Bank passt. Neue Dauerposten legt er nicht an und er ändert keine Beträge von Dauerposten. Rückgängig machst du den Import wie jeden anderen auf der Import-Seite des Kontos.
 - **Erst Vorschau:** Die Datei wird nur hochgeladen. Auf der Übersicht erscheint **Import prüfen**; in der Vorschau prüfst du die Zuordnung und übernimmst wie gewohnt.
 
-Eine Kreditkarte ohne IBAN kann die App in der Datei nicht erkennen. Ist sie das Konto des Zugangs, landet die Datei dort immer erst in der Vorschau.
+Das gilt für Girokonten, Sparbücher und Kreditkarten gleichermaßen; ein Zugang reicht für alle Konten. Eine Kreditkarte ohne IBAN kann die App in der Datei nicht erkennen. Ist sie das Konto des Zugangs, landet die Datei dort immer erst in der Vorschau.
 
 Einen fertigen Kurzbefehl zum Laden gibt es nicht: iOS nimmt nur Kurzbefehle an, die Apple signiert hat (iCloud-Link oder Mac). Den Zugang kannst du auf der Seite jederzeit widerrufen – etwa wenn das iPhone verloren geht.
 

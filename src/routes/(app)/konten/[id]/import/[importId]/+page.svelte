@@ -14,7 +14,8 @@
 	const counts = $derived({
 		new: view.rows.filter((r) => r.status === 'new').length,
 		recurring: view.rows.filter((r) => r.status === 'recurring').length,
-		replace: view.rows.filter((r) => r.status === 'replace').length,
+		// A bank's interest credit takes the place of the computed one.
+		replace: view.rows.filter((r) => r.status === 'replace' || r.status === 'interest').length,
 		duplicate: view.rows.filter((r) => r.status === 'duplicate').length
 	});
 	const diff = $derived(
@@ -36,10 +37,16 @@
 		if (r.status === 'duplicate') return 'schon vorhanden';
 		if (r.status === 'recurring' && r.recurring)
 			return `Dauerposten „${r.recurring.name}“ (${VIA[r.recurring.via]})`;
+		if (r.status === 'interest' && r.interest)
+			return r.interest.before === null
+				? `Zinsen bis ${formatDay(r.interest.periodEnd)}`
+				: `Zinsen bis ${formatDay(r.interest.periodEnd)}, ersetzt berechnete ${formatEuro(r.interest.before)}`;
 		if (r.status === 'replace' && r.replace)
 			return r.replace.kind === 'manual'
 				? `ersetzt manuelle Buchung vom ${formatDay(r.replace.date)}`
-				: 'Gegenbuchung aus anderem Import';
+				: r.replace.kind === 'goal'
+					? `ersetzt Sparziel-Umbuchung vom ${formatDay(r.replace.date)}`
+					: 'Gegenbuchung aus anderem Import';
 		if (r.transfer)
 			return r.transfer.counterBookingId
 				? `Umbuchung, verknüpft mit ${r.transfer.accountName}`

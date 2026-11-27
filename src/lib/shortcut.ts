@@ -132,7 +132,7 @@ export function importTarget(
 ): { accountId: string; certain: boolean } | { error: 'several' | 'unknown' } {
 	const inFile = [...new Set(ibans.filter(Boolean))];
 	if (inFile.length > 1) return { error: 'several' };
-	const usable = accounts.filter((a) => !a.archived && a.type !== 'sparbuch');
+	const usable = accounts.filter((a) => !a.archived);
 	const byIban = inFile.length ? usable.find((a) => a.iban === inFile[0]) : undefined;
 	if (byIban) return { accountId: byIban.id, certain: true };
 	const fallback = usable.find(

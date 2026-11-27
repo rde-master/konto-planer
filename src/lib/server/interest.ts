@@ -316,7 +316,11 @@ export async function setRhythm(
 
 // --- a credit behind a booking ---------------------------------------------------------
 
-export type CreditInfo = InterestCredit & { canEdit: boolean };
+export type CreditInfo = InterestCredit & {
+	canEdit: boolean;
+	/** The amount is the bank's: the credit came with an import and is not changed by hand. */
+	confirmed: boolean;
+};
 
 export async function creditForBooking(
 	viewer: Viewer,
@@ -329,7 +333,16 @@ export async function creditForBooking(
 	if (!credit) return null;
 	const account = await getAccountFor(viewer, credit.accountId);
 	if (!account) return null;
-	return { ...credit, canEdit: canEditAccount(account.level, account.archivedAt !== null) };
+	const [booking] = await db
+		.select({ importId: bookings.importId })
+		.from(bookings)
+		.where(eq(bookings.id, bookingId));
+	const confirmed = booking?.importId != null;
+	return {
+		...credit,
+		confirmed,
+		canEdit: !confirmed && canEditAccount(account.level, account.archivedAt !== null)
+	};
 }
 
 /** Sets the credit to the amount of the bank (or back to the computed one with `null`). */
@@ -341,6 +354,8 @@ export async function setCreditAmount(
 	const [credit] = await db.select().from(interestCredits).where(eq(interestCredits.id, creditId));
 	const account = credit ? await requireEditableSavings(actor, credit.accountId) : null;
 	if (!credit || !account) throw new InterestError('Zinsgutschrift nicht gefunden.');
+	if (credit.bookingId && (await creditForBooking(actor, credit.bookingId))?.confirmed)
+		throw new InterestError('Diese Zinsgutschrift stammt aus dem Import der Bank.');
 	if (amount !== null && !(amount > 0))
 		throw new InterestError('Bitte einen Betrag größer 0 eingeben.');
 	await db.transaction(async (tx) => {

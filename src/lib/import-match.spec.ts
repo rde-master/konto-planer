@@ -4,6 +4,7 @@ import { checksumText, parseExport } from './csv-import';
 import {
 	analyzeRows,
 	detectInterval,
+	isInterestRow,
 	namesMatch,
 	paidBy,
 	suggestItems,
@@ -462,5 +463,151 @@ describe('paidBy', () => {
 		const far = booking({ date: '2026-11-18', counterparty: 'Sparplan', purpose: null });
 		expect(paidBy(transfer, side, [far])).toBeNull();
 		expect(paidBy(transfer, side, [booking({ counterparty: 'Sparplan' })])?.id).toBe('b');
+	});
+});
+
+describe('savings accounts', () => {
+	const GIRO_IBAN = 'DE09123456780001234567';
+	const line = (over: Partial<(typeof rows)[number]>) => ({
+		line: 2,
+		accountIban: 'DE25123456780007654321',
+		bookingDate: '2026-11-02',
+		valueDate: '2026-11-02',
+		counterparty: null,
+		counterpartyIban: null,
+		bookingText: null,
+		purpose: null,
+		amount: 100_00,
+		balanceAfter: null,
+		note: null,
+		bankCategory: null,
+		creditorId: null,
+		mandateReference: null,
+		checksum: `c${over.line ?? 2}`,
+		...over
+	});
+	const savings: ImportContext = { ...base, accountId: SAVINGS };
+	const order = item({
+		id: 'spar',
+		name: 'Sparrate',
+		kind: 'transfer',
+		targetAccountId: SAVINGS,
+		startDate: '2026-10-01',
+		amounts: [{ amount: 100_00, validFrom: '2026-01-01' }]
+	});
+	const incoming = line({ counterparty: 'Erika Muster', counterpartyIban: GIRO_IBAN });
+
+	it('takes the side of a transfer the giro account’s import booked already', () => {
+		const [r] = analyzeRows([incoming], {
+			...savings,
+			items: [order],
+			dues: [
+				{
+					id: 'd1',
+					recurringId: 'spar',
+					dueDate: '2026-11-01',
+					status: 'booked',
+					sideBookingId: 'p1',
+					sideProvisional: true,
+					sideOpen: true
+				}
+			]
+		});
+		expect(r.status).toBe('recurring');
+		expect(r.recurring?.due).toMatchObject({ storedId: 'd1', replaceBookingId: 'p1' });
+	});
+
+	it('leaves a transfer alone whose side on this account is real already', () => {
+		const [r] = analyzeRows([incoming], {
+			...savings,
+			items: [order],
+			dues: [
+				{
+					id: 'd1',
+					recurringId: 'spar',
+					dueDate: '2026-11-01',
+					status: 'booked',
+					sideBookingId: 'real',
+					sideProvisional: false,
+					sideOpen: false
+				}
+			]
+		});
+		expect(r.recurring).toBeNull();
+	});
+
+	it('keeps the standing order for the row with its amount, other transfers stay transfers', () => {
+		const extra = line({ ...incoming, bookingDate: '2026-10-30', amount: 300_00 });
+		const later = line({ ...incoming, line: 3, checksum: 'c3', bookingDate: '2026-11-20' });
+		const result = analyzeRows([extra, { ...incoming, line: 4, checksum: 'c4' }, later], {
+			...savings,
+			items: [order]
+		});
+		// The extra transfer comes first but does not take the due date of the standing order …
+		expect(result[0]).toMatchObject({ status: 'new', transfer: { accountId: OWN } });
+		expect(result[1].recurring?.due?.dueDate).toBe('2026-11-01');
+		// … and a transfer without a due date nearby is none of the standing order either.
+		expect(result[2]).toMatchObject({ status: 'new', recurring: null });
+	});
+
+	it('takes another amount for the standing order when no row pays the planned one', () => {
+		const [r] = analyzeRows([line({ ...incoming, amount: 120_00 })], {
+			...savings,
+			items: [order]
+		});
+		expect(r.recurring).toMatchObject({ id: 'spar', via: 'iban', amountDiffers: true });
+	});
+
+	it('replaces the transfer the app booked for a savings goal', () => {
+		const [r] = analyzeRows([line({ amount: -250_00, counterpartyIban: GIRO_IBAN })], {
+			...savings,
+			replaceable: [{ id: 'g1', date: '2026-11-03', amount: -250_00, kind: 'goal' }]
+		});
+		expect(r.status).toBe('replace');
+		expect(r.replace).toMatchObject({ id: 'g1', kind: 'goal' });
+	});
+
+	it('knows the bank’s interest rows', () => {
+		expect(isInterestRow(line({ bookingText: 'Abschluss', amount: 19_50 }))).toBe(true);
+		expect(isInterestRow(line({ bookingText: 'ABSCHLUß', amount: 19_50 }))).toBe(true);
+		expect(isInterestRow(line({ purpose: 'Habenzinsen 2,00 %', amount: 19_50 }))).toBe(true);
+		expect(isInterestRow(line({ bookingText: 'Zinsgutschrift', amount: 19_50 }))).toBe(true);
+		// Taxes on the interest go out; a transfer named "Zinsen" has a paying account.
+		expect(isInterestRow(line({ purpose: 'KapSt auf Zinsen', amount: -4_88 }))).toBe(false);
+		expect(isInterestRow(line({ purpose: 'Zinsen', counterpartyIban: GIRO_IBAN }))).toBe(false);
+		expect(isInterestRow(line({ bookingText: 'Gutschrift', purpose: 'Sparrate' }))).toBe(false);
+	});
+
+	const interest = {
+		rhythm: 'yearly' as const,
+		credits: [{ id: 'k25', periodEnd: '2025-12-31', amount: 20_00, confirmed: false }]
+	};
+	const closing = line({ bookingDate: '2025-12-30', bookingText: 'Abschluss', amount: 19_50 });
+
+	it('lets the bank’s interest replace the computed credit of its period', () => {
+		const [r] = analyzeRows([closing], { ...savings, interest });
+		expect(r.status).toBe('interest');
+		expect(r.interest).toEqual({ periodEnd: '2025-12-31', creditId: 'k25', before: 20_00 });
+	});
+
+	it('books interest of a period the app has no credit for', () => {
+		const [r] = analyzeRows([{ ...closing, bookingDate: '2027-01-04' }], { ...savings, interest });
+		expect(r.interest).toEqual({ periodEnd: '2026-12-31', creditId: null, before: null });
+	});
+
+	it('takes a period once: a second row, a confirmed credit or another rhythm is a plain booking', () => {
+		const twice = analyzeRows([closing, { ...closing, line: 3, checksum: 'c3' }], {
+			...savings,
+			interest
+		});
+		expect(twice.map((r) => r.status)).toEqual(['interest', 'new']);
+		const confirmed = { ...interest, credits: [{ ...interest.credits[0], confirmed: true }] };
+		expect(analyzeRows([closing], { ...savings, interest: confirmed })[0].status).toBe('new');
+		const midYear = { ...closing, bookingDate: '2025-06-30' };
+		expect(analyzeRows([midYear], { ...savings, interest })[0].status).toBe('new');
+	});
+
+	it('does not look for interest on other accounts', () => {
+		expect(analyzeRows([closing], savings)[0].status).toBe('new');
 	});
 });

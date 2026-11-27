@@ -566,12 +566,14 @@ export async function goalTransferForBooking(
 			or(eq(goalTransfers.bookingId, bookingId), eq(goalTransfers.targetBookingId, bookingId))
 		);
 	if (!row) return null;
-	const [source] = row.transfer.bookingId
+	const ids = [row.transfer.bookingId, row.transfer.targetBookingId].filter((id) => id !== null);
+	const sides = ids.length
 		? await db
-				.select({ accountId: bookings.accountId })
+				.select({ id: bookings.id, accountId: bookings.accountId, source: bookings.source })
 				.from(bookings)
-				.where(eq(bookings.id, row.transfer.bookingId))
+				.where(inArray(bookings.id, ids))
 		: [];
+	const source = sides.find((b) => b.id === row.transfer.bookingId);
 	const account = source ? await getAccountFor(viewer, source.accountId) : null;
 	return {
 		...row.transfer,
@@ -580,7 +582,9 @@ export async function goalTransferForBooking(
 		canUndo:
 			row.transfer.status === 'booked' &&
 			account !== null &&
-			canEditAccount(account.level, account.archivedAt !== null)
+			canEditAccount(account.level, account.archivedAt !== null) &&
+			// Confirmed by the bank (an import replaced a side): the money has moved.
+			sides.every((b) => b.source === 'goal')
 	};
 }
 

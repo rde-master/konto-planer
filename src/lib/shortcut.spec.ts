@@ -148,8 +148,10 @@ describe('importTarget', () => {
 		expect(importTarget([giro.iban], [{ ...giro, archived: true }], null)).toEqual({
 			error: 'unknown'
 		});
+		// Savings accounts take a file like any other account.
 		expect(importTarget([giro.iban], [{ ...giro, type: 'sparbuch' }], null)).toEqual({
-			error: 'unknown'
+			accountId: giro.id,
+			certain: true
 		});
 	});
 

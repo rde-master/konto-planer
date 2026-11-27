@@ -65,7 +65,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const credit =
 		booking.source === 'interest' ? await creditForBooking(locals.user!, booking.id) : null;
 	const goalTransfer =
-		booking.source === 'goal' ? await goalTransferForBooking(locals.user!, booking.id) : null;
+		// An imported row may have taken the place of the app's own transfer.
+		booking.source === 'goal' || booking.source === 'import'
+			? await goalTransferForBooking(locals.user!, booking.id)
+			: null;
 	const [tagMap, allTags] = await Promise.all([
 		tagsOf(db, [booking.id], booking.recurringId ? [booking.recurringId] : []),
 		listTags()
