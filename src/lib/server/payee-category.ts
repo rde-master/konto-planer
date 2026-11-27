@@ -9,6 +9,7 @@ import { listAccountsFor } from './accounts.js';
 import { getBookingFor, type BookingSummary } from './bookings.js';
 import { categoryInfo } from './categories.js';
 import { RuleError } from './rules.js';
+import { adoptCategories } from './recurring-category.js';
 import type { RuleValues } from './rule-rules.js';
 import {
 	RULE_FIELD_LABELS,
@@ -93,7 +94,7 @@ export async function categorizeAlways(
 	const editable = (await listAccountsFor(actor))
 		.filter((a) => canEditAccount(a.level, a.archivedAt !== null))
 		.map((a) => a.id);
-	return db.transaction(async (tx) => {
+	const result = await db.transaction(async (tx) => {
 		const category = await categoryInfo(tx);
 		const nameOf = (id: string | null) => {
 			const c = category(id);
@@ -187,4 +188,7 @@ export async function categorizeAlways(
 		}
 		return { rule: label, category: nameOf(values.categoryId) ?? '', applied: targets.length };
 	});
+	// Payments of recurring items got a category: their items without one take it over.
+	await adoptCategories();
+	return result;
 }

@@ -5,6 +5,9 @@
 	import { enhance } from '$app/forms';
 	import { gotoReplace } from '#lib/back.svelte.js';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { takeFab } from '#lib/fab.svelte.js';
+	import SearchIcon from '@lucide/svelte/icons/search';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
@@ -33,6 +36,23 @@
 		plannedChanges,
 		type AmountChange
 	} from '#lib/planned.js';
+	import {
+		EMPTY_LIST_FILTER,
+		INTERVAL_COLORS,
+		LIST_KIND_LABELS,
+		LIST_SORTS,
+		LIST_SORT_LABELS,
+		NO_CATEGORY,
+		categoryLabel,
+		compareList,
+		isFiltered,
+		listOptions,
+		listQuery,
+		matchesList,
+		parseListFilter,
+		type ListFilter
+	} from '#lib/recurring-list.js';
+	import { INTERVAL_LABELS } from '#lib/recurring.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -52,8 +72,48 @@
 	let pending = $state(false);
 	let formKey = $state(0);
 
-	const active = $derived(data.items.filter((i) => !i.archivedAt));
-	const archived = $derived(data.items.filter((i) => i.archivedAt));
+	// Search, filter and order live in the address, so they survive a visit to an item. The
+	// search text filters at once and reaches the address a moment later.
+	const urlFilter = $derived(parseListFilter(page.url.searchParams));
+	let text = $state(untrack(() => urlFilter.text));
+	const filter = $derived<ListFilter>({ ...urlFilter, text });
+	const filtered = $derived(isFiltered(filter));
+	const options = $derived(listOptions(data.items));
+	let timer: ReturnType<typeof setTimeout> | undefined;
+
+	function go(f: ListFilter) {
+		clearTimeout(timer);
+		const q = listQuery(f);
+		void gotoReplace(q ? resolve(`dauerposten?${q}`) : resolve('dauerposten'), { reset: false });
+	}
+	function search(value: string) {
+		text = value;
+		clearTimeout(timer);
+		timer = setTimeout(() => go({ ...urlFilter, text: value }), 400);
+	}
+	function set(patch: Partial<ListFilter>) {
+		go({ ...filter, ...patch });
+	}
+	function resetFilter() {
+		text = '';
+		go({ ...EMPTY_LIST_FILTER, sort: filter.sort });
+	}
+
+	function openCreate() {
+		useBooking = false;
+		formKey++;
+		createOpen = true;
+	}
+	// On the phone the round plus above the tab bar creates an item here (one plus per screen).
+	$effect(() =>
+		data.accountOptions.length ? takeFab('Dauerposten anlegen', openCreate) : undefined
+	);
+
+	const shown = $derived(data.items.filter((i) => matchesList(i, filter)));
+	const active = $derived(shown.filter((i) => !i.archivedAt));
+	const archived = $derived(
+		shown.filter((i) => i.archivedAt).sort((a, b) => compareList(a, b, filter.sort))
+	);
 
 	/** Accounts of an item the viewer can see (level null = name only). */
 	function visibleAccounts(item: Item): Account[] {
@@ -83,10 +143,8 @@
 				const runningEntries = g.entries.filter((e) => running(e.item));
 				return {
 					...g,
-					// Running items first by next due date, ended ones last.
-					entries: g.entries.sort((a, b) =>
-						(a.item.nextDue ?? '9999').localeCompare(b.item.nextDue ?? '9999')
-					),
+					// By default running items first by next due date, ended ones last.
+					entries: g.entries.sort((a, b) => compareList(a.item, b.item, filter.sort)),
 					expense,
 					income,
 					steps: monthlySteps(
@@ -140,7 +198,8 @@
 			.reduce((sum, e) => sum + monthlyEquivalent(e.effect, e.item), 0);
 	}
 
-	function subtitle({ item, accountId }: Entry) {
+	/** What follows the rhythm in the second line: direction and notes. */
+	function notes({ item, accountId }: Entry) {
 		const direction =
 			item.kind !== 'transfer'
 				? null
@@ -152,7 +211,6 @@
 				? `gekündigt zum ${formatDay(item.endDate)}`
 				: null;
 		return [
-			intervalLabel(item),
 			direction,
 			item.isSalary ? 'Gehalt' : null,
 			cancelled,
@@ -218,14 +276,25 @@
 				: ArrowUpRight}
 	{@const color = item.kind === 'transfer' ? 'indigo' : (item.category?.color ?? 'gray')}
 	{@const change = nextChange(item)}
+	{@const rest = notes({ item, accountId, effect })}
+	{@const category = categoryLabel(item)}
 	<li>
 		<a
 			href={resolve(`dauerposten/${item.id}`)}
 			class={[
-				'flex min-h-16 items-center gap-3 px-4 py-2.5 active:bg-fill',
+				'relative flex min-h-16 items-center gap-3 px-4 py-2.5 active:bg-fill',
 				(item.archivedAt || !running(item)) && 'opacity-60'
 			]}
 		>
+			{#if item.category}
+				<!-- As in the booking list: the colour of the category; its name is in the second line. -->
+				<span
+					class="absolute top-1.5 left-1.5 size-2 rounded-full"
+					style:background-color={accountColorCss(item.category.color ?? 'gray')}
+					aria-hidden="true"
+					data-category-dots
+				></span>
+			{/if}
 			{#if item.kind !== 'transfer'}
 				<Logo name={item.counterparty ?? item.name} logo={data.logos[item.id]?.logo ?? null} />
 			{:else}
@@ -238,8 +307,24 @@
 			{/if}
 			<span class="min-w-0 flex-1">
 				<span class="block truncate text-[17px]">{item.name}</span>
-				<span class="block truncate text-[13px] text-label-2">
-					{subtitle({ item, accountId, effect })}
+				<!-- On a phone the category gets its own line; from tablet width on it follows. -->
+				<span class="flex flex-wrap items-center gap-x-1 text-[13px] text-label-2 md:flex-nowrap">
+					<span class="min-w-0 truncate">
+						<span
+							class="rounded-full px-1.5 py-px text-[12px] font-medium text-label"
+							style:background-color="color-mix(in srgb, {accountColorCss(
+								INTERVAL_COLORS[item.interval]
+							)} 24%, transparent)"
+							data-interval={item.interval}
+						>
+							{intervalLabel(item)}
+						</span>{rest ? ` · ${rest}` : ''}
+					</span>
+					{#if category}
+						<span class="min-w-0 basis-full truncate md:basis-auto" data-category>
+							<span class="hidden md:inline" aria-hidden="true">· </span>{category}
+						</span>
+					{/if}
 				</span>
 				{#if change}
 					<span class="block truncate text-[13px] text-accent tabular">
@@ -266,18 +351,42 @@
 	</li>
 {/snippet}
 
+{#snippet pick(
+	label: string,
+	name: string,
+	value: string,
+	choices: { value: string; label: string }[],
+	onpick: (value: string) => void,
+	on = value !== ''
+)}
+	<label
+		class={[
+			'flex shrink-0 items-center rounded-full px-3 py-1.5 text-[15px] text-accent',
+			on ? 'bg-accent/15 font-medium' : 'bg-card'
+		]}
+	>
+		<span class="sr-only">{label}</span>
+		<select
+			{name}
+			{value}
+			onchange={(e) => onpick(e.currentTarget.value)}
+			class="max-w-44 cursor-pointer appearance-none truncate bg-transparent outline-none"
+		>
+			{#each choices as c (c.value)}
+				<option value={c.value}>{c.label}</option>
+			{/each}
+		</select>
+	</label>
+{/snippet}
+
 <Page title="Dauerposten">
 	{#snippet actions()}
 		{#if data.accountOptions.length}
 			<button
 				type="button"
 				aria-label="Dauerposten anlegen"
-				onclick={() => {
-					useBooking = false;
-					formKey++;
-					createOpen = true;
-				}}
-				class="grid size-11 place-items-center rounded-full text-accent glass active:opacity-60"
+				onclick={openCreate}
+				class="hidden size-11 place-items-center rounded-full text-accent glass active:opacity-60 md:grid"
 			>
 				<Plus class="size-6" strokeWidth={2.2} />
 			</button>
@@ -287,6 +396,104 @@
 	{#if form && 'created' in form}
 		<p role="status" class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
 			Dauerposten „{form.created}“ wurde angelegt.
+		</p>
+	{/if}
+
+	{#if data.items.length}
+		<form
+			method="GET"
+			role="search"
+			aria-label="Dauerposten filtern"
+			class="kp-span mb-6"
+			onsubmit={(e) => {
+				e.preventDefault();
+				set({});
+			}}
+		>
+			<label class="flex items-center gap-2 rounded-[var(--radius-row)] bg-card px-4">
+				<SearchIcon class="size-5 shrink-0 text-label-3" />
+				<span class="sr-only">Dauerposten suchen</span>
+				<input
+					type="search"
+					name="q"
+					value={text}
+					oninput={(e) => search(e.currentTarget.value)}
+					placeholder="Name, Empfänger oder Kategorie"
+					enterkeyhint="search"
+					autocomplete="off"
+					class="min-w-0 flex-1 bg-transparent py-2.5 text-[17px] outline-none placeholder:text-label-3"
+				/>
+			</label>
+			<div class="mt-2 flex flex-wrap gap-2">
+				{#if options.kinds.length > 1}
+					{@render pick(
+						'Nach Art filtern',
+						'art',
+						filter.kind ?? '',
+						[
+							{ value: '', label: 'Alle Arten' },
+							...options.kinds.map((k) => ({ value: k, label: LIST_KIND_LABELS[k] }))
+						],
+						(v) => set({ kind: options.kinds.find((k) => k === v) ?? null })
+					)}
+				{/if}
+				{#if options.categories.length}
+					{@render pick(
+						'Nach Kategorie filtern',
+						'kategorie',
+						filter.category ?? '',
+						[
+							{ value: '', label: 'Alle Kategorien' },
+							...options.categories.map((c) => ({ value: c, label: c })),
+							...(options.uncategorized ? [{ value: NO_CATEGORY, label: 'Ohne Kategorie' }] : [])
+						],
+						(v) => set({ category: v || null })
+					)}
+				{/if}
+				{#if options.intervals.length > 1}
+					{@render pick(
+						'Nach Rhythmus filtern',
+						'rhythmus',
+						filter.interval ?? '',
+						[
+							{ value: '', label: 'Jeder Rhythmus' },
+							...options.intervals.map((i) => ({ value: i, label: INTERVAL_LABELS[i] }))
+						],
+						(v) => set({ interval: options.intervals.find((i) => i === v) ?? null })
+					)}
+				{/if}
+				{@render pick(
+					'Sortieren nach',
+					'sortierung',
+					filter.sort,
+					LIST_SORTS.map((o) => ({ value: o, label: `Sortiert: ${LIST_SORT_LABELS[o]}` })),
+					(v) => set({ sort: LIST_SORTS.find((o) => o === v) ?? 'due' }),
+					filter.sort !== 'due'
+				)}
+			</div>
+		</form>
+	{/if}
+
+	{#if filtered && shown.length === 0}
+		<div class="mb-8 rounded-[var(--radius-card)] bg-card px-6 py-8 text-center" role="status">
+			<p class="text-[17px] font-semibold">Kein Dauerposten passt</p>
+			<p class="mt-1 text-[15px] text-label-2">Ändere die Suche oder die Filter.</p>
+			<button
+				type="button"
+				class="kp-text-button mt-3 text-[17px] text-accent"
+				onclick={resetFilter}
+			>
+				Filter zurücksetzen
+			</button>
+		</div>
+	{:else if filtered}
+		<p class="kp-span mb-4 flex items-center gap-3 px-4 text-[13px] text-label-2" role="status">
+			<span class="flex-1">
+				{shown.length} von {data.items.length} Dauerposten – die Summen gelten für die Auswahl.
+			</span>
+			<button type="button" class="kp-text-button text-[15px] text-accent" onclick={resetFilter}>
+				Filter zurücksetzen
+			</button>
 		</p>
 	{/if}
 

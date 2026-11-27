@@ -2,6 +2,20 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.76.0] – Dauerposten finden und einordnen
+
+### Neu
+
+- Dauerposten: Suchfeld über der Liste – sucht in Name, Empfänger, Kategorie, IBAN und Notiz
+- Filter nach Art (Ausgaben, Einnahmen, Umbuchungen), Kategorie und Rhythmus; sortieren nach nächster Fälligkeit, Name, Betrag oder Kategorie. Die Gruppen je Konto bleiben, die Monatssummen gelten für die Auswahl
+- Suche, Filter und Sortierung bleiben erhalten, wenn du einen Dauerposten öffnest und zurückkommst
+- Jede Zeile zeigt die Kategorie – mit farbigem Punkt links oben wie in der Buchungsliste – und den Rhythmus farbig hinterlegt (monatlich blau, vierteljährlich orange, halbjährlich lila, jährlich rot, wöchentlich grün, frei türkis)
+- Hat ein Dauerposten keine Kategorie, übernimmt er die Kategorie seiner jüngsten Buchung. Sie wird am Dauerposten eingetragen und gilt damit auch für künftige Buchungen und die Fixkosten-Auswertung. Eine selbst gewählte Kategorie wird nie überschrieben
+
+### Geändert
+
+- Am Handy gibt es auf der Dauerposten-Seite nur noch ein Plus: Das runde Plus unten legt dort einen Dauerposten an
+
 ## [0.75.1] – Liste bleibt stehen
 
 ### Behoben

@@ -28,6 +28,16 @@ Am Fälligkeitstag bucht die App den Posten **vorläufig**. Kommt später der Um
 
 Ändert sich ein Betrag, trage ihn mit **Änderung planen** und „gültig ab“ ein – die Vorschau rechnet ab dann damit.
 
+### Dauerposten finden
+
+Über der Liste steht ein Suchfeld: Es sucht in Name, Empfänger, Kategorie, IBAN und Notiz. Darunter filterst du nach Art (Ausgaben, Einnahmen, Umbuchungen), Kategorie und Rhythmus und wählst die Reihenfolge – nächste Fälligkeit, Name, Betrag oder Kategorie. Die Liste bleibt nach Konten gruppiert; die Monatssummen gelten dann für die Auswahl. So siehst du zum Beispiel mit dem Filter „Versicherungen“, was sie dich im Monat kosten.
+
+Jede Zeile zeigt den Rhythmus farbig hinterlegt und die Kategorie – mit einem Punkt in ihrer Farbe links oben, wie in der Buchungsliste.
+
+### Kategorie aus den Buchungen
+
+Hat ein Dauerposten keine Kategorie, seine Buchungen aber schon (von Hand, durch eine Regel oder aus dem Import), trägt die App die Kategorie der jüngsten Buchung am Dauerposten ein. Sie gilt dann auch für künftige Buchungen und für die Fixkosten in den Auswertungen. Eine Kategorie, die du selbst am Dauerposten gewählt hast, bleibt immer stehen.
+
 ## Gehalt und Stichtag
 
 Markiere dein Gehalt beim Dauerposten als **Gehalt**. Bis zu diesem Tag rechnet die App den Mindestbestand („Stichtag“). Auf der Kontoseite kannst du den Stichtag auch auf das Monatsende oder ein festes Datum stellen.

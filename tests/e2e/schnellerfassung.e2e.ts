@@ -27,7 +27,8 @@ function quickSheet(page: Page) {
 
 test('quick entry from any page books for today', async ({ page }) => {
 	await login(page, ADMIN);
-	await page.goto('/dauerposten');
+	// Not the bookings or recurring items: there the round plus opens their own form.
+	await page.goto('/offene-zahlungen');
 	await page.getByRole('button', { name: 'Schnellerfassung' }).click();
 	const sheet = quickSheet(page);
 	await sheet.getByLabel('Betrag in €').fill('0');
@@ -40,7 +41,7 @@ test('quick entry from any page books for today', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText(/−12,50\s€ auf Alltagskonto gebucht\./);
 	// The page stays where it was.
-	await expect(page.getByRole('heading', { level: 1, name: 'Dauerposten' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Offene Zahlungen' })).toBeVisible();
 
 	// The account is remembered; income is one tap away.
 	await page.getByRole('button', { name: 'Schnellerfassung' }).click();
