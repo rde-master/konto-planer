@@ -2,6 +2,18 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.70.0] – Finanzfluss
+
+### Neu
+
+- Neue Seite „Finanzfluss“ (unter „Mehr“): ein Flussdiagramm zeigt, wie das Gehalt vom Hauptkonto über Umbuchungen auf deine anderen Konten wandert und wofür es dort ausgegeben wird – in Beträgen je Monat
+- „Geplant“ rechnet mit den Dauerposten und geplanten Zahlungen der nächsten zwölf Monate, „Tatsächlich“ mit den Buchungen der letzten drei, sechs oder zwölf Monate
+- Reichen die Beträge? Für jedes Konto steht das Urteil für den Plan und für den Rückblick: „Reicht“, „Zehrt vom Bestand“, „Zeitweise knapp“ oder „Reicht nicht“ – mit dem Betrag, der im Monat fehlt oder übrig bleibt, und dem Tag, an dem es eng wird
+- Ausreichend heißt: Im Schnitt kommt mindestens so viel an, wie abgeht, und der Kontostand fällt nie unter 0 bzw. den Puffer. Jahresbeiträge sind dabei auf die Monate verteilt
+- Der Plan rechnet die Alltagsausgaben mit ein (Einkäufe, Tanken, Kartenzahlungen ohne Dauerposten) – als Durchschnitt aus dem Rückblick
+- Sparbücher werden an ihren Rücklagen und Sparzielen gemessen („120 € im Monat nötig, 100 € kommen an“), Kreditkarten gleicht die Abrechnung aus
+- „Monat für Monat“ zeigt je Konto, was ankam und abging; „Alle Flüsse als Liste“ nennt jeden Betrag des Diagramms
+
 ## [0.69.0] – Immer so einordnen: Kategorie je Empfänger
 
 ### Neu
