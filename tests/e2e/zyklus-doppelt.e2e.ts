@@ -86,3 +86,42 @@ test('a payment released by hand is not taken again', async ({ page }) => {
 	await (await found(page, PAYEE, '3,49')).click();
 	await expect(page.getByRole('button', { name: 'Dauerposten zuordnen' })).toBeVisible();
 });
+
+test('the list marks payments of recurring items and shows the colour of the category', async ({
+	page
+}) => {
+	await login(page);
+	// The provisional booking of the item: tinted and named; no category, so no dot.
+	const provisional = await found(page, ITEM, '3,49');
+	await expect(provisional).toContainText('Dauerposten');
+	await expect(provisional).toHaveClass(/bg-accent/);
+	await expect(provisional.locator('[data-category-dots]')).toHaveCount(0);
+
+	// A booking without item is a plain row; with a category it gets its dot.
+	await page.goto('/buchungen');
+	await page.getByRole('button', { name: 'Buchung erfassen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neue Buchung' });
+	await sheet.getByLabel('Betrag in €').fill('8,20');
+	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
+	await sheet.getByLabel('Kategorie').selectOption({ label: 'Supermarkt' });
+	await sheet.getByLabel('Empfänger/Zahler (optional)').fill('Markt Punktfarbe');
+	await sheet.getByRole('button', { name: 'Buchen' }).click();
+	await expect(sheet).toBeHidden();
+	const plain = await found(page, 'Markt Punktfarbe', '8,20');
+	await expect(plain).not.toContainText('Dauerposten');
+	await expect(plain).not.toHaveClass(/bg-accent/);
+	await expect(plain.locator('[data-category-dots] > span')).toHaveCount(1);
+	const free = await found(page, PAYEE, '3,49');
+	await expect(free.locator('[data-category-dots]')).toHaveCount(0);
+
+	// Assigned to the item, the real payment is marked and names the item.
+	await free.click();
+	await page.getByRole('button', { name: 'Dauerposten zuordnen' }).click();
+	const assign = page.getByRole('dialog', { name: 'Dauerposten zuordnen' });
+	await assign.getByLabel('Dauerposten').selectOption({ label: ITEM });
+	await assign.getByRole('button', { name: 'Zuordnen' }).click();
+	await expect(assign).toBeHidden();
+	const paid = await found(page, PAYEE, '3,49');
+	await expect(paid).toContainText(`Dauerposten ${ITEM}`);
+	await expect(paid).toHaveClass(/bg-accent/);
+});

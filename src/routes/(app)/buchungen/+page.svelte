@@ -27,6 +27,7 @@
 	import BookingFields from '#lib/components/BookingFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import Logo from '#lib/components/Logo.svelte';
+	import { categoryDots, recurringNote } from '#lib/booking-list.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, todayBerlin } from '#lib/dates.js';
 	import type { PageProps } from './$types';
@@ -66,6 +67,7 @@
 					: b.category.name
 				: 'Ohne Kategorie';
 		return [
+			recurringNote(title(b), b.recurringName),
 			b.source === 'provisional' ? 'vorläufig' : null,
 			category,
 			data.accountId ? null : b.account.name
@@ -282,11 +284,30 @@
 			>
 				{#each group.items as b (b.id)}
 					{@const Icon = b.amount > 0 ? ArrowDownLeft : ArrowUpRight}
+					{@const dots = categoryDots(b)}
 					<li>
 						<a
 							href={resolve(`buchungen/${b.id}`)}
-							class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
+							class={[
+								'relative flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill',
+								// Payments of recurring items stand out by their background.
+								b.recurringName !== null && 'bg-accent/10'
+							]}
 						>
+							{#if dots.length}
+								<span
+									class="absolute top-1.5 left-1.5 flex gap-0.5"
+									aria-hidden="true"
+									data-category-dots
+								>
+									{#each dots as color (color)}
+										<span
+											class="size-2 rounded-full"
+											style:background-color={accountColorCss(color)}
+										></span>
+									{/each}
+								</span>
+							{/if}
 							{#if b.logo || b.counterparty || (b.recurringId && b.purpose)}
 								<Logo name={b.counterparty ?? b.purpose ?? '?'} logo={b.logo} />
 							{:else}
