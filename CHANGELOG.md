@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.75.1] – Liste bleibt stehen
+
+### Behoben
+
+- Buchungen: „Ältere Buchungen anzeigen“ springt nicht mehr an den Anfang der Liste – du bleibst, wo du warst, und die älteren Buchungen folgen darunter
+- Dasselbe galt beim Entfernen eines Filters in der Buchungsliste und beim Umschalten der Ansicht im Finanzfluss; auch dort bleibt die Seite jetzt stehen
+
 ## [0.75.0] – Umsätze per Kurzbefehl importieren
 
 ### Neu

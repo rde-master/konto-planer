@@ -22,6 +22,7 @@ Der vollständige, verbindliche Plan steht in [docs/PLAN.md](docs/PLAN.md). Bei 
 - Node 24 LTS, Paketmanager **pnpm**. SvelteKit **3**: Konfiguration in `vite.config.ts`, Umgebungsvariablen über `src/env.ts` und `$app/env/private`, Hooks-Typen aus `@sveltejs/kit/hooks`, Service Worker in `src/service-worker/` mit eigener tsconfig.
 - Importe aus `src/lib` über `#lib/...` **mit Endung** (`#lib/server/auth.js`, `#lib/components/Page.svelte`).
 - Links über `resolve()` aus `$app/paths` mit typisierten Pfaden ohne führenden Schrägstrich (`resolve('konten')`).
+- Seite soll bei einer Navigation stehen bleiben (mehr laden, Filter, Reiter): `data-sveltekit-reset="false"` am Link bzw. `reset: false` bei `goto`. `data-sveltekit-noscroll`/`keepfocus` gibt es in SvelteKit 3 nicht mehr und werden stillschweigend ignoriert (`link-options.spec.ts` prüft das).
 - Formulare: klassische Form Actions mit `use:enhance`; Felder mit `formString()` aus `#lib/server/validation.js` lesen.
 - Beträge immer als **ganze Cent (integer)**, nie als Float. Nur Euro.
 - Zeitzone fest `Europe/Berlin`. Bankarbeitstage nach TARGET-Kalender.
