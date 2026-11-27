@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { categoryByRules, ruleLabel, ruleMatches, suggestedRule, type Rule } from './rules';
+import {
+	categoryByRules,
+	conditionMatches,
+	ruleLabel,
+	ruleMatches,
+	sameConditions,
+	suggestedRule,
+	type Rule
+} from './rules';
 import { validateRule } from './server/rule-rules';
 
 const subject = {
@@ -62,6 +70,7 @@ describe('validateRule', () => {
 			field: 'iban',
 			operator: 'equals',
 			value: 'DE893704',
+			moreConditions: [],
 			categoryId: 'c1'
 		});
 		const bad = validateRule({ field: 'x', operator: 'y', value: ' ', categoryId: '' }, ctx);
@@ -122,5 +131,120 @@ describe('suggestedRule', () => {
 	it('has nothing to propose without payee and purpose', () => {
 		expect(suggestedRule({ counterparty: null, purpose: null })).toBeNull();
 		expect(suggestedRule({ counterparty: '', purpose: '  ' })).toBeNull();
+	});
+});
+
+describe('rules with several conditions', () => {
+	const card = {
+		counterparty: null,
+		purpose: 'APPLE.COM/BILL IRL CORK EUR 3,49 Umsatz vom 24.11.2026 MC Hauptkarte',
+		iban: null,
+		bookingText: 'Basislastschrift',
+		bankCategory: 'Technik'
+	};
+	const rule: Rule = {
+		field: 'purpose',
+		operator: 'contains',
+		value: 'apple.com/bill',
+		moreConditions: [
+			{ field: 'booking_text', operator: 'equals', value: 'basislastschrift' },
+			{ field: 'bank_category', operator: 'equals', value: 'Technik' }
+		],
+		categoryId: 'abos'
+	};
+
+	it('match the bank’s booking text and category', () => {
+		expect(
+			conditionMatches(
+				{ field: 'booking_text', operator: 'equals', value: 'Basislastschrift' },
+				card
+			)
+		).toBe(true);
+		expect(
+			conditionMatches({ field: 'bank_category', operator: 'starts_with', value: 'tech' }, card)
+		).toBe(true);
+		// A manual booking has neither.
+		expect(
+			conditionMatches(
+				{ field: 'booking_text', operator: 'equals', value: 'Basislastschrift' },
+				{ counterparty: 'Apple', purpose: null, iban: null }
+			)
+		).toBe(false);
+	});
+
+	it('apply only if all conditions hold', () => {
+		expect(ruleMatches(rule, card)).toBe(true);
+		expect(ruleMatches(rule, { ...card, bankCategory: 'Freizeit' })).toBe(false);
+		expect(ruleMatches(rule, { ...card, bookingText: 'Gutschrift' })).toBe(false);
+		expect(ruleMatches(rule, { ...card, purpose: 'Spotify' })).toBe(false);
+		expect(categoryByRules([rule], card)).toBe('abos');
+		expect(categoryByRules([rule], { ...card, bankCategory: null })).toBeNull();
+	});
+
+	it('never match with a condition they do not know', () => {
+		const odd = { ...rule, moreConditions: [{ field: 'colour', operator: 'equals', value: 'x' }] };
+		expect(ruleMatches(odd, card)).toBe(false);
+		const how = { ...rule, moreConditions: [{ field: 'purpose', operator: 'sounds', value: 'a' }] };
+		expect(ruleMatches(how, card)).toBe(false);
+	});
+
+	it('are named with all their conditions', () => {
+		expect(ruleLabel(rule)).toBe(
+			'Verwendungszweck enthält „apple.com/bill“ und Buchungstext ist gleich „basislastschrift“ und Kategorie der Bank ist gleich „Technik“'
+		);
+	});
+
+	it('are the same with the same conditions in any order', () => {
+		const swapped: Rule = {
+			field: 'bank_category',
+			operator: 'equals',
+			value: 'technik',
+			moreConditions: [
+				{ field: 'purpose', operator: 'contains', value: 'APPLE.COM/BILL' },
+				{ field: 'booking_text', operator: 'equals', value: 'Basislastschrift' }
+			],
+			categoryId: null
+		};
+		expect(sameConditions(rule, swapped)).toBe(true);
+		expect(sameConditions(rule, { ...rule, moreConditions: [] })).toBe(false);
+		expect(sameConditions(rule, { ...swapped, value: 'Freizeit' })).toBe(false);
+	});
+});
+
+describe('validateRule with further conditions', () => {
+	const ctx = { categoryIds: new Set(['c1']) };
+	const base = { field: 'purpose', operator: 'contains', value: 'Miete', categoryId: 'c1' };
+
+	it('keeps the complete ones and drops empty rows', () => {
+		const { values } = validateRule(
+			{
+				...base,
+				more: [
+					{ field: 'booking_text', operator: 'equals', value: ' Lastschrift ' },
+					{ field: 'bank_category', operator: 'equals', value: '  ' },
+					{ field: 'iban', operator: 'equals', value: 'de89 3704' }
+				]
+			},
+			ctx
+		);
+		expect(values?.moreConditions).toEqual([
+			{ field: 'booking_text', operator: 'equals', value: 'Lastschrift' },
+			{ field: 'iban', operator: 'equals', value: 'DE893704' }
+		]);
+		expect(validateRule(base, ctx).values?.moreConditions).toEqual([]);
+	});
+
+	it('rejects unknown fields and too many conditions', () => {
+		expect(
+			validateRule({ ...base, more: [{ field: 'x', operator: 'equals', value: 'a' }] }, ctx).errors
+				?.more
+		).toBeTruthy();
+		const five = Array.from({ length: 5 }, (_, i) => ({
+			field: 'purpose',
+			operator: 'contains',
+			value: `a${i}`
+		}));
+		expect(validateRule({ ...base, more: five }, ctx).errors?.more).toContain('Höchstens 5');
+		expect(validateRule({ ...base, more: five.slice(0, 4) }, ctx).errors).toBeNull();
 	});
 });

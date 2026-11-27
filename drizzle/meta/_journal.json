@@ -323,6 +323,13 @@
       "when": 1795757122007,
       "tag": "0045_booking_no_recurring",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795765926501,
+      "tag": "0046_rule_conditions",
+      "breakpoints": true
     }
   ]
 }

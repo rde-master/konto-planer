@@ -15,6 +15,7 @@ import {
 	RULE_OPERATOR_LABELS,
 	ruleLabel,
 	ruleMatches,
+	sameConditions,
 	suggestedRule,
 	type RuleField,
 	type RuleOperator
@@ -35,11 +36,15 @@ function allowed(b: Pick<BookingSummary, 'canSplit'>): boolean {
 }
 
 /**
- * What a rule for this booking can go by: payee, purpose and IBAN, each with the proposed
- * text – the proposal of `suggestedRule()` first. Empty if the booking cannot set a rule.
+ * What a rule for this booking can go by: payee, purpose, IBAN, the bank's booking text and
+ * category, each with the proposed text – the proposal of `suggestedRule()` first. Several can
+ * be combined; then all must hold. Empty if the booking cannot set a rule.
  */
 export function ruleOptions(
-	b: Pick<BookingSummary, 'canSplit' | 'counterparty' | 'purpose' | 'iban'>
+	b: Pick<
+		BookingSummary,
+		'canSplit' | 'counterparty' | 'purpose' | 'iban' | 'bookingText' | 'bankCategory'
+	>
 ): RuleOption[] {
 	if (!allowed(b)) return [];
 	const option = (field: RuleField, operator: RuleOperator, value: string): RuleOption => ({
@@ -54,6 +59,9 @@ export function ruleOptions(
 	const purpose = suggestedRule({ counterparty: null, purpose: b.purpose });
 	if (purpose) out.push(option('purpose', 'contains', purpose.value));
 	if (b.iban) out.push(option('iban', 'equals', b.iban));
+	const clip = (text: string | null) => (text ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+	if (clip(b.bookingText)) out.push(option('booking_text', 'equals', clip(b.bookingText)));
+	if (clip(b.bankCategory)) out.push(option('bank_category', 'equals', clip(b.bankCategory)));
 	return out;
 }
 
@@ -66,7 +74,7 @@ export type AlwaysResult = {
 };
 
 /**
- * Creates the rule (or gives an existing rule with the same condition the category), puts it
+ * Creates the rule (or gives an existing rule with the same conditions the category), puts it
  * first so it wins over older rules, sets the category of the booking and of every booking
  * without category the rule fits on accounts the actor may edit.
  */
@@ -93,12 +101,7 @@ export async function categorizeAlways(
 		};
 		const label = ruleLabel(values);
 		const rules = await tx.select().from(categoryRules).orderBy(asc(categoryRules.position));
-		const same = rules.find(
-			(r) =>
-				r.field === values.field &&
-				r.operator === values.operator &&
-				r.value.toLowerCase() === values.value.toLowerCase()
-		);
+		const same = rules.find((r) => sameConditions(r, values));
 		if (same) {
 			if (same.categoryId !== values.categoryId) {
 				await tx
@@ -153,7 +156,9 @@ export async function categorizeAlways(
 						id: bookings.id,
 						counterparty: bookings.counterparty,
 						purpose: bookings.purpose,
-						iban: bookings.iban
+						iban: bookings.iban,
+						bookingText: bookings.bookingText,
+						bankCategory: bookings.bankCategory
 					})
 					.from(bookings)
 					.where(

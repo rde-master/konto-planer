@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.72.0] – Regeln mit mehreren Bedingungen
+
+### Neu
+
+- „Immer so einordnen“ an der Buchung: Statt eines Merkmals kreuzt du jetzt an, woran die App solche Buchungen erkennt – Empfänger, Verwendungszweck, IBAN und neu auch **Buchungstext** (z. B. „Basislastschrift“) und **Kategorie der Bank** (z. B. „Technik“). Bei mehreren Merkmalen müssen alle zutreffen
+- So lassen sich Zahlungen trennen, die beim selben Händler landen: etwa „APPLE.COM/BILL“ mit Bank-Kategorie „Technik“ anders einordnen als mit „Freizeit“
+- Kategorien › Regeln: Jede Regel kann bis zu fünf Bedingungen haben („Weitere Bedingung“); sie gilt nur, wenn alle zutreffen. Buchungstext und Kategorie der Bank stehen auch dort zur Wahl
+- Bestehende Regeln bleiben unverändert gültig
+
 ## [0.71.0] – Vorläufige Buchungen auf einen Blick
 
 ### Neu

@@ -1,7 +1,13 @@
 // Category rules for imports: one condition each, the first match by position wins.
 import { payeePrefix } from './payee-name.js';
 
-export const RULE_FIELDS = ['counterparty', 'purpose', 'iban'] as const;
+export const RULE_FIELDS = [
+	'counterparty',
+	'purpose',
+	'iban',
+	'booking_text',
+	'bank_category'
+] as const;
 export type RuleField = (typeof RULE_FIELDS)[number];
 export const RULE_OPERATORS = ['contains', 'equals', 'starts_with'] as const;
 export type RuleOperator = (typeof RULE_OPERATORS)[number];
@@ -9,7 +15,9 @@ export type RuleOperator = (typeof RULE_OPERATORS)[number];
 export const RULE_FIELD_LABELS: Record<RuleField, string> = {
 	counterparty: 'Empfänger/Zahler',
 	purpose: 'Verwendungszweck',
-	iban: 'IBAN'
+	iban: 'IBAN',
+	booking_text: 'Buchungstext',
+	bank_category: 'Kategorie der Bank'
 };
 
 export const RULE_OPERATOR_LABELS: Record<RuleOperator, string> = {
@@ -18,10 +26,19 @@ export const RULE_OPERATOR_LABELS: Record<RuleOperator, string> = {
 	starts_with: 'beginnt mit'
 };
 
-export type Rule = {
-	field: RuleField;
-	operator: RuleOperator;
-	value: string;
+/** One condition of a rule. */
+export type Condition = { field: RuleField; operator: RuleOperator; value: string };
+
+/** A rule has at most this many conditions (the first plus the further ones). */
+export const MAX_CONDITIONS = 5;
+
+/**
+ * A rule: its first condition, optionally further ones (`moreConditions`) – all of them must
+ * hold – and the category it sets.
+ */
+export type Rule = Condition & {
+	/** As stored: entries with an unknown field or operator never match. */
+	moreConditions?: { field: string; operator: string; value: string }[] | null;
 	categoryId: string | null;
 };
 
@@ -30,26 +47,60 @@ export type RuleSubject = {
 	purpose: string | null;
 	/** Normalised IBAN of the payee. */
 	iban: string | null;
+	/** "Buchungstext" of the bank ("Lastschrift", "Kartenzahlung"). */
+	bookingText?: string | null;
+	/** Category of the bank export. */
+	bankCategory?: string | null;
 };
 
-function normalize(field: RuleField, value: string): string {
-	const v = value
+function subjectText(subject: RuleSubject, field: RuleField): string | null {
+	switch (field) {
+		case 'booking_text':
+			return subject.bookingText ?? null;
+		case 'bank_category':
+			return subject.bankCategory ?? null;
+		default:
+			return subject[field];
+	}
+}
+
+function normalize(field: string, value: string): string {
+	return value
 		.toLowerCase()
 		.replace(/\s+/g, field === 'iban' ? '' : ' ')
 		.trim();
-	return v;
 }
 
-/** Whether the rule's condition holds (case and repeated spaces ignored; IBAN without spaces). */
-export function ruleMatches(rule: Omit<Rule, 'categoryId'>, subject: RuleSubject): boolean {
-	const text = subject[rule.field];
+/** All conditions of a rule, the first one first. */
+export function ruleConditions(
+	rule: Omit<Rule, 'categoryId'>
+): { field: string; operator: string; value: string }[] {
+	return [
+		{ field: rule.field, operator: rule.operator, value: rule.value },
+		...(rule.moreConditions ?? [])
+	];
+}
+
+/** Whether one condition holds (case and repeated spaces ignored; IBAN without spaces). */
+export function conditionMatches(
+	condition: { field: string; operator: string; value: string },
+	subject: RuleSubject
+): boolean {
+	const field = RULE_FIELDS.find((f) => f === condition.field);
+	if (!field) return false;
+	const text = subjectText(subject, field);
 	if (!text) return false;
-	const hay = normalize(rule.field, text);
-	const needle = normalize(rule.field, rule.value);
+	const hay = normalize(field, text);
+	const needle = normalize(field, condition.value);
 	if (!needle) return false;
-	if (rule.operator === 'equals') return hay === needle;
-	if (rule.operator === 'starts_with') return hay.startsWith(needle);
-	return hay.includes(needle);
+	if (condition.operator === 'equals') return hay === needle;
+	if (condition.operator === 'starts_with') return hay.startsWith(needle);
+	return condition.operator === 'contains' && hay.includes(needle);
+}
+
+/** Whether the rule applies: every one of its conditions holds. */
+export function ruleMatches(rule: Omit<Rule, 'categoryId'>, subject: RuleSubject): boolean {
+	return ruleConditions(rule).every((c) => conditionMatches(c, subject));
 }
 
 /** Category of the first matching rule that still has a category (rules sorted by position). */
@@ -59,9 +110,26 @@ export function categoryByRules(rules: Rule[], subject: RuleSubject): string | n
 	return null;
 }
 
-/** "Verwendungszweck enthält „Miete“" */
+function conditionLabel(c: { field: string; operator: string; value: string }): string {
+	const field = RULE_FIELD_LABELS[c.field as RuleField] ?? c.field;
+	const operator = RULE_OPERATOR_LABELS[c.operator as RuleOperator] ?? c.operator;
+	return `${field} ${operator} „${c.value}“`;
+}
+
+/** "Verwendungszweck enthält „Miete“", further conditions joined with "und". */
 export function ruleLabel(rule: Omit<Rule, 'categoryId'>): string {
-	return `${RULE_FIELD_LABELS[rule.field]} ${RULE_OPERATOR_LABELS[rule.operator]} „${rule.value}“`;
+	return ruleConditions(rule).map(conditionLabel).join(' und ');
+}
+
+/** The same conditions, in any order (case and spaces ignored)? */
+export function sameConditions(a: Omit<Rule, 'categoryId'>, b: Omit<Rule, 'categoryId'>): boolean {
+	const keys = (rule: Omit<Rule, 'categoryId'>) =>
+		ruleConditions(rule)
+			.map((c) => `${c.field}|${c.operator}|${normalize(c.field, c.value)}`)
+			.sort();
+	const x = keys(a);
+	const y = keys(b);
+	return x.length === y.length && x.every((k, i) => k === y[i]);
 }
 
 /** Where the text of a card payment stops being the shop: currency and amount, purchase day. */

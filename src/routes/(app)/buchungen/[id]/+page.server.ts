@@ -138,14 +138,32 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const booking = await getBookingFor(locals.user!, params.id);
 		if (!booking) error(404, 'Buchung nicht gefunden.');
-		const option = ruleOptions(booking).find((o) => o.field === formString(data, 'field'));
+		// Every ticked attribute is a condition; all of them must hold.
+		const chosen = ruleOptions(booking)
+			.filter((o) => formString(data, `use-${o.field}`) === 'on')
+			.map((o) => ({
+				field: o.field,
+				operator: o.operator,
+				value: formString(data, `value-${o.field}`)
+			}));
 		const { options } = await bookingFormContext(locals.user!);
 		const input = {
-			field: option?.field ?? '',
-			operator: option?.operator ?? '',
-			value: formString(data, 'value'),
-			categoryId: formString(data, 'categoryId')
+			field: chosen[0]?.field ?? '',
+			operator: chosen[0]?.operator ?? '',
+			value: chosen[0]?.value ?? '',
+			categoryId: formString(data, 'categoryId'),
+			more: chosen.slice(1)
 		};
+		if (!chosen.length) {
+			const errors: FieldErrors = { field: 'Bitte mindestens ein Merkmal ankreuzen.' };
+			return fail(400, { action: 'always' as const, errors, input });
+		}
+		if (chosen.some((c) => !c.value.trim())) {
+			const errors: FieldErrors = {
+				value: 'Bitte zu jedem angekreuzten Merkmal einen Text angeben.'
+			};
+			return fail(400, { action: 'always' as const, errors, input });
+		}
 		const { values, errors } = validateRule(input, {
 			categoryIds: new Set(options.categoryGroups.flatMap((g) => g.options.map((o) => o.value)))
 		});

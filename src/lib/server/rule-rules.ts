@@ -1,14 +1,33 @@
-import { RULE_FIELDS, RULE_OPERATORS, type RuleField, type RuleOperator } from '../rules.js';
+import {
+	MAX_CONDITIONS,
+	RULE_FIELDS,
+	RULE_OPERATORS,
+	type Condition,
+	type RuleField,
+	type RuleOperator
+} from '../rules.js';
 import { normalizeIban } from '../iban.js';
 import type { FieldErrors } from './validation.js';
 
-export type RuleInput = { field: string; operator: string; value: string; categoryId: string };
+type ConditionInput = { field: string; operator: string; value: string };
+export type RuleInput = ConditionInput & {
+	categoryId: string;
+	/** Further conditions; entries without a text are left out. */
+	more?: ConditionInput[];
+};
 export type RuleValues = {
 	field: RuleField;
 	operator: RuleOperator;
 	value: string;
+	/** Further conditions that must hold as well. */
+	moreConditions: Condition[];
 	categoryId: string;
 };
+
+function clean(field: RuleField | undefined, value: string): string {
+	const text = value.trim().replace(/\s+/g, ' ');
+	return field === 'iban' ? normalizeIban(text) : text;
+}
 
 export function validateRule(
 	input: RuleInput,
@@ -19,11 +38,28 @@ export function validateRule(
 	if (!field) errors.field = 'Bitte ein Feld wählen.';
 	const operator = RULE_OPERATORS.find((o) => o === input.operator);
 	if (!operator) errors.operator = 'Bitte eine Bedingung wählen.';
-	let value = input.value.trim().replace(/\s+/g, ' ');
-	if (field === 'iban') value = normalizeIban(value);
+	const value = clean(field, input.value);
 	if (!value) errors.value = 'Bitte einen Text eingeben.';
 	else if (value.length > 100) errors.value = 'Höchstens 100 Zeichen.';
+
+	const moreConditions: Condition[] = [];
+	for (const m of input.more ?? []) {
+		const f = RULE_FIELDS.find((x) => x === m.field);
+		const o = RULE_OPERATORS.find((x) => x === m.operator);
+		const v = clean(f, m.value);
+		// A row left empty is no condition.
+		if (!v) continue;
+		if (!f || !o) errors.more = 'Bitte bei jeder weiteren Bedingung Feld und Bedingung wählen.';
+		else if (v.length > 100) errors.more = 'Höchstens 100 Zeichen je Bedingung.';
+		else moreConditions.push({ field: f, operator: o, value: v });
+	}
+	if (moreConditions.length > MAX_CONDITIONS - 1)
+		errors.more = `Höchstens ${MAX_CONDITIONS} Bedingungen je Regel.`;
+
 	if (!ctx.categoryIds.has(input.categoryId)) errors.categoryId = 'Bitte eine Kategorie wählen.';
 	if (Object.keys(errors).length || !field || !operator) return { values: null, errors };
-	return { values: { field, operator, value, categoryId: input.categoryId }, errors: null };
+	return {
+		values: { field, operator, value, moreConditions, categoryId: input.categoryId },
+		errors: null
+	};
 }

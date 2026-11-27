@@ -25,6 +25,7 @@
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import WandSparkles from '@lucide/svelte/icons/wand-sparkles';
 	import { transferLabel } from '#lib/transfers.js';
+	import { RULE_FIELD_LABELS } from '#lib/rules.js';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { accountColorCss } from '#lib/colors.js';
@@ -79,18 +80,15 @@
 	let alwaysOpen = $state(false);
 	let alwaysPending = $state(false);
 	let alwaysKey = $state(0);
-	let alwaysField = $state('');
-	let alwaysText = $state('');
+	/** Ticked attributes and their texts, by field. */
+	let alwaysUse = $state<Record<string, boolean>>({});
+	let alwaysText = $state<Record<string, string>>({});
 	function openAlways() {
-		const first = data.ruleOptions[0];
-		alwaysField = first?.field ?? '';
-		alwaysText = first?.value ?? '';
+		// The proposal: the first attribute (the payee) alone.
+		alwaysUse = Object.fromEntries(data.ruleOptions.map((o, i) => [o.field, i === 0]));
+		alwaysText = Object.fromEntries(data.ruleOptions.map((o) => [o.field, o.value]));
 		alwaysKey++;
 		alwaysOpen = true;
-	}
-	function pickAlwaysField(field: string) {
-		alwaysField = field;
-		alwaysText = data.ruleOptions.find((o) => o.field === field)?.value ?? '';
 	}
 	const alwaysErrors = $derived(
 		form?.action === 'always' && 'errors' in form ? form.errors : undefined
@@ -708,22 +706,32 @@
 				<ul
 					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 				>
-					<SelectField
-						label="Erkennen an"
-						name="field"
-						options={data.ruleOptions.map((o) => ({ value: o.field, label: o.label }))}
-						value={alwaysField}
-						onchange={pickAlwaysField}
-					/>
-					<FormField
-						label="Text"
-						name="value"
-						bind:value={alwaysText}
-						error={alwaysErrors?.value}
-						maxlength={100}
-						autocapitalize="off"
-						autocomplete="off"
-					/>
+					{#each data.ruleOptions as o (o.field)}
+						<li class="px-4 py-2">
+							<label class="flex min-h-8 items-center gap-3">
+								<input
+									type="checkbox"
+									name="use-{o.field}"
+									bind:checked={alwaysUse[o.field]}
+									class="size-5 shrink-0 accent-[var(--kp-accent)]"
+								/>
+								<span class="text-[15px]">{o.label}</span>
+							</label>
+							<input
+								name="value-{o.field}"
+								bind:value={alwaysText[o.field]}
+								aria-label="Text {RULE_FIELD_LABELS[o.field]}"
+								maxlength={100}
+								autocapitalize="off"
+								autocomplete="off"
+								spellcheck={false}
+								class={[
+									'w-full bg-transparent py-1 pl-8 text-[17px] outline-none',
+									!alwaysUse[o.field] && 'text-label-3'
+								]}
+							/>
+						</li>
+					{/each}
 					<SelectField
 						label="Kategorie"
 						name="categoryId"
@@ -733,11 +741,17 @@
 						error={alwaysErrors?.categoryId}
 					/>
 				</ul>
+				{#if alwaysErrors?.field || alwaysErrors?.value || alwaysErrors?.more}
+					<p class="mt-1.5 px-4 text-[13px] text-danger">
+						{alwaysErrors.field ?? alwaysErrors.value ?? alwaysErrors.more}
+					</p>
+				{/if}
 				<p class="mt-1.5 px-4 text-[13px] text-label-2">
-					Jede Buchung, auf die das zutrifft, bekommt diese Kategorie: neue Buchungen beim Import
-					und beim Erfassen ohne Kategorie, dazu sofort alle vorhandenen ohne Kategorie. Buchungen,
-					die schon eine Kategorie haben, bleiben unverändert. Kürze den Text, wenn er Teile
-					enthält, die sich ändern. Die Regel steht danach unter Kategorien › Regeln.
+					Kreuze an, woran die App solche Buchungen erkennt – bei mehreren Merkmalen müssen alle
+					zutreffen. Jede Buchung, auf die das zutrifft, bekommt diese Kategorie: neue Buchungen
+					beim Import und beim Erfassen ohne Kategorie, dazu sofort alle vorhandenen ohne Kategorie.
+					Buchungen, die schon eine Kategorie haben, bleiben unverändert. Kürze den Text, wenn er
+					Teile enthält, die sich ändern. Die Regel steht danach unter Kategorien › Regeln.
 				</p>
 			</form>
 		{/key}
