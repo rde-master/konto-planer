@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.79.0] – Auswertung nach Empfängern
+
+### Neu
+
+- Auswertungen: Neuer Reiter „Empfänger“ zeigt, wie viel in einem Zeitraum an wen gezahlt wurde – je Empfänger die Summe, die Zahl der Zahlungen, die letzte Zahlung und, falls etwas zurückkam, die Gutschriften
+- Zeitraum frei wählbar (von/bis) oder mit einem Tipp: dieser Monat, letzter Monat, 12 Monate, dieses Jahr, letztes Jahr. Die Kontoauswahl gilt wie in den anderen Auswertungen
+- Suchfeld für bestimmte Empfänger; die Summe oben gilt für die Treffer. Ein Tipp auf einen Empfänger öffnet seine Buchungen im gewählten Zeitraum
+- Zusammenfassen: Bucht derselbe Empfänger unter verschiedenen Namen oder IBANs ab, wählst du die Namen aus und zählst sie als einen – mit eigenem Namen. Die Zusammenfassung zeigt die Gesamtsumme und darunter die einzelnen Namen; sie lässt sich umbenennen, um weitere Namen ergänzen, einzelne Namen wieder herauslösen oder ganz auflösen. An den Buchungen ändert sich dabei nichts
+- Gleiche Namen mit wechselndem Datum oder Belegnummer („FILMDIENST 24.11.“) zählen von selbst als ein Empfänger; Umbuchungen zwischen eigenen Konten zählen nicht
+
 ## [0.78.0] – Import auch für Sparbücher
 
 ### Neu

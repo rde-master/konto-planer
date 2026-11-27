@@ -32,7 +32,19 @@ Unter **Was wäre wenn** probierst du Änderungen aus, ohne echte Daten zu verä
 
 ## Auswertungen
 
-**Auswertungen** zeigen Ausgaben je Kategorie, Ein- und Ausgaben je Monat, Fixkosten, Preisänderungen, einen Jahreskalender, den Jahresvergleich und Kennzahlen wie Fixkosten- und Sparquote. Umbuchungen zwischen eigenen Konten zählen dabei nicht als Einnahme oder Ausgabe.
+**Auswertungen** zeigen Ausgaben je Kategorie und je Empfänger, Ein- und Ausgaben je Monat, Fixkosten, Preisänderungen, einen Jahreskalender, den Jahresvergleich und Kennzahlen wie Fixkosten- und Sparquote. Umbuchungen zwischen eigenen Konten zählen dabei nicht als Einnahme oder Ausgabe.
+
+### Zahlungen nach Empfänger
+
+Der Reiter **Empfänger** zeigt, wie viel du in einem Zeitraum an wen gezahlt hast: je Empfänger die Summe, die Zahl der Zahlungen und die letzte Zahlung. Kam von einem Empfänger etwas zurück (Erstattung), steht das daneben. Den Zeitraum wählst du mit **Von** und **Bis** oder mit einem der Vorschläge (dieser Monat, letzter Monat, 12 Monate, dieses Jahr, letztes Jahr). Das Suchfeld findet bestimmte Empfänger; die Summe oben gilt dann für die Treffer. Ein Tipp auf einen Empfänger öffnet seine Buchungen.
+
+Empfänger unterscheidet die App am Namen, ohne Datum und Belegnummern („FILMDIENST 24.11.“ und „FILMDIENST 24.12.“ sind derselbe). Buchungen ohne Empfänger stehen gemeinsam unter „Ohne Empfänger“. Umbuchungen zwischen eigenen Konten und Korrekturen des Kontostands zählen nicht.
+
+### Empfänger zusammenfassen
+
+Manche Firmen buchen unter verschiedenen Namen oder IBANs ab. Mit **Zusammenfassen** wählst du die Namen aus, die derselbe Empfänger sind, tippst auf **Als einen zählen** und gibst ihm einen Namen. Die Auswertung zeigt dann eine Zeile mit der Gesamtsumme; ein Tipp darauf klappt die einzelnen Namen mit ihren Summen auf. Dort kannst du die Zusammenfassung **umbenennen**, einen Namen wieder **herauslösen** oder sie ganz **auflösen**. Einen weiteren Namen nimmst du auf, indem du ihn zusammen mit der Zusammenfassung auswählst.
+
+Die Zusammenfassung gilt für alle Benutzer und nur für diese Auswertung: Buchungen, Kategorien, Logos und der Import bleiben, wie sie sind.
 
 ## Finanzfluss
 

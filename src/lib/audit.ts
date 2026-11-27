@@ -21,6 +21,7 @@ export const ENTITY_TYPES = [
 	'settlement',
 	'budget',
 	'scenario',
+	'payee_group',
 	'settings'
 ] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -73,6 +74,7 @@ export const ENTITY_LABELS: Record<EntityType, string> = {
 	settlement: 'Ausgleich',
 	budget: 'Budget',
 	scenario: 'Szenario',
+	payee_group: 'Empfänger-Zusammenfassung',
 	settings: 'Einstellungen'
 };
 
@@ -228,6 +230,9 @@ const FIELD_LABELS: Record<string, string> = {
 	recurringItem: 'Dauerposten',
 	firstPayment: 'Als erste Zahlung gezählt',
 	importName: 'Name für den Import gemerkt',
+	payeeNames: 'Namen in der Zusammenfassung',
+	payeeName: 'Name herausgelöst',
+	absorbed: 'Aufgenommene Zusammenfassungen',
 	assignedTo: 'Dauerposten zugeordnet',
 	unassignedFrom: 'Zuordnung gelöst',
 	transferWith: 'Umbuchung mit Konto',

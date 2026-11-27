@@ -17,12 +17,23 @@ import {
 	priceChanges,
 	yearCalendar
 } from '#lib/reports.js';
+import {
+	PayeeError,
+	mergePayees,
+	payeeReport,
+	renamePayeeGroup,
+	splitPayees
+} from '#lib/server/payees.js';
+import { parsePeriod, periodPresets } from '#lib/payees.js';
+import { formString } from '#lib/server/validation.js';
 import { addMonths } from '#lib/recurring.js';
 import { todayBerlin } from '#lib/dates.js';
-import type { PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
 const VIEWS = [
 	'kategorien',
+	'empfaenger',
 	'einaus',
 	'fixkosten',
 	'preise',
@@ -60,6 +71,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				String(Number(thisMonth.slice(0, 4)) - 1)
 			],
 			categories: expensesByCategory(rows, categories)
+		};
+	}
+	if (view === 'empfaenger') {
+		const period = parsePeriod(url.searchParams, today);
+		return {
+			...base,
+			payees: {
+				period,
+				presets: periodPresets(today),
+				rows: await payeeReport(accounts.ids, period.from, period.to)
+			}
 		};
 	}
 	if (view === 'einaus') {
@@ -136,4 +158,45 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		heat = dayHeat(month, await reportBookings(accounts.ids, range.from, range.to), items, today);
 	}
 	return { ...base, year, calendar: yearCalendar(items, year), month, heat };
+};
+
+/** Runs an action of the payee report; its errors become the form's message. */
+async function payeeAction<T extends object>(run: () => Promise<T>) {
+	try {
+		return { payee: await run() };
+	} catch (e) {
+		if (e instanceof PayeeError) return fail(400, { payeeError: e.message });
+		throw e;
+	}
+}
+
+export const actions: Actions = {
+	/** "Zusammenfassen": the chosen payees count as one. */
+	payeeMerge: async ({ request, locals }) => {
+		const data = await request.formData();
+		const ids = data.getAll('id').filter((v): v is string => typeof v === 'string');
+		return payeeAction(async () => ({
+			merged: await mergePayees(locals.user!, formString(data, 'name'), ids)
+		}));
+	},
+	payeeRename: async ({ request, locals }) => {
+		const data = await request.formData();
+		const name = formString(data, 'name');
+		return payeeAction(async () => {
+			await renamePayeeGroup(locals.user!, formString(data, 'groupId'), name);
+			return { renamed: name.trim() };
+		});
+	},
+	/** One name out of a group (`key`), or the whole group dissolved. */
+	payeeSplit: async ({ request, locals }) => {
+		const data = await request.formData();
+		const key = data.get('key');
+		return payeeAction(async () => ({
+			split: await splitPayees(
+				locals.user!,
+				formString(data, 'groupId'),
+				typeof key === 'string' ? key : null
+			)
+		}));
+	}
 };

@@ -330,6 +330,13 @@
       "when": 1795765926501,
       "tag": "0046_rule_conditions",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795814124726,
+      "tag": "0047_payee_groups",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,8 @@ import {
 	budgets,
 	categories,
 	categoryRules,
+	payeeGroupMembers,
+	payeeGroups,
 	recurringAliases,
 	recurringAmounts,
 	savingsGoals,
@@ -20,7 +22,8 @@ import { createRecurring } from './recurring.js';
 import type { RecurringValues } from './recurring-rules.js';
 import type { Contract } from '../contracts.js';
 import { syncDues } from './due.js';
-import { demoBookings } from '../demo.js';
+import { DEMO_PAYEE_GROUP, demoBookings, demoPayee } from '../demo.js';
+import { payeeCore } from '../payee-name.js';
 import { addDays, addMonths } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
 
@@ -374,12 +377,20 @@ export async function seedDemo(today = todayBerlin()) {
 				accountId: b.card ? card.id : haushalt.id,
 				bookingDate: b.date,
 				amount: b.amount,
-				counterparty: b.payee,
+				counterparty: demoPayee(b),
 				categoryId: cat(b.category),
 				source: 'manual' as const,
 				createdBy: alex.id
 			}))
 		);
+	// "Zusammenfassen" in the payee report: both names of the supermarket count as one.
+	const [group] = await db
+		.insert(payeeGroups)
+		.values({ name: DEMO_PAYEE_GROUP.name, createdBy: alex.id })
+		.returning({ id: payeeGroups.id });
+	await db
+		.insert(payeeGroupMembers)
+		.values(DEMO_PAYEE_GROUP.names.map((n) => ({ key: payeeCore(n), groupId: group.id })));
 
 	await db.insert(budgets).values([
 		{ categoryId: cat('Lebensmittel'), accountId: haushalt.id, amount: 45_000, createdBy: alex.id },

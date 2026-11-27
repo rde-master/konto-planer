@@ -1223,3 +1223,34 @@ export const webIcons = pgTable('web_icons', {
 	url: text('url'),
 	fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+/**
+ * Payees the user counts as one in the payee report ("Empfänger zusammenfassen"): the same
+ * company debits under several names. Global like categories.
+ */
+export const payeeGroups = pgTable(
+	'payee_groups',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		name: text('name').notNull(),
+		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('payee_groups_name_idx').on(sql`lower(${t.name})`)]
+);
+
+export type PayeeGroup = typeof payeeGroups.$inferSelect;
+
+/** A payee name of a group (`key` is its `payeeCore()`); a name belongs to one group only. */
+export const payeeGroupMembers = pgTable(
+	'payee_group_members',
+	{
+		key: text('key').primaryKey(),
+		groupId: uuid('group_id')
+			.notNull()
+			.references(() => payeeGroups.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [index('payee_group_members_group_idx').on(t.groupId)]
+);
