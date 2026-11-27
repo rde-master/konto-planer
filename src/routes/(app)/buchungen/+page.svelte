@@ -232,7 +232,7 @@
 						href={q ? resolve(`buchungen?${q}`) : resolve('buchungen')}
 						aria-label="Filter {chip.label} entfernen"
 						data-sveltekit-replacestate
-						data-sveltekit-noscroll
+						data-sveltekit-reset="false"
 						class="inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1 text-[15px] text-accent"
 					>
 						{chip.label}
@@ -359,7 +359,7 @@
 		<a
 			href={resolve(`buchungen?${moreQuery}`)}
 			class="kp-span block rounded-[var(--radius-row)] bg-card px-4 py-3 text-center text-accent"
-			data-sveltekit-noscroll
+			data-sveltekit-reset="false"
 		>
 			Ältere Buchungen anzeigen
 		</a>

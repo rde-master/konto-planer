@@ -110,7 +110,7 @@
 					href={resolve(`finanzfluss?${query({ view: v.value })}`)}
 					aria-current={data.view === v.value ? 'page' : undefined}
 					data-sveltekit-replacestate
-					data-sveltekit-noscroll
+					data-sveltekit-reset="false"
 					class={[
 						'flex-1 rounded-full px-3 py-1.5 text-center text-[13px] font-medium',
 						data.view === v.value ? 'bg-card shadow-sm' : 'text-label-2'
@@ -140,7 +140,7 @@
 					href={resolve(`finanzfluss?${query({ months: m })}`)}
 					aria-current={flow.months === m ? 'page' : undefined}
 					data-sveltekit-replacestate
-					data-sveltekit-noscroll
+					data-sveltekit-reset="false"
 					class={[
 						'shrink-0 rounded-full px-3 py-1 text-[15px] whitespace-nowrap',
 						flow.months === m ? 'bg-accent text-accent-contrast' : 'bg-card text-accent'
