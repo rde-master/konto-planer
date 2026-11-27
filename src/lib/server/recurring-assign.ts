@@ -104,6 +104,7 @@ export async function assignBooking(
 			.update(bookings)
 			.set({
 				recurringId: item.id,
+				noRecurring: false,
 				categoryId: booking.categoryId ?? item.categoryId,
 				updatedAt: new Date()
 			})
@@ -165,7 +166,8 @@ export async function unassignBooking(
 		}
 		await tx
 			.update(bookings)
-			.set({ recurringId: null, updatedAt: new Date() })
+			// Released by hand: the due sync must not take it for the payment again.
+			.set({ recurringId: null, noRecurring: true, updatedAt: new Date() })
 			.where(eq(bookings.id, booking.id));
 		await audit(tx, {
 			actor,

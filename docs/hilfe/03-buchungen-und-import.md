@@ -37,6 +37,8 @@ Erkennt der Import eine Zahlung nicht – etwa weil sie auf der Karte jedes Mal 
 
 ## Buchung einem Dauerposten zuordnen
 
+Steht die Zahlung schon auf dem Konto, bevor es den Dauerposten gibt, bucht die App sie nicht noch einmal vorläufig: Eine Buchung ohne Dauerposten mit genau dem geplanten Betrag, bis drei Tage vor oder nach der Fälligkeit (bis zehn Tage, wenn auch Name, IBAN oder Mandat passen), gilt als die Zahlung und gehört dann zum Dauerposten. Passt das einmal nicht, löst du die Zuordnung an der Buchung wieder – die App ordnet sie dann nicht erneut von selbst zu.
+
 Auch nach dem Import geht das: An einer Buchung ohne Dauerposten steht unter „Verwaltung“ **Dauerposten zuordnen**. Die Buchung gehört dann zum gewählten Dauerposten, die nächstgelegene offene Fälligkeit gilt als bezahlt und ihre vorläufige Buchung verschwindet – so steht die Zahlung nicht doppelt da. Mit **Zuordnung lösen** machst du das rückgängig; die Fälligkeit ist dann wieder offen. Gibt es den Dauerposten noch nicht, nimm stattdessen **Dauerposten daraus machen**.
 
 ## Abweichungen und Abgleich

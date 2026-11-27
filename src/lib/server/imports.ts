@@ -608,7 +608,11 @@ export async function commitImport(
 		let matched = 0;
 		for (const r of analyzed) {
 			if (r.status === 'duplicate' || !choice.lines.has(r.line)) continue;
-			const values = bookingValues(r, accountId, importId, actor.id);
+			const values = {
+				...bookingValues(r, accountId, importId, actor.id),
+				// "Keiner" in the preview: the due sync must not assign the booking either.
+				noRecurring: choice.assign?.get(r.line) === null
+			};
 			const categoryId = categoryOf(r);
 			if (r.status === 'recurring' && r.recurring) {
 				const item = itemById.get(r.recurring.id)!;
@@ -689,6 +693,29 @@ export async function commitImport(
 					.where(eq(bookingParts.bookingId, r.replace.id))
 					.returning();
 				undo.parts!.push(...moved.map((p) => ({ ...p, bookingId: r.replace!.id })));
+				// A due date the old booking paid is paid by the real one now.
+				const paid = await tx
+					.select()
+					.from(dueItems)
+					.where(
+						or(eq(dueItems.bookingId, r.replace.id), eq(dueItems.targetBookingId, r.replace.id))
+					);
+				for (const d of paid) {
+					if (!undo.dues.some((u) => u.id === d.id))
+						undo.dues.push({
+							id: d.id,
+							status: d.status,
+							bookingId: d.bookingId,
+							targetBookingId: d.targetBookingId
+						});
+					await tx
+						.update(dueItems)
+						.set({
+							[d.bookingId === r.replace.id ? 'bookingId' : 'targetBookingId']: booking.id,
+							updatedAt: new Date()
+						})
+						.where(eq(dueItems.id, d.id));
+				}
 				await tx.delete(bookings).where(eq(bookings.id, r.replace.id));
 				matched++;
 			} else {
@@ -997,10 +1024,32 @@ export async function undoImport(
 		const undo = row.undo as UndoData | null;
 		if (!undo) throw new ImportError('Dieser Import ist älter und lässt sich nicht zurücknehmen.');
 
+		// Due dates paid by a booking of this import outside the import (assigned by hand or by
+		// the due sync): they are open again once the booking is gone.
+		const paidLater = await tx
+			.select({
+				id: dueItems.id,
+				bookingId: dueItems.bookingId,
+				targetBookingId: dueItems.targetBookingId,
+				paidBy: bookings.id
+			})
+			.from(dueItems)
+			.innerJoin(
+				bookings,
+				or(eq(bookings.id, dueItems.bookingId), eq(bookings.id, dueItems.targetBookingId))
+			)
+			.where(eq(bookings.importId, importId));
 		const removed = await tx
 			.delete(bookings)
 			.where(eq(bookings.importId, importId))
 			.returning({ id: bookings.id });
+		const snapshot = new Set([...undo.dues.map((d) => d.id), ...undo.createdDues]);
+		for (const d of paidLater) {
+			if (snapshot.has(d.id)) continue;
+			const other = d.bookingId === d.paidBy ? d.targetBookingId : d.bookingId;
+			// Without a booking on the other side the due date starts over (the sync books it).
+			if (other === null) await tx.delete(dueItems).where(eq(dueItems.id, d.id));
+		}
 		if (undo.items.length) {
 			const [used] = await tx
 				.select({ id: bookings.id })

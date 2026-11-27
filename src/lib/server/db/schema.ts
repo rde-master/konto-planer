@@ -405,6 +405,11 @@ export const bookings = pgTable(
 		counterBookingId: uuid('counter_booking_id').references((): AnyPgColumn => bookings.id, {
 			onDelete: 'set null'
 		}),
+		/**
+		 * Released from its recurring item by hand ("Zuordnung lösen", "keiner" in the import):
+		 * the due sync never takes it for the payment of a due date.
+		 */
+		noRecurring: boolean('no_recurring').notNull().default(false),
 		/** Category of the bank export (a hint only). */
 		bankCategory: text('bank_category'),
 		creditorId: text('creditor_id'),

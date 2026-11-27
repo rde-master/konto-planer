@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD COLUMN "no_recurring" boolean DEFAULT false NOT NULL;
