@@ -1,5 +1,5 @@
 import type { Viewer } from './account-rules.js';
-import { bookingFormContext, BookingError, createBooking } from './bookings.js';
+import { bookingFormContext, BookingError, createBooking, getBookingFor } from './bookings.js';
 import { quickTemplates } from './templates.js';
 import { reportCategories } from './reports.js';
 import { budgetHint } from './budgets.js';
@@ -7,6 +7,7 @@ import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import {
+	chosenOption,
 	shortcutAmount,
 	shortcutOptions,
 	shortcutReply,
@@ -41,9 +42,7 @@ export async function bookFromShortcut(
 	body: { amount?: unknown; choice?: unknown; payee?: unknown }
 ): Promise<string> {
 	const options = await optionsFor(viewer);
-	const choice = options.find(
-		(o) => o.label === (typeof body.choice === 'string' ? body.choice.trim() : '')
-	);
+	const choice = chosenOption(options, body.choice);
 	if (!choice) throw new ShortcutError('Unbekannte Auswahl. Bitte den Kurzbefehl neu laden.');
 	const template = choice.type === 'template' ? choice.template : null;
 	const amount = shortcutAmount(body.amount, template?.kind === 'income');
@@ -60,8 +59,9 @@ export async function bookFromShortcut(
 			? body.payee.trim().slice(0, 100)
 			: (template?.counterparty ?? null);
 	const today = todayBerlin();
+	let bookingId: string;
 	try {
-		await createBooking(viewer, {
+		bookingId = await createBooking(viewer, {
 			accountId,
 			bookingDate: today,
 			amount,
@@ -82,7 +82,11 @@ export async function bookFromShortcut(
 	}
 	return shortcutReply({
 		amount,
-		label: template ? template.name : choice.label.split(' › ').at(-1)!,
+		// Without a chosen category a rule may have set one: name what was booked.
+		label: template
+			? template.name
+			: ((await getBookingFor(viewer, bookingId))?.category?.name ??
+				choice.label.split(' › ').at(-1)!),
 		account: account?.name ?? '',
 		budget: amount < 0 ? await budgetHint(viewer, categoryId, accountId, today.slice(0, 7)) : null,
 		available

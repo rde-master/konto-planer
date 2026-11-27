@@ -28,6 +28,7 @@ export async function listTokens(userId: string) {
 			name: apiTokens.name,
 			purpose: apiTokens.purpose,
 			accountIds: apiTokens.accountIds,
+			defaultAccountId: apiTokens.defaultAccountId,
 			createdAt: apiTokens.createdAt,
 			lastUsedAt: apiTokens.lastUsedAt
 		})
