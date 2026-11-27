@@ -40,6 +40,7 @@ export async function activeRules(executor: Executor = db): Promise<Rule[]> {
 			field: categoryRules.field,
 			operator: categoryRules.operator,
 			value: categoryRules.value,
+			moreConditions: categoryRules.moreConditions,
 			categoryId: categoryRules.categoryId
 		})
 		.from(categoryRules)
@@ -55,7 +56,9 @@ async function categoryName(executor: Executor, id: string | null) {
 
 async function auditFields(
 	executor: Executor,
-	v: Pick<CategoryRule, 'field' | 'operator' | 'value' | 'categoryId'>
+	v: Pick<CategoryRule, 'field' | 'operator' | 'value' | 'categoryId'> & {
+		moreConditions?: CategoryRule['moreConditions'];
+	}
 ) {
 	return { rule: ruleLabel(v), category: await categoryName(executor, v.categoryId) };
 }
@@ -169,7 +172,9 @@ async function uncategorized(viewer: Viewer) {
 			id: bookings.id,
 			counterparty: bookings.counterparty,
 			purpose: bookings.purpose,
-			iban: bookings.iban
+			iban: bookings.iban,
+			bookingText: bookings.bookingText,
+			bankCategory: bookings.bankCategory
 		})
 		.from(bookings)
 		.where(

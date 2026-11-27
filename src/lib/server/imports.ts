@@ -286,7 +286,9 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 		const byRule = categoryByRules(rules, {
 			counterparty: r.counterparty,
 			purpose: r.purpose,
-			iban: r.counterpartyIban
+			iban: r.counterpartyIban,
+			bookingText: r.bookingText,
+			bankCategory: r.bankCategory
 		});
 		if (byRule) return byRule;
 		const rememberedId = key ? remembered.get(key) : undefined;

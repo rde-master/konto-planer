@@ -710,12 +710,19 @@ export const counterpartyCategories = pgTable('counterparty_categories', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
-export const ruleField = pgEnum('rule_field', ['counterparty', 'purpose', 'iban']);
+export const ruleField = pgEnum('rule_field', [
+	'counterparty',
+	'purpose',
+	'iban',
+	'booking_text',
+	'bank_category'
+]);
 export const ruleOperator = pgEnum('rule_operator', ['contains', 'equals', 'starts_with']);
 
 /**
- * Category rules (global): "Verwendungszweck enthält X → Kategorie Y". The first matching rule
- * by `position` sets the category of imported bookings without a recurring item.
+ * Category rules (global): "Verwendungszweck enthält X → Kategorie Y", optionally with further
+ * conditions that must all hold. The first matching rule by `position` sets the category of
+ * bookings without a recurring item.
  */
 export const categoryRules = pgTable(
 	'category_rules',
@@ -724,6 +731,11 @@ export const categoryRules = pgTable(
 		field: ruleField('field').notNull(),
 		operator: ruleOperator('operator').notNull(),
 		value: text('value').notNull(),
+		/** Further conditions; the rule applies only if all of them hold as well. */
+		moreConditions: jsonb('more_conditions')
+			.$type<{ field: string; operator: string; value: string }[]>()
+			.notNull()
+			.default([]),
 		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
 		position: integer('position').notNull().default(0),
 		createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),

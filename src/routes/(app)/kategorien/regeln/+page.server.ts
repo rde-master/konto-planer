@@ -32,11 +32,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 function readInput(data: FormData) {
+	const all = (name: string) => data.getAll(name).map((v) => (typeof v === 'string' ? v : ''));
+	const operators = all('moreOperator');
+	const values = all('moreValue');
 	return {
 		field: formString(data, 'field'),
 		operator: formString(data, 'operator'),
 		value: formString(data, 'value'),
-		categoryId: formString(data, 'categoryId')
+		categoryId: formString(data, 'categoryId'),
+		// Further conditions: all of them must hold as well.
+		more: all('moreField').map((field, i) => ({
+			field,
+			operator: operators[i] ?? '',
+			value: values[i] ?? ''
+		}))
 	};
 }
 

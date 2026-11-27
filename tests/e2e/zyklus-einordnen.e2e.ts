@@ -23,7 +23,8 @@ async function book(page: Page, payee: string, amount: string, category?: string
 	const sheet = page.getByRole('dialog', { name: 'Neue Buchung' });
 	await sheet.getByLabel('Betrag in €').fill(amount);
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
-	if (category) await sheet.getByLabel('Kategorie').selectOption({ label: category });
+	if (category)
+		await sheet.getByLabel('Kategorie', { exact: true }).selectOption({ label: category });
 	await sheet.getByLabel('Empfänger/Zahler (optional)').fill(payee);
 	await sheet.getByRole('button', { name: 'Buchen' }).click();
 	await expect(sheet).toBeHidden();
@@ -48,15 +49,15 @@ test('a rule from a booking categorises the payee’s bookings without category'
 	await page.getByRole('button', { name: 'Immer so einordnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Immer so einordnen' });
 	// The proposal leaves out the number that changes from booking to booking.
-	await expect(sheet.getByLabel('Text')).toHaveValue(PAYEE);
+	await expect(sheet.getByLabel('Text Empfänger/Zahler')).toHaveValue(PAYEE);
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet.getByText('Bitte eine Kategorie wählen.')).toBeVisible();
 	// A text the booking does not contain would never match it.
-	await sheet.getByLabel('Kategorie').selectOption({ label: 'Supermarkt' });
-	await sheet.getByLabel('Text').fill('Zoohandlung');
+	await sheet.getByLabel('Kategorie', { exact: true }).selectOption({ label: 'Supermarkt' });
+	await sheet.getByLabel('Text Empfänger/Zahler').fill('Zoohandlung');
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet.getByText(/kommt in der Buchung nicht vor/)).toBeVisible();
-	await sheet.getByLabel('Text').fill(PAYEE);
+	await sheet.getByLabel('Text Empfänger/Zahler').fill(PAYEE);
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toContainText(
@@ -90,7 +91,7 @@ test('a new booking without category gets the payee’s category', async ({ page
 	await (await row(page, `${PAYEE} 9999`, '31,00')).click();
 	await page.getByRole('button', { name: 'Immer so einordnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Immer so einordnen' });
-	await sheet.getByLabel('Kategorie').selectOption({ label: 'Drogerie' });
+	await sheet.getByLabel('Kategorie', { exact: true }).selectOption({ label: 'Drogerie' });
 	await sheet.getByRole('button', { name: 'Sichern' }).click();
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toContainText('Keine weitere Buchung ohne Kategorie');

@@ -11,6 +11,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import {
+		MAX_CONDITIONS,
 		RULE_FIELDS,
 		RULE_FIELD_LABELS,
 		RULE_OPERATORS,
@@ -52,8 +53,16 @@
 	const status = $derived(form && 'success' in form ? form.success : undefined);
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 
+	/** Further conditions of the rule in the sheet (all must hold). */
+	let more = $state<{ field: string; operator: string; value: string }[]>([]);
+
+	function set(index: number, key: 'field' | 'operator', value: string) {
+		more[index][key] = value;
+	}
+
 	function start(rule: Rule | null) {
 		editing = rule;
+		more = (rule?.moreConditions ?? []).map((c) => ({ ...c }));
 		key++;
 		open = true;
 	}
@@ -119,7 +128,7 @@
 								{i + 1}
 							</span>
 							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[17px]">{ruleLabel(r)}</span>
+								<span class="block text-[17px]">{ruleLabel(r)}</span>
 								<span
 									class={[
 										'block truncate text-[13px]',
@@ -229,6 +238,64 @@
 					required
 					error={errors?.value}
 				/>
+			</ul>
+			{#each more as condition, i (i)}
+				<h3 class="mt-4 mb-1.5 flex items-baseline px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Und außerdem</span>
+					<button
+						type="button"
+						class="kp-text-button text-accent normal-case"
+						aria-label="Bedingung {i + 2} entfernen"
+						onclick={() => more.splice(i, 1)}
+					>
+						Entfernen
+					</button>
+				</h3>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<SelectField
+						label="Wenn ({i + 2})"
+						name="moreField"
+						options={RULE_FIELDS.map((f) => ({ value: f, label: RULE_FIELD_LABELS[f] }))}
+						value={condition.field}
+						onchange={(v: string) => set(i, 'field', v)}
+					/>
+					<SelectField
+						label="Bedingung ({i + 2})"
+						name="moreOperator"
+						options={RULE_OPERATORS.map((o) => ({ value: o, label: RULE_OPERATOR_LABELS[o] }))}
+						value={condition.operator}
+						onchange={(v: string) => set(i, 'operator', v)}
+					/>
+					<FormField
+						label="Text ({i + 2})"
+						name="moreValue"
+						bind:value={condition.value}
+						placeholder="z. B. Lastschrift"
+						maxlength={100}
+						autocomplete="off"
+					/>
+				</ul>
+			{/each}
+			{#if errors?.more}
+				<p class="mt-1.5 px-4 text-[13px] text-danger">{errors.more}</p>
+			{/if}
+			{#if more.length < MAX_CONDITIONS - 1}
+				<button
+					type="button"
+					class="mt-3 block w-full rounded-[var(--radius-row)] bg-card px-4 py-2.5 text-left text-accent active:bg-fill"
+					onclick={() => more.push({ field: 'booking_text', operator: 'equals', value: '' })}
+				>
+					Weitere Bedingung
+				</button>
+			{/if}
+			<p class="mt-1.5 mb-4 px-4 text-[13px] text-label-2">
+				Mit mehreren Bedingungen gilt die Regel nur, wenn alle zutreffen.
+			</p>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
 				<SelectField
 					label="Dann Kategorie"
 					name="categoryId"
