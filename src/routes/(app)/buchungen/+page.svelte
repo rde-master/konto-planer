@@ -66,9 +66,9 @@
 					? `${b.category.parentName} › ${b.category.name}`
 					: b.category.name
 				: 'Ohne Kategorie';
+		// "vorläufig" stands in front of this, in its own colour.
 		return [
 			recurringNote(title(b), b.recurringName),
-			b.source === 'provisional' ? 'vorläufig' : null,
 			category,
 			data.accountId ? null : b.account.name
 		]
@@ -308,19 +308,36 @@
 									{/each}
 								</span>
 							{/if}
-							{#if b.logo || b.counterparty || (b.recurringId && b.purpose)}
-								<Logo name={b.counterparty ?? b.purpose ?? '?'} logo={b.logo} />
-							{:else}
-								<span
-									class="grid size-9 shrink-0 place-items-center rounded-full text-white"
-									style:background-color={accountColorCss(b.category?.color ?? 'gray')}
-								>
-									<Icon class="size-5" strokeWidth={2.2} />
-								</span>
-							{/if}
+							<span class="relative flex shrink-0">
+								{#if b.logo || b.counterparty || (b.recurringId && b.purpose)}
+									<Logo name={b.counterparty ?? b.purpose ?? '?'} logo={b.logo} />
+								{:else}
+									<span
+										class="grid size-9 shrink-0 place-items-center rounded-full text-white"
+										style:background-color={accountColorCss(b.category?.color ?? 'gray')}
+									>
+										<Icon class="size-5" strokeWidth={2.2} />
+									</span>
+								{/if}
+								{#if b.source === 'provisional'}
+									<!-- Not confirmed by the bank yet; the word stands in the line below. -->
+									<span
+										class="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-provisional text-[11px] leading-none font-bold text-black shadow-sm"
+										aria-hidden="true"
+										data-provisional-mark
+									>
+										?
+									</span>
+								{/if}
+							</span>
 							<span class="min-w-0 flex-1">
 								<span class="block truncate text-[17px]">{title(b)}</span>
-								<span class="block truncate text-[13px] text-label-2">{subtitle(b)}</span>
+								<span class="block truncate text-[13px] text-label-2">
+									{#if b.source === 'provisional'}
+										<span class="font-medium text-provisional-text">vorläufig</span> ·
+									{/if}
+									{subtitle(b)}
+								</span>
 							</span>
 							<span class={['shrink-0 text-[17px] tabular', b.amount > 0 && 'text-income']}>
 								{b.amount > 0 ? '+' : ''}{formatEuro(b.amount)}
