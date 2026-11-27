@@ -1,9 +1,10 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from './db/index.js';
 import {
 	accounts,
 	bookings,
 	dueItems,
+	recurringAliases,
 	recurringAmounts,
 	recurringItems,
 	type DueItem,
@@ -13,6 +14,8 @@ import { audit, type Actor } from './audit.js';
 import type { Viewer } from './account-rules.js';
 import { getRecurringFor } from './recurring.js';
 import { duesUntil, reconcileDues, type ExpectedDue } from '../due.js';
+import { PAID_NAMED_WINDOW, paidBy } from '../import-match.js';
+import { addDays } from '../recurring.js';
 import { todayBerlin } from '../dates.js';
 import { isValidDate } from './recurring-rules.js';
 import { syncInterest } from './interest.js';
@@ -109,6 +112,119 @@ async function refreshBookings(tx: Tx, item: RecurringItem, rows: DueItem[]) {
 }
 
 /**
+ * Due items booked provisionally although the real payment is on the account already (the item
+ * was created after the import, or the payment was entered by hand): the real booking takes
+ * the place of the provisional one and the due item counts as booked – like in an import.
+ * Bookings released by hand (`noRecurring`) are never taken. Returns the number of bookings.
+ */
+async function adoptPaid(tx: Tx, item: RecurringItem, rows: DueItem[]): Promise<number> {
+	const sides = rows
+		.flatMap((row) => [
+			{
+				row,
+				key: 'bookingId' as const,
+				bookingId: row.bookingId,
+				accountId: item.accountId,
+				amount: signed(item, row.amount)
+			},
+			{
+				row,
+				key: 'targetBookingId' as const,
+				bookingId: row.targetBookingId,
+				accountId: item.kind === 'transfer' ? item.targetAccountId : null,
+				amount: row.amount
+			}
+		])
+		.filter((s) => s.bookingId !== null && s.accountId !== null)
+		.sort((a, b) => a.row.bookingDate.localeCompare(b.row.bookingDate));
+	if (!sides.length) return 0;
+	const dates = sides.map((s) => s.row.bookingDate);
+	const free = await tx
+		.select({
+			id: bookings.id,
+			accountId: bookings.accountId,
+			date: bookings.bookingDate,
+			amount: bookings.amount,
+			counterparty: bookings.counterparty,
+			purpose: bookings.purpose,
+			iban: bookings.iban,
+			mandateReference: bookings.mandateReference,
+			categoryId: bookings.categoryId
+		})
+		.from(bookings)
+		.where(
+			and(
+				inArray(bookings.accountId, [...new Set(sides.map((s) => s.accountId!))]),
+				inArray(bookings.source, ['manual', 'import']),
+				isNull(bookings.recurringId),
+				isNull(bookings.counterBookingId),
+				eq(bookings.noRecurring, false),
+				gte(bookings.bookingDate, addDays(dates[0], -PAID_NAMED_WINDOW)),
+				lte(bookings.bookingDate, addDays(dates.at(-1)!, PAID_NAMED_WINDOW))
+			)
+		);
+	if (!free.length) return 0;
+	const provisional = new Set(
+		(
+			await tx
+				.select({ id: bookings.id })
+				.from(bookings)
+				.where(
+					and(
+						inArray(
+							bookings.id,
+							sides.map((s) => s.bookingId!)
+						),
+						eq(bookings.source, 'provisional')
+					)
+				)
+		).map((b) => b.id)
+	);
+	const aliases = (
+		await tx
+			.select({ name: recurringAliases.name })
+			.from(recurringAliases)
+			.where(eq(recurringAliases.recurringId, item.id))
+	).map((a) => a.name);
+	let adopted = 0;
+	for (const side of sides) {
+		if (!provisional.has(side.bookingId!)) continue;
+		const paid = paidBy(
+			{ ...item, aliases },
+			{ accountId: side.accountId!, amount: side.amount, date: side.row.bookingDate },
+			free
+		);
+		if (!paid) continue;
+		free.splice(free.indexOf(paid), 1);
+		await tx
+			.update(bookings)
+			.set({
+				recurringId: item.id,
+				categoryId: paid.categoryId ?? (item.kind === 'transfer' ? null : item.categoryId),
+				updatedAt: new Date()
+			})
+			.where(eq(bookings.id, paid.id));
+		await tx
+			.update(dueItems)
+			.set({ [side.key]: paid.id, status: 'booked', updatedAt: new Date() })
+			.where(eq(dueItems.id, side.row.id));
+		await tx
+			.delete(bookings)
+			.where(and(eq(bookings.id, side.bookingId!), eq(bookings.source, 'provisional')));
+		await audit(tx, {
+			actor: null,
+			entityType: 'booking',
+			action: 'update',
+			entityId: paid.id,
+			entityLabel: paid.counterparty ?? paid.purpose ?? 'Buchung',
+			after: { assignedTo: item.name }
+		});
+		adopted++;
+	}
+	return adopted;
+}
+
+/**
  * Provisionally books every due item that reached its bank day, from the latest of the item's
  * start and the opening date of its accounts. Runs at start, hourly and after changes; items or
  * accounts that are archived stay as they are. Pass ids to sync only those items.
@@ -187,6 +303,9 @@ async function syncDueItems(ids: string[] | undefined, today: string): Promise<n
 				.from(dueItems)
 				.where(and(eq(dueItems.recurringId, item.id), eq(dueItems.status, 'provisional')));
 			await refreshBookings(tx, item, provisional);
+			// A real payment that is there already replaces the provisional booking.
+			const adopted = provisional.length ? await adoptPaid(tx, item, provisional) : 0;
+			changed += adopted;
 
 			const count = plan.create.length + plan.update.length + plan.remove.length;
 			if (count) {

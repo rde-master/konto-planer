@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.67.1] – Zahlungen nicht mehr doppelt
+
+### Behoben
+
+- Legst du einen Dauerposten an, dessen Zahlung schon auf dem Konto steht (importiert oder von Hand erfasst), stand sie bisher doppelt da: einmal echt, einmal „vorläufig“. Jetzt erkennt die App die vorhandene Buchung, ordnet sie dem Dauerposten zu und bucht nichts mehr vorläufig dazu
+- Als bezahlt gilt eine Fälligkeit, wenn auf dem Konto eine Buchung ohne Dauerposten mit genau dem geplanten Betrag steht, bis drei Tage davor oder danach – bis zehn Tage, wenn auch Name, IBAN oder Mandat passen
+- Schon doppelt vorhandene Zahlungen bereinigt die App nach dem Update von selbst: die vorläufige Buchung verschwindet, die echte gehört zum Dauerposten
+- Hat die App falsch zugeordnet, hilft „Zuordnung lösen“ an der Buchung – eine so gelöste Buchung (und im Import „keiner“) ordnet sie nicht noch einmal von selbst zu
+- Import rückgängig: Fälligkeiten, die du nach dem Import von Hand zugeordnet hattest, sind danach wieder offen
+
 ## [0.67.0] – Monatsübersicht je Konto
 
 ### Neu

@@ -142,6 +142,63 @@ export function sideOf(
 	return item.kind === 'income' ? 1 : -1;
 }
 
+/** A real booking without recurring item that may be the payment of a due date. */
+export type PaidCandidate = {
+	id: string;
+	accountId: string;
+	date: string;
+	amount: number;
+	counterparty: string | null;
+	purpose: string | null;
+	iban: string | null;
+	mandateReference: string | null;
+};
+
+/** A booking with the planned amount this close to the due date paid it. */
+export const PAID_WINDOW = 3;
+/** … and this close when it also names the item (mandate, IBAN or name). */
+export const PAID_NAMED_WINDOW = 10;
+
+/**
+ * The booking that already paid a due date – for due dates that are booked provisionally
+ * although the real payment is there (the item was created after the import, or the payment
+ * was entered by hand). The rules of the import: the planned amount within ±3 days, or within
+ * ±10 days when mandate, IBAN or name fit; an item with varying amounts needs the name only.
+ */
+export function paidBy<T extends PaidCandidate>(
+	item: Pick<
+		MatchItem,
+		'name' | 'kind' | 'counterparty' | 'iban' | 'mandateReference' | 'variable' | 'aliases'
+	>,
+	side: { accountId: string; amount: number; date: string },
+	candidates: T[]
+): T | null {
+	const fits = candidates
+		.filter((c) => c.accountId === side.accountId && Math.sign(c.amount) === Math.sign(side.amount))
+		.map((c) => ({
+			c,
+			gap: days(c.date, side.date),
+			exact: c.amount === side.amount,
+			named:
+				item.kind !== 'transfer' &&
+				((item.mandateReference !== null &&
+					c.mandateReference !== null &&
+					norm(item.mandateReference) === norm(c.mandateReference)) ||
+					(item.iban !== null && c.iban !== null && norm(item.iban) === norm(c.iban)) ||
+					rowNamesItem(item, c))
+		}))
+		.filter((x) =>
+			x.exact
+				? x.gap <= (x.named ? PAID_NAMED_WINDOW : PAID_WINDOW)
+				: x.named && item.variable === true && x.gap <= PAID_NAMED_WINDOW
+		)
+		.sort(
+			(a, b) =>
+				Number(b.exact) - Number(a.exact) || Number(b.named) - Number(a.named) || a.gap - b.gap
+		);
+	return fits[0]?.c ?? null;
+}
+
 /**
  * Status and assignment of every row. Order: duplicates (checksum stored or repeated in the
  * file), recurring items (mandate and creditor ID, then IBAN, then name with a due date

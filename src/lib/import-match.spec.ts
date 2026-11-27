@@ -5,9 +5,11 @@ import {
 	analyzeRows,
 	detectInterval,
 	namesMatch,
+	paidBy,
 	suggestItems,
 	type ImportContext,
-	type MatchItem
+	type MatchItem,
+	type PaidCandidate
 } from './import-match';
 
 const OWN = 'giro';
@@ -383,5 +385,82 @@ describe('suggestions', () => {
 			}
 		]);
 		expect(result.map((s) => s.name)).toContain('Café Übersee');
+	});
+});
+
+describe('paidBy', () => {
+	const cloud = item({ id: 'cloud', name: 'APPLE.COM iCloud' });
+	const side = { accountId: OWN, amount: -349, date: '2026-11-26' };
+	const booking = (over: Partial<PaidCandidate>): PaidCandidate => ({
+		id: 'b',
+		accountId: OWN,
+		date: '2026-11-26',
+		amount: -349,
+		counterparty: null,
+		purpose: 'APPLE.COM/BILL IRL CORK EUR 3,49 Umsatz vom 24.11.2026 MC Hauptkarte',
+		iban: null,
+		mandateReference: null,
+		...over
+	});
+
+	it('takes the booking with the planned amount within three days, whatever its name', () => {
+		expect(paidBy(cloud, side, [booking({})])?.id).toBe('b');
+		expect(paidBy(cloud, side, [booking({ date: '2026-11-29' })])?.id).toBe('b');
+		expect(paidBy(cloud, side, [booking({ date: '2026-11-30' })])).toBeNull();
+	});
+
+	it('needs the same account, direction and amount', () => {
+		expect(paidBy(cloud, side, [booking({ accountId: SAVINGS })])).toBeNull();
+		expect(paidBy(cloud, side, [booking({ amount: 349 })])).toBeNull();
+		expect(paidBy(cloud, side, [booking({ amount: -399 })])).toBeNull();
+	});
+
+	it('looks ten days around the due date when the booking names the item', () => {
+		const netflix = item({ id: 'n', name: 'Netflix', iban: 'DE02120300000000202051' });
+		const far = { date: '2026-11-18', purpose: null };
+		expect(paidBy(netflix, side, [booking(far)])).toBeNull();
+		expect(
+			paidBy(netflix, side, [booking({ ...far, counterparty: 'NETFLIX.COM 18.11.' })])?.id
+		).toBe('b');
+		expect(paidBy(netflix, side, [booking({ ...far, iban: 'DE02120300000000202051' })])?.id).toBe(
+			'b'
+		);
+		const byMandate = item({ id: 'm', name: 'Strom', mandateReference: 'MR-1' });
+		expect(paidBy(byMandate, side, [booking({ ...far, mandateReference: 'mr-1' })])?.id).toBe('b');
+		expect(
+			paidBy(item({ id: 'a', name: 'Zeitung', aliases: ['kiosk zentral'] }), side, [
+				booking({ ...far, counterparty: 'KIOSK ZENTRAL 4711' })
+			])?.id
+		).toBe('b');
+	});
+
+	it('accepts another amount only for an item with varying amounts that is named', () => {
+		const named = booking({ amount: -512, counterparty: 'Stadtwerke Musterstadt', purpose: null });
+		const strom = item({ id: 's', name: 'Strom', counterparty: 'Stadtwerke Musterstadt' });
+		expect(paidBy(strom, side, [named])).toBeNull();
+		expect(paidBy({ ...strom, variable: true }, side, [named])?.id).toBe('b');
+		expect(paidBy({ ...cloud, variable: true }, side, [booking({ amount: -512 })])).toBeNull();
+	});
+
+	it('prefers the exact amount, then the named booking, then the nearest day', () => {
+		const list = [
+			booking({ id: 'late', date: '2026-11-28' }),
+			booking({ id: 'near', date: '2026-11-27' }),
+			booking({ id: 'named', date: '2026-11-29', counterparty: 'APPLE.COM iCloud', purpose: null })
+		];
+		expect(paidBy(cloud, side, list)?.id).toBe('named');
+		expect(paidBy(cloud, side, list.slice(0, 2))?.id).toBe('near');
+	});
+
+	it('names a transfer by amount and day only', () => {
+		const transfer = item({
+			id: 't',
+			name: 'Sparplan',
+			kind: 'transfer',
+			targetAccountId: SAVINGS
+		});
+		const far = booking({ date: '2026-11-18', counterparty: 'Sparplan', purpose: null });
+		expect(paidBy(transfer, side, [far])).toBeNull();
+		expect(paidBy(transfer, side, [booking({ counterparty: 'Sparplan' })])?.id).toBe('b');
 	});
 });
