@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import FormField from '#lib/components/FormField.svelte';
@@ -81,6 +82,8 @@
 					</Button>
 					<p class="mt-2 text-[13px] text-label-2">
 						Gebucht wird heute; Konto und Empfänger kommen aus der Vorlage, sonst aus „Bucht auf“.
+						Die ausführliche Anleitung steht unter
+						<a href={resolve('kurzbefehle')} class="text-accent">iOS Kurzbefehle</a>.
 					</p>
 				</div>
 			{/if}

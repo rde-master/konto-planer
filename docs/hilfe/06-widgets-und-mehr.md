@@ -12,7 +12,11 @@ Für den **Sperrbildschirm** (ab iOS 16) gibt es die Größen rechteckig, rund u
 
 ## Schnellerfassung per Kurzbefehl
 
-Mit einem iOS-Kurzbefehl buchst du, ohne die App zu öffnen: Betrag eingeben, Vorlage oder Kategorie wählen, fertig. Unter **Einstellungen › API-Zugänge** einen Zugang mit Zweck **Kurzbefehl (bucht)** anlegen; die App zeigt dann die Schritte für die App „Kurzbefehle“.
+Mit einem iOS-Kurzbefehl buchst du, ohne die App zu öffnen: Betrag eingeben, fertig – vom Home-Bildschirm, mit der Aktionstaste oder per Siri. Unter **iOS Kurzbefehle** (im Menü „Mehr“) legst du dafür einen Zugang an und wählst das Konto, auf das gebucht wird. Die Seite zeigt Adresse und Kopfzeile zum Kopieren und führt Schritt für Schritt durch die App „Kurzbefehle“.
+
+Die einfache Fassung fragt nur nach dem Betrag; die Kategorie setzt die App dann über deine Regeln („Immer so einordnen“). Die erweiterte Fassung lässt dich vorher eine Vorlage oder Kategorie wählen. Gebucht wird immer am heutigen Tag.
+
+Einen fertigen Kurzbefehl zum Laden gibt es nicht: iOS nimmt nur Kurzbefehle an, die Apple signiert hat (iCloud-Link oder Mac). Den Zugang kannst du auf der Seite jederzeit widerrufen – etwa wenn das iPhone verloren geht.
 
 ## Kalender-Abo
 

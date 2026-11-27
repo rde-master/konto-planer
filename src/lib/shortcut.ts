@@ -44,6 +44,17 @@ export function shortcutOptions(
 }
 
 /**
+ * The chosen entry. Without a choice – the simple shortcut asks for the amount only – it is
+ * "Ohne Kategorie" (the category rules may still set one). Null for a choice that is unknown.
+ */
+export function chosenOption(options: ShortcutOption[], choice: unknown): ShortcutOption | null {
+	const label = typeof choice === 'string' ? choice.trim() : '';
+	if (!label && (choice === undefined || choice === null || typeof choice === 'string'))
+		return options.find((o) => o.type === 'category' && o.categoryId === null) ?? null;
+	return options.find((o) => o.label === label) ?? null;
+}
+
+/**
  * Amount from the shortcut: a number (12.8) or text ("12,80", "+1.200"). Positive = expense,
  * "+" = income; returns signed cents or null.
  */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shortcutAmount, shortcutOptions, shortcutReply } from './shortcut';
+import { chosenOption, shortcutAmount, shortcutOptions, shortcutReply } from './shortcut';
 
 describe('shortcutOptions', () => {
 	it('lists templates, then categories with their main category', () => {
@@ -59,5 +59,36 @@ describe('shortcutReply', () => {
 		).toBe(
 			'12,80 € Lebensmittel gebucht (Giro) · Lebensmittel: noch 87,20 € diesen Monat · verfügbar 612,00 €'
 		);
+	});
+});
+
+describe('chosenOption', () => {
+	const options = shortcutOptions(
+		[
+			{
+				id: 't1',
+				name: 'Bäcker',
+				kind: 'expense',
+				accountId: 'a1',
+				categoryId: 'c1',
+				counterparty: 'Bäckerei'
+			}
+		],
+		[{ id: 'c1', name: 'Bäckerei', parentName: 'Lebensmittel' }]
+	);
+
+	it('finds the chosen entry by its label', () => {
+		expect(chosenOption(options, ' Vorlage: Bäcker ')).toMatchObject({ type: 'template' });
+		expect(chosenOption(options, 'Lebensmittel › Bäckerei')).toMatchObject({ categoryId: 'c1' });
+	});
+
+	it('is "Ohne Kategorie" without a choice: the simple shortcut asks for the amount only', () => {
+		for (const none of [undefined, null, '', '  '])
+			expect(chosenOption(options, none)).toMatchObject({ type: 'category', categoryId: null });
+	});
+
+	it('rejects a choice it does not know', () => {
+		expect(chosenOption(options, 'Gibt es nicht')).toBeNull();
+		expect(chosenOption(options, 5)).toBeNull();
 	});
 });

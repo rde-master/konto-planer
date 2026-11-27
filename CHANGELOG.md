@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.74.0] – iOS Kurzbefehle
+
+### Neu
+
+- Neuer Menüpunkt „iOS Kurzbefehle“ (unter „Mehr“): Hier legst du den Zugang für einen Kurzbefehl an, wählst das Konto, auf das er bucht, und widerrufst ihn bei Bedarf
+- Adresse und Kopfzeile stehen mit Knöpfen zum Kopieren bereit – direkt zum Einfügen in die App „Kurzbefehle“
+- Schritt-für-Schritt-Anleitung auf der Seite: die einfache Fassung mit fünf Aktionen (nur Betrag eintippen) und die erweiterte mit Auswahl von Vorlage oder Kategorie, dazu Tipps für Home-Bildschirm, Aktionstaste und Siri
+- Der Kurzbefehl kann jetzt auch nur den Betrag senden. Die Kategorie setzt die App dann über deine Regeln („Immer so einordnen“); die Rückmeldung nennt, was gebucht wurde
+- Einen fertigen Kurzbefehl zum Laden gibt es nicht: iOS nimmt nur von Apple signierte Kurzbefehle an (iCloud-Link oder Mac). Die Seite erklärt das
+
 ## [0.73.0] – Bedienung am Handy
 
 ### Neu
