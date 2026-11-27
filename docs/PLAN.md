@@ -302,6 +302,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.67.0 | Monatsübersicht je Konto: Summe aller Abbuchungen, Eingänge und Saldo je Monat (aus den manuellen Tests) |
 | 0.68.0 | Buchungsliste: Zahlungen von Dauerposten farbig hinterlegt und beschriftet, Punkt in der Kategoriefarbe (aus den manuellen Tests) |
 | 0.69.0 | „Immer so einordnen“: Kategorie-Regel direkt an der Buchung, gilt für vorhandene Buchungen ohne Kategorie und für neue (aus den manuellen Tests) |
+| 0.70.0 | Finanzfluss: Flussdiagramm vom Gehalt über die Umbuchungen zu den Konten, Urteil je Konto, ob die Beträge geplant und im Rückblick reichen (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

@@ -12,6 +12,7 @@ const pages = [
 	{ name: 'dauerposten', path: '/dauerposten' },
 	{ name: 'buchungen', path: '/buchungen' },
 	{ name: 'auswertungen', path: '/auswertungen' },
+	{ name: 'finanzfluss', path: '/finanzfluss' },
 	{ name: 'widgets', path: '/widgets' }
 ];
 
