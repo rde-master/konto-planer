@@ -107,7 +107,7 @@ async function login(page: Page) {
 	await expect(page).toHaveURL('/');
 }
 
-const plain = (s: string) => s.replace(/ /g, ' ');
+const plain = (s: string) => s.replace(/\u00a0/g, ' ');
 
 /** Opens the account's page and returns its id. */
 async function openAccount(page: Page, name: string) {
