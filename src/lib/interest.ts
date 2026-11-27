@@ -95,3 +95,20 @@ export function periodStart(rhythm: InterestRhythm, end: string): string {
 	const months = rhythm === 'monthly' ? 1 : rhythm === 'quarterly' ? 3 : 12;
 	return addDays(monthEnd(addMonths(`${end.slice(0, 7)}-01`, -months)), 1);
 }
+
+/** Days around a period end in which the bank books the credit of that period. */
+export const CREDIT_WINDOW = 15;
+
+/**
+ * Period a credit of the bank booked on `day` belongs to: the nearest period end within
+ * ±15 days (banks book on the last bank day or a few days into the new period). Null if the
+ * day lies in the middle of a period – then the rhythm of the account does not fit the bank's.
+ */
+export function creditPeriod(rhythm: InterestRhythm, day: string): string | null {
+	const next = periodEnd(rhythm, day);
+	const previous = addDays(periodStart(rhythm, next), -1);
+	const gap = (end: string) =>
+		Math.abs(Date.parse(`${end}T00:00:00Z`) - Date.parse(`${day}T00:00:00Z`)) / 86_400_000;
+	const nearest = gap(previous) <= gap(next) ? previous : next;
+	return gap(nearest) <= CREDIT_WINDOW ? nearest : null;
+}

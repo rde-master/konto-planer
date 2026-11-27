@@ -4,6 +4,7 @@ import type { ImportRow } from './csv-import.js';
 import { duesBetween, type ExpectedDue } from './due.js';
 import { addDays, type AmountEntry, type Interval, type Schedule } from './recurring.js';
 import { payeeCore, payeeLabel, samePayee } from './payee-name.js';
+import { creditPeriod, type InterestRhythm } from './interest.js';
 
 export type MatchItem = Schedule & {
 	id: string;
@@ -32,12 +33,32 @@ export type StoredDue = {
 	sideBookingId: string | null;
 	/** The side booking is still provisional (it gets replaced). */
 	sideProvisional: boolean;
+	/**
+	 * Transfers: the due date is booked on the other account only – on this one the real
+	 * booking is still missing, so a row of the file may take it.
+	 */
+	sideOpen?: boolean;
 };
 
 export type OwnAccount = { id: string; name: string; iban: string | null; archived: boolean };
 
-/** Manual bookings, and counter bookings created by an import of the other account. */
-export type Replaceable = { id: string; date: string; amount: number; kind: 'manual' | 'counter' };
+/**
+ * Bookings the bank's row takes the place of: manual ones, counter bookings created by an
+ * import of the other account, and transfers the app booked for a savings goal.
+ */
+export type Replaceable = {
+	id: string;
+	date: string;
+	amount: number;
+	kind: 'manual' | 'counter' | 'goal';
+};
+
+/** Savings accounts: the interest periods of the account and what is stored for them. */
+export type InterestContext = {
+	rhythm: InterestRhythm;
+	/** `confirmed`: the credit is the bank's already (imported). */
+	credits: { id: string; periodEnd: string; amount: number; confirmed: boolean }[];
+};
 
 /** Unlinked bookings on other accounts that may be the other side of a transfer. */
 export type CounterCandidate = { id: string; accountId: string; date: string; amount: number };
@@ -50,6 +71,8 @@ export type ImportContext = {
 	replaceable: Replaceable[];
 	ownAccounts: OwnAccount[];
 	counterCandidates: CounterCandidate[];
+	/** Only on savings accounts: interest rows of the bank replace the computed credits. */
+	interest?: InterestContext;
 };
 
 export type RecurringMatch = {
@@ -64,8 +87,13 @@ export type RecurringMatch = {
 
 export type AnalyzedRow = ImportRow & {
 	checksum: string;
-	status: 'new' | 'duplicate' | 'recurring' | 'replace';
+	status: 'new' | 'duplicate' | 'recurring' | 'replace' | 'interest';
 	recurring: RecurringMatch | null;
+	/**
+	 * Interest credited by the bank (savings accounts): the period it closes and the credit the
+	 * app has for it (`before`: its amount, null without one).
+	 */
+	interest: { periodEnd: string; creditId: string | null; before: number | null } | null;
 	/** Manual booking (or counter booking) replaced by this row. */
 	replace: (Replaceable & { kind: Replaceable['kind'] }) | null;
 	/** Transfer to or from another account of the app. */
@@ -129,6 +157,20 @@ export function rowNamesItem(
 			(item.aliases?.includes(payeeCore(row.counterparty)) ?? false)
 		);
 	return containsWords(row.purpose, item.counterparty) || containsWords(row.purpose, item.name);
+}
+
+/**
+ * A row that credits interest: money in without a paying account, named "Zinsen" or booked as
+ * the bank's closing ("Abschluss").
+ */
+export function isInterestRow(
+	r: Pick<ImportRow, 'amount' | 'counterpartyIban' | 'bookingText' | 'purpose' | 'counterparty'>
+): boolean {
+	if (r.amount <= 0 || r.counterpartyIban) return false;
+	return (
+		/zins/i.test(`${r.bookingText ?? ''} ${r.purpose ?? ''} ${r.counterparty ?? ''}`) ||
+		/^\s*(rechnungs)?abschlu(ss|ß)/i.test(r.bookingText ?? '')
+	);
 }
 
 /** Effect of an item on the account: -1 out, +1 in, 0 none. */
@@ -214,7 +256,13 @@ export function analyzeRows(
 	const freeReplace = [...ctx.replaceable];
 	const freeCounter = [...ctx.counterCandidates];
 	const taken = new Set(
-		ctx.dues.filter((d) => d.status === 'booked').map((d) => `${d.recurringId}|${d.dueDate}`)
+		ctx.dues
+			// A transfer booked on the other account only is still open on this one.
+			.filter((d) => d.status === 'booked' && !d.sideOpen)
+			.map((d) => `${d.recurringId}|${d.dueDate}`)
+	);
+	const creditTaken = new Set(
+		ctx.interest?.credits.filter((c) => c.confirmed).map((c) => c.periodEnd)
 	);
 	const items = ctx.items
 		.map((item) => ({ item, side: sideOf(item, ctx.accountId) }))
@@ -251,13 +299,31 @@ export function analyzeRows(
 	}
 
 	for (const [position, r] of ordered.entries()) {
-		const base = { ...r, recurring: null, replace: null, transfer: null };
+		const base = { ...r, recurring: null, interest: null, replace: null, transfer: null };
 		if (seen.has(r.checksum)) {
 			out.set(r.line, { ...base, status: 'duplicate' });
 			continue;
 		}
 		seen.add(r.checksum);
 		const sign = r.amount < 0 ? -1 : 1;
+		if (ctx.interest && !byHand.has(r.line) && isInterestRow(r)) {
+			// The bank's credit takes the place of the computed one of its period.
+			const end = creditPeriod(ctx.interest.rhythm, r.bookingDate);
+			if (end && !creditTaken.has(end)) {
+				creditTaken.add(end);
+				const credit = ctx.interest.credits.find((c) => c.periodEnd === end);
+				out.set(r.line, {
+					...base,
+					status: 'interest',
+					interest: {
+						periodEnd: end,
+						creditId: credit?.id ?? null,
+						before: credit?.amount ?? null
+					}
+				});
+				continue;
+			}
+		}
 		const own = r.counterpartyIban ? ownByIban.get(r.counterpartyIban) : undefined;
 		// "No recurring item" by hand: nothing is looked for.
 		const candidates = r.assign === null ? [] : items.filter((x) => x.side === sign);
@@ -291,6 +357,19 @@ export function analyzeRows(
 					Number(b.due !== null) - Number(a.due !== null)
 			)[0];
 
+		/** A later row of the file pays exactly the planned amount of the due date. */
+		const exactFollows = (due: ExpectedDue, same: (o: (typeof ordered)[number]) => boolean) =>
+			ordered
+				.slice(position + 1)
+				.some(
+					(o) =>
+						Math.sign(o.amount) === sign &&
+						Math.abs(o.amount) === due.amount &&
+						!seen.has(o.checksum) &&
+						days(o.bookingDate, due.bookingDate) <= 10 &&
+						same(o)
+				);
+
 		if (!found && r.counterpartyIban) {
 			// Same IBAN. The payee's name may have changed – then a due date nearby must confirm it.
 			const byIban = best(
@@ -311,7 +390,16 @@ export function analyzeRows(
 							!item.counterparty ||
 							namesMatch(item.counterparty, r.counterparty)
 					}))
-					.filter((x) => x.named || x.due)
+					.filter((x) => {
+						if (x.item.kind !== 'transfer') return x.named || x.due;
+						// Between two own accounts every transfer has this IBAN: only one with a due
+						// date nearby is the standing order – and not if a later row pays exactly it.
+						return (
+							x.due !== null &&
+							(x.due.amount === amount ||
+								!exactFollows(x.due, (o) => o.counterpartyIban === r.counterpartyIban))
+						);
+					})
 			);
 			if (byIban) found = { item: byIban.item, via: 'iban', due: byIban.due };
 		}
@@ -325,18 +413,8 @@ export function analyzeRows(
 						if (due === null) return false;
 						if (due.amount === amount) return true;
 						// Another amount: not if a later row of the file pays exactly the planned one.
-						const exactFollows = ordered
-							.slice(position + 1)
-							.some(
-								(o) =>
-									Math.sign(o.amount) === sign &&
-									Math.abs(o.amount) === due.amount &&
-									!seen.has(o.checksum) &&
-									days(o.bookingDate, due.bookingDate) <= 10 &&
-									rowNamesItem(item, o)
-							);
 						return (
-							!exactFollows &&
+							!exactFollows(due, (o) => rowNamesItem(item, o)) &&
 							(item.variable || Math.abs(due.amount - amount) <= due.amount * NAME_AMOUNT_TOLERANCE)
 						);
 					})

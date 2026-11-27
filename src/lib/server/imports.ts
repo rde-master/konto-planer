@@ -8,7 +8,9 @@ import {
 	categories,
 	counterpartyCategories,
 	dueItems,
+	goalTransfers,
 	imports,
+	interestCredits,
 	recurringAliases,
 	recurringAmounts,
 	recurringItems,
@@ -60,18 +62,18 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type StoredRow = ImportRow & { checksum: string; assign?: Assignment };
 
-/** Account the viewer may import into: giro (with IBAN) or credit card, edit right, active. */
+/**
+ * Account the viewer may import into: giro or savings account (with IBAN) or credit card,
+ * edit right, active.
+ */
 export async function importableAccount(viewer: Viewer, accountId: string) {
 	const account = await getAccountFor(viewer, accountId);
 	if (!account) return null;
-	const reason =
-		account.type === 'sparbuch'
-			? 'Importieren lassen sich nur Girokonten und Kreditkarten.'
-			: !canEditAccount(account.level, account.archivedAt !== null)
-				? 'Auf dieses Konto darfst du nicht importieren.'
-				: !account.iban && account.type === 'giro'
-					? 'Bitte erst die IBAN des Kontos eintragen; der Import prüft sie.'
-					: null;
+	const reason = !canEditAccount(account.level, account.archivedAt !== null)
+		? 'Auf dieses Konto darfst du nicht importieren.'
+		: !account.iban && account.type !== 'kreditkarte'
+			? 'Bitte erst die IBAN des Kontos eintragen; der Import prüft sie.'
+			: null;
 	return { account, reason };
 }
 
@@ -97,7 +99,7 @@ export async function createDraft(
 		throw e;
 	}
 	// Credit cards without an IBAN: the export's account column is not checked.
-	const checkIban = ctx.account.type === 'giro' || ctx.account.iban !== null;
+	const checkIban = ctx.account.type !== 'kreditkarte' || ctx.account.iban !== null;
 	const other = checkIban && parsed.rows.find((r) => r.accountIban !== ctx.account.iban);
 	if (other)
 		throw new ImportError(
@@ -168,6 +170,8 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 				id: accounts.id,
 				name: accounts.name,
 				iban: accounts.iban,
+				type: accounts.type,
+				interestRhythm: accounts.interestRhythm,
 				archivedAt: accounts.archivedAt
 			})
 			.from(accounts),
@@ -227,6 +231,21 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 		: [[], [], []];
 	const sourceOf = new Map(near.map((b) => [b.id, b.source]));
 	const itemById = new Map(items.map((i) => [i.id, i]));
+	const account = ownAccounts.find((a) => a.id === accountId);
+	// Savings accounts: the bank's interest rows replace the computed credits.
+	const credits =
+		account?.type === 'sparbuch'
+			? await executor
+					.select({
+						id: interestCredits.id,
+						periodEnd: interestCredits.periodEnd,
+						amount: interestCredits.amount,
+						importId: bookings.importId
+					})
+					.from(interestCredits)
+					.leftJoin(bookings, eq(bookings.id, interestCredits.bookingId))
+					.where(eq(interestCredits.accountId, accountId))
+			: null;
 	const matchItems: MatchItem[] = items.map((i) => ({
 		...i,
 		aliases: aliases.filter((a) => a.recurringId === i.id).map((a) => a.name),
@@ -238,13 +257,17 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 	const storedDues: StoredDue[] = dues.map((d) => {
 		const item = itemById.get(d.recurringId)!;
 		const side = item.accountId === accountId ? d.bookingId : d.targetBookingId;
+		const sideProvisional = side !== null && sourceOf.get(side) === 'provisional';
 		return {
 			id: d.id,
 			recurringId: d.recurringId,
 			dueDate: d.dueDate,
 			status: d.status,
 			sideBookingId: side,
-			sideProvisional: side !== null && sourceOf.get(side) === 'provisional'
+			sideProvisional,
+			// The other account's import booked the transfer; here the bank's row is still due.
+			sideOpen:
+				item.kind === 'transfer' && d.status === 'booked' && (side === null || sideProvisional)
 		};
 	});
 	const ctx: ImportContext = {
@@ -258,13 +281,20 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 					b.source === 'manual' ||
 					// A computed credit card settlement is replaced by the real debit.
 					b.source === 'settlement' ||
+					// … and a transfer booked for a savings goal by the bank's own row.
+					b.source === 'goal' ||
 					(b.source === 'import' && b.checksum === null && b.counterBookingId !== null)
 			)
 			.map((b) => ({
 				id: b.id,
 				date: b.bookingDate,
 				amount: b.amount,
-				kind: b.source === 'manual' ? ('manual' as const) : ('counter' as const)
+				kind:
+					b.source === 'manual'
+						? ('manual' as const)
+						: b.source === 'goal'
+							? ('goal' as const)
+							: ('counter' as const)
 			})),
 		ownAccounts: ownAccounts.map((a) => ({
 			id: a.id,
@@ -272,7 +302,20 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 			iban: a.iban,
 			archived: a.archivedAt !== null
 		})),
-		counterCandidates: others
+		counterCandidates: others,
+		...(account && credits
+			? {
+					interest: {
+						rhythm: account.interestRhythm,
+						credits: credits.map((c) => ({
+							id: c.id,
+							periodEnd: c.periodEnd,
+							amount: c.amount,
+							confirmed: c.importId !== null
+						}))
+					}
+				}
+			: {})
 	};
 	const byName = new Map(cats.map((c) => [c.name.toLowerCase(), c.id]));
 	const remembered = new Map(mapping.map((m) => [m.key, m.categoryId]));
@@ -295,7 +338,7 @@ export async function loadContext(executor: Executor, accountId: string, rows: S
 		if (rememberedId) return rememberedId;
 		return r.bankCategory ? (byName.get(r.bankCategory.toLowerCase()) ?? null) : null;
 	};
-	return { ctx, categoryOf, itemById, near, ownAccounts };
+	return { ctx, categoryOf, itemById, near, ownAccounts, savings: account?.type === 'sparbuch' };
 }
 
 /** Earlier imported payments without a recurring item (for suggestions). */
@@ -325,7 +368,8 @@ async function analyze(executor: Executor, accountId: string, rows: StoredRow[])
 	const analyzed = analyzeRows(rows, loaded.ctx);
 	const dates = rows.map((r) => r.bookingDate).sort();
 	const history = dates.length ? await historyOf(executor, accountId, dates[0]) : [];
-	const suggestions = suggestItems(analyzed, history);
+	// Savings accounts have no recurring items of their own: nothing to suggest.
+	const suggestions = loaded.savings ? [] : suggestItems(analyzed, history);
 	return { ...loaded, analyzed, suggestions };
 }
 
@@ -440,6 +484,7 @@ function stripAnalysis(r: AnalyzedRow): StoredRow {
 	const copy: Partial<AnalyzedRow> & { categoryId?: unknown } = { ...r };
 	delete copy.status;
 	delete copy.recurring;
+	delete copy.interest;
 	delete copy.replace;
 	delete copy.transfer;
 	delete copy.categoryId;
@@ -471,6 +516,11 @@ type UndoData = {
 	hints?: string[];
 	/** Payee names learned from rows assigned by hand. */
 	aliases?: string[];
+	/** Interest credits before the bank's row replaced them, and credits the import created. */
+	credits?: { id: string; amount: number; amountSet: boolean; bookingId: string | null }[];
+	createdCredits?: string[];
+	/** Goal transfers whose booking the bank's row replaced. */
+	goalLinks?: { id: string; bookingId: string | null; targetBookingId: string | null }[];
 };
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -604,7 +654,10 @@ export async function commitImport(
 			links: [],
 			parts: [],
 			hints: [],
-			aliases: []
+			aliases: [],
+			credits: [],
+			createdCredits: [],
+			goalLinks: []
 		};
 		let created = 0;
 		let matched = 0;
@@ -616,7 +669,64 @@ export async function commitImport(
 				noRecurring: choice.assign?.get(r.line) === null
 			};
 			const categoryId = categoryOf(r);
-			if (r.status === 'recurring' && r.recurring) {
+			if (r.status === 'interest' && r.interest) {
+				// The bank's credit: the computed booking of the period becomes the bank's row.
+				const [credit] = await tx
+					.select()
+					.from(interestCredits)
+					.where(
+						and(
+							eq(interestCredits.accountId, accountId),
+							eq(interestCredits.periodEnd, r.interest.periodEnd)
+						)
+					);
+				const [old] = credit?.bookingId
+					? await tx.select().from(bookings).where(eq(bookings.id, credit.bookingId))
+					: [];
+				const fields = { ...values, source: 'interest' as const, noRecurring: false };
+				let bookingId: string;
+				if (old) {
+					undo.restoreBookings.push(old);
+					await tx
+						.update(bookings)
+						.set({ ...fields, categoryId: old.categoryId ?? categoryId, updatedAt: new Date() })
+						.where(eq(bookings.id, old.id));
+					bookingId = old.id;
+				} else {
+					const [booking] = await tx
+						.insert(bookings)
+						.values({ ...fields, categoryId })
+						.returning({ id: bookings.id });
+					bookingId = booking.id;
+				}
+				createdByLine.set(r.line, bookingId);
+				if (credit) {
+					undo.credits!.push({
+						id: credit.id,
+						amount: credit.amount,
+						amountSet: credit.amountSet,
+						bookingId: credit.bookingId
+					});
+					await tx
+						.update(interestCredits)
+						.set({ amount: r.amount, amountSet: true, bookingId, updatedAt: new Date() })
+						.where(eq(interestCredits.id, credit.id));
+					matched++;
+				} else {
+					const [inserted] = await tx
+						.insert(interestCredits)
+						.values({
+							accountId,
+							periodEnd: r.interest.periodEnd,
+							amount: r.amount,
+							amountSet: true,
+							bookingId
+						})
+						.returning({ id: interestCredits.id });
+					undo.createdCredits!.push(inserted.id);
+					created++;
+				}
+			} else if (r.status === 'recurring' && r.recurring) {
 				const item = itemById.get(r.recurring.id)!;
 				const [booking] = await tx
 					.insert(bookings)
@@ -687,6 +797,40 @@ export async function commitImport(
 						.update(bookings)
 						.set({ counterBookingId: old.counterBookingId })
 						.where(eq(bookings.id, booking.id));
+				}
+				// A transfer booked for a savings goal: the goal keeps it, now with the bank's row,
+				// and both sides stay linked (so it still counts as internal).
+				if (old?.source === 'goal') {
+					const [transfer] = await tx
+						.select()
+						.from(goalTransfers)
+						.where(
+							or(eq(goalTransfers.bookingId, old.id), eq(goalTransfers.targetBookingId, old.id))
+						);
+					if (transfer) {
+						const side = transfer.bookingId === old.id ? 'bookingId' : 'targetBookingId';
+						const otherId = side === 'bookingId' ? transfer.targetBookingId : transfer.bookingId;
+						undo.goalLinks!.push({
+							id: transfer.id,
+							bookingId: transfer.bookingId,
+							targetBookingId: transfer.targetBookingId
+						});
+						await tx
+							.update(goalTransfers)
+							.set({ [side]: booking.id })
+							.where(eq(goalTransfers.id, transfer.id));
+						if (otherId && !old.counterBookingId) {
+							undo.links.push({ id: otherId, counterBookingId: null });
+							await tx
+								.update(bookings)
+								.set({ counterBookingId: booking.id })
+								.where(eq(bookings.id, otherId));
+							await tx
+								.update(bookings)
+								.set({ counterBookingId: otherId })
+								.where(eq(bookings.id, booking.id));
+						}
+					}
 				}
 				// A split stays with the real booking.
 				const moved = await tx
@@ -1129,6 +1273,24 @@ export async function undoImport(
 					updatedAt: new Date()
 				})
 				.where(eq(dueItems.id, d.id));
+		// Interest: credits the import created go, replaced ones are the computed ones again.
+		if (undo.createdCredits?.length)
+			await tx.delete(interestCredits).where(inArray(interestCredits.id, undo.createdCredits));
+		for (const c of undo.credits ?? [])
+			await tx
+				.update(interestCredits)
+				.set({
+					amount: c.amount,
+					amountSet: c.amountSet,
+					bookingId: c.bookingId,
+					updatedAt: new Date()
+				})
+				.where(eq(interestCredits.id, c.id));
+		for (const g of undo.goalLinks ?? [])
+			await tx
+				.update(goalTransfers)
+				.set({ bookingId: g.bookingId, targetBookingId: g.targetBookingId })
+				.where(eq(goalTransfers.id, g.id));
 		for (const a of undo.amounts) {
 			const where = and(
 				eq(recurringAmounts.recurringId, a.recurringId),

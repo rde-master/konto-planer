@@ -2,6 +2,21 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.78.0] – Import auch für Sparbücher
+
+### Neu
+
+- Sparbücher lassen sich jetzt importieren wie Girokonten – auf der Kontoseite unter „CSV importieren“ und per Kurzbefehl. Voraussetzung ist die IBAN am Sparbuch; daran erkennt der Kurzbefehl das Konto
+- Die Zeilen der Bank ersetzen, was die App auf dem Sparbuch schon selbst gebucht hat, damit nichts doppelt steht: die Gegenbuchung einer Umbuchung vom Girokonto, die vorläufige Buchung eines Dauerauftrags aufs Sparbuch und die Umbuchung für ein Sparziel
+- Zinsen: Schreibt die Bank Zinsen gut, ersetzt ihr Betrag die berechnete Gutschrift der Zinsperiode. Die Buchung heißt dann „Zinsen (Import)“ und ändert sich nicht mehr, wenn die App neu rechnet
+- Wie bei jedem Import: Abgleich mit dem Saldo der Bank, und der jüngste Import lässt sich rückgängig machen – die berechneten Zinsen und die eigenen Buchungen der App sind dann wieder da
+
+### Behoben
+
+- Import: Eine Umbuchung fürs Sparziel stand nach dem Import des Girokontos doppelt da (einmal von der App, einmal von der Bank). Die Zeile der Bank ersetzt sie jetzt
+- Import: Eine zusätzliche Überweisung aufs eigene Sparbuch wurde dem Dauerauftrag zugeordnet und kam auf dem Sparbuch nicht an. Zum Dauerauftrag gehört jetzt nur noch die Zahlung in der Nähe seiner Fälligkeit, bevorzugt die mit dem geplanten Betrag; alles andere ist eine eigene Umbuchung mit Gegenbuchung
+- Kurzbefehl: Bei einem Sparbuch hieß es irreführend, zur IBAN gebe es kein Konto
+
 ## [0.77.0] – Frameworks und Bibliotheken
 
 ### Neu

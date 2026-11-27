@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { computeInterest, formatRate, parseRate, periodEnd, periodStart, rateOn } from './interest';
+import {
+	computeInterest,
+	creditPeriod,
+	formatRate,
+	parseRate,
+	periodEnd,
+	periodStart,
+	rateOn
+} from './interest';
 
 describe('rates', () => {
 	it('parses and formats percent', () => {
@@ -30,6 +38,23 @@ describe('periods', () => {
 		expect(periodEnd('yearly', '2026-05-10')).toBe('2026-12-31');
 		expect(periodStart('quarterly', '2026-06-30')).toBe('2026-04-01');
 		expect(periodStart('yearly', '2026-12-31')).toBe('2026-01-01');
+	});
+});
+
+describe('creditPeriod', () => {
+	it('is the nearest period end: the bank books on the last bank day or shortly after', () => {
+		expect(creditPeriod('yearly', '2026-12-31')).toBe('2026-12-31');
+		expect(creditPeriod('yearly', '2026-12-30')).toBe('2026-12-31');
+		expect(creditPeriod('yearly', '2027-01-04')).toBe('2026-12-31');
+		expect(creditPeriod('quarterly', '2026-07-01')).toBe('2026-06-30');
+		expect(creditPeriod('monthly', '2026-03-02')).toBe('2026-02-28');
+		expect(creditPeriod('monthly', '2026-03-30')).toBe('2026-03-31');
+	});
+
+	it('is null in the middle of a period', () => {
+		expect(creditPeriod('yearly', '2026-06-30')).toBeNull();
+		expect(creditPeriod('yearly', '2027-01-16')).toBeNull();
+		expect(creditPeriod('quarterly', '2026-05-15')).toBeNull();
 	});
 });
 
