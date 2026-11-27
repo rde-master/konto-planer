@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.77.0] – Frameworks und Bibliotheken
+
+### Neu
+
+- Einstellungen: Neue Seite „Frameworks und Bibliotheken“ zeigt, womit die App gebaut ist – Frameworks, Bibliotheken und die Werkzeuge für Entwicklung und Tests, jeweils mit Version, Lizenz und kurzem Zweck
+- Dazu die Laufzeit: die Versionen von Node.js und PostgreSQL, mit denen die App gerade läuft
+- Ein Tipp auf den Namen öffnet die Seite des Pakets bei npm
+
 ## [0.76.0] – Dauerposten finden und einordnen
 
 ### Neu

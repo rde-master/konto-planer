@@ -6,6 +6,7 @@
 	import Zap from '@lucide/svelte/icons/zap';
 	import CalendarDays from '@lucide/svelte/icons/calendar-days';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
+	import Blocks from '@lucide/svelte/icons/blocks';
 	import Activity from '@lucide/svelte/icons/activity';
 	import Bell from '@lucide/svelte/icons/bell';
 	import BellRing from '@lucide/svelte/icons/bell-ring';
@@ -123,6 +124,12 @@
 			href="einstellungen/neuigkeiten"
 			icon={Sparkles}
 			iconColor="bg-[#af52de]"
+		/>
+		<ListRow
+			label="Frameworks und Bibliotheken"
+			href="einstellungen/software"
+			icon={Blocks}
+			iconColor="bg-[#8e8e93]"
 		/>
 	</ListGroup>
 
