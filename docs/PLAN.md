@@ -305,6 +305,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.70.0 | Finanzfluss: Flussdiagramm vom Gehalt über die Umbuchungen zu den Konten, Urteil je Konto, ob die Beträge geplant und im Rückblick reichen (aus den manuellen Tests) |
 | 0.71.0 | Buchungsliste: vorläufige Buchungen mit gelbem Fragezeichen am Symbol und gelbem „vorläufig“ (aus den manuellen Tests) |
 | 0.72.0 | Kategorie-Regeln mit mehreren Bedingungen (alle müssen zutreffen), auch nach Buchungstext und Kategorie der Bank; „Immer so einordnen“ als Mehrfachauswahl (aus den manuellen Tests) |
+| 0.73.0 | Bedienung am Handy: ein Plus in der Buchungsliste, Zurück-Knopf über dem kleinen Titel (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

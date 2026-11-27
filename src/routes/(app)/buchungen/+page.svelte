@@ -28,6 +28,7 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import Logo from '#lib/components/Logo.svelte';
 	import { categoryDots, recurringNote } from '#lib/booking-list.js';
+	import { takeFab } from '#lib/fab.svelte.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, todayBerlin } from '#lib/dates.js';
 	import type { PageProps } from './$types';
@@ -42,6 +43,13 @@
 
 	const options = $derived(data.quickEntry);
 	const canCreate = $derived(options.bookingAccounts.length > 0);
+
+	function openCreate() {
+		formKey++;
+		createOpen = true;
+	}
+	// Phones: the round plus at the bottom opens this page's form – one plus, not two.
+	$effect(() => (canCreate ? takeFab('Buchung erfassen', openCreate) : undefined));
 
 	/** Bookings grouped by day, newest first (the list is already sorted). */
 	const days = $derived.by(() => {
@@ -164,11 +172,8 @@
 			<button
 				type="button"
 				aria-label="Buchung erfassen"
-				onclick={() => {
-					formKey++;
-					createOpen = true;
-				}}
-				class="grid size-11 place-items-center rounded-full text-accent glass active:opacity-60"
+				onclick={openCreate}
+				class="hidden size-11 place-items-center rounded-full text-accent glass active:opacity-60 md:grid"
 			>
 				<Plus class="size-6" strokeWidth={2.2} />
 			</button>

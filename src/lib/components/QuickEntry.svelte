@@ -16,6 +16,7 @@
 	import { applyAction, enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { fabTakeover } from '#lib/fab.svelte.js';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Sheet from './Sheet.svelte';
 	import BookingFields from './BookingFields.svelte';
@@ -36,6 +37,8 @@
 	} = $props();
 
 	const STORAGE_KEY = 'kontoplaner.quickAccount';
+	// A page may use the plus button for its own form (the booking list).
+	const taken = $derived(fabTakeover());
 
 	let open = $state(false);
 	let pending = $state(false);
@@ -105,8 +108,8 @@
 
 <button
 	type="button"
-	aria-label="Schnellerfassung"
-	onclick={start}
+	aria-label={taken?.label ?? 'Schnellerfassung'}
+	onclick={taken ? taken.run : start}
 	class="fixed right-4 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.5rem)] z-40 grid size-14 place-items-center rounded-full bg-accent text-accent-contrast shadow-lg active:opacity-80 md:hidden"
 >
 	<Plus class="size-7" strokeWidth={2.4} />

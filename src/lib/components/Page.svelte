@@ -39,6 +39,7 @@
 	);
 	// Where the user came from (e.g. the account whose booking this is), if anywhere.
 	const previous = $derived(back || returns ? previousPage() : null);
+	const hasBack = $derived(Boolean(back || previous));
 	$effect(() => retitle(page.url.pathname + page.url.search, title));
 
 	function goBack(event: MouseEvent) {
@@ -65,32 +66,59 @@
 	<title>{title} · Konto Planer</title>
 </svelte:head>
 
-<!-- Compact bar: transparent at the top, glass with a small centred title once the large title scrolls away. -->
+<!--
+	Compact bar: transparent at the top, glass with a small title once the large title scrolls
+	away – centred, or on phones below the back button if the page has one.
+-->
 <header
 	class={[
 		'sticky top-0 z-30 pt-safe transition-[background-color,box-shadow] duration-200',
 		collapsed ? 'rounded-none border-x-0 border-t-0 glass' : 'border-0 bg-transparent shadow-none'
 	]}
 >
-	<div class={['mx-auto grid h-13 grid-cols-[1fr_auto_1fr] items-center px-4 md:px-8', width]}>
-		<span class="min-w-0">
-			{#if back || previous}
+	<div
+		class={[
+			'mx-auto grid h-13 items-center px-4 md:grid-cols-[1fr_auto_1fr] md:px-8',
+			hasBack ? 'grid-cols-[1fr_auto]' : 'grid-cols-[1fr_auto_1fr]',
+			width
+		]}
+	>
+		<span class="flex min-w-0 flex-col justify-center md:block">
+			{#if hasBack}
 				<!-- eslint-disable svelte/no-navigation-without-resolve -- resolvePath() wraps resolve() -->
 				<a
 					href={previous ? previous.path : back ? resolvePath(back.path) : undefined}
 					onclick={previous ? goBack : undefined}
-					class="-ml-2 flex items-center py-2 text-[17px] text-accent active:opacity-60"
+					class={[
+						'-ml-2 flex items-center text-accent active:opacity-60 md:py-2 md:text-[17px]',
+						collapsed ? 'pt-1 text-[13px]' : 'py-2 text-[17px]'
+					]}
 				>
-					<ChevronLeft class="size-7 shrink-0" strokeWidth={2.2} />
+					<ChevronLeft
+						class={['shrink-0 md:size-7', collapsed ? 'size-5' : 'size-7']}
+						strokeWidth={2.2}
+					/>
 					<span class="truncate">{previous ? previous.title : back?.label}</span>
 				</a>
+				<!-- Phones: the small title stands below the back button, so neither is cut short. -->
+				{#if collapsed}
+					<span
+						class="truncate pb-1 text-[15px] leading-5 font-semibold md:hidden"
+						aria-hidden="true"
+						data-compact-title
+					>
+						{title}
+					</span>
+				{/if}
 			{/if}
 		</span>
 		<span
 			aria-hidden={!collapsed}
 			class={[
 				'text-[17px] font-semibold transition-opacity duration-200',
-				collapsed ? 'opacity-100' : 'opacity-0'
+				collapsed ? 'opacity-100' : 'opacity-0',
+				// With a back button the phone shows the title below it instead.
+				hasBack && 'hidden md:block'
 			]}
 		>
 			{title}

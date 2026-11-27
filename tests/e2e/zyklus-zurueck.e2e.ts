@@ -82,3 +82,43 @@ test('opened directly, back leads to the parent page', async ({ page, context })
 	await expect(tab).toHaveURL(/\/buchungen$/);
 	await tab.close();
 });
+
+test('on the phone the list has one plus, and the back button stands above the small title', async ({
+	page
+}) => {
+	await login(page);
+	// The round plus at the bottom opens the list's own form; there is no second one at the top.
+	await page.goto('/buchungen?q=PIXELSHOP');
+	await expect(page.getByRole('button', { name: 'Buchung erfassen' })).toHaveCount(1);
+	await expect(page.getByRole('button', { name: 'Schnellerfassung' })).toHaveCount(0);
+	await page.getByRole('button', { name: 'Buchung erfassen' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Neue Buchung' });
+	await expect(sheet.getByLabel('Datum')).toBeVisible();
+	await sheet.getByRole('button', { name: 'Abbrechen' }).click();
+	await expect(sheet).toBeHidden();
+
+	// A booking with a long name (from zyklus-regeln): elsewhere the plus is the quick entry.
+	// With the amount: the filter chip names the shop as well.
+	await page
+		.getByRole('main')
+		.getByRole('link', { name: /PIXELSHOP.*2,19/ })
+		.click();
+	await expect(page.getByRole('heading', { level: 1, name: /PIXELSHOP/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Schnellerfassung' })).toHaveCount(1);
+	await expect(page.getByRole('button', { name: 'Buchung erfassen' })).toHaveCount(0);
+
+	// Scrolled: the small title appears below the back button; neither is cut short.
+	await page.mouse.wheel(0, 600);
+	const small = page.locator('main header [data-compact-title]');
+	await expect(small).toBeVisible();
+	await expect(small).toContainText('PIXELSHOP');
+	const back = page.locator('main header').getByRole('link');
+	const label = back.locator('span');
+	await expect(label).toHaveText('Buchungen');
+	expect(await label.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+	const backBox = (await back.boundingBox())!;
+	const smallBox = (await small.boundingBox())!;
+	expect(backBox.y + backBox.height).toBeLessThanOrEqual(smallBox.y + 1);
+	await back.click();
+	await expect(page).toHaveURL(/\/buchungen\?q=PIXELSHOP/);
+});
