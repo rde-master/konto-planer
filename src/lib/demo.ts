@@ -71,3 +71,15 @@ export function demoBookings(from: string, today: string, seed: number): DemoBoo
 			}
 	return out;
 }
+
+/** Two names of the same shop, as banks print them: the payee report puts them together. */
+export const DEMO_PAYEE_GROUP = {
+	name: 'Frischemarkt',
+	names: ['Frischemarkt Beispiel', 'FRISCHEMARKT SAGT DANKE']
+};
+
+/** Payee as it stands on the booking: the supermarket debits under a second name now and then. */
+export function demoPayee(b: Pick<DemoBooking, 'payee' | 'date'>): string {
+	const [first, second] = DEMO_PAYEE_GROUP.names;
+	return b.payee === first && Number(b.date.slice(8)) % 3 === 0 ? second : b.payee;
+}

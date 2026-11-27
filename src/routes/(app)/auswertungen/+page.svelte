@@ -5,6 +5,7 @@
 	import Page from '#lib/components/Page.svelte';
 	import SelectField from '#lib/components/SelectField.svelte';
 	import BarChart from '#lib/components/BarChart.svelte';
+	import PayeeReport from '#lib/components/PayeeReport.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
@@ -12,10 +13,11 @@
 	import { heatLevel, savingsRate } from '#lib/reports.js';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	const VIEWS = [
 		{ value: 'kategorien', label: 'Kategorien' },
+		{ value: 'empfaenger', label: 'Empfänger' },
 		{ value: 'einaus', label: 'Ein/Aus' },
 		{ value: 'fixkosten', label: 'Fixkosten' },
 		{ value: 'preise', label: 'Preise' },
@@ -165,6 +167,19 @@
 				Echte und vorläufige Buchungen; Umbuchungen zwischen eigenen Konten zählen nicht.
 			</p>
 		</section>
+	{:else if data.payees}
+		<PayeeReport
+			rows={data.payees.rows}
+			period={data.payees.period}
+			presets={data.payees.presets}
+			account={data.accounts.options.some(
+				(o) => o.value === data.accounts.value && !['giro', 'alle'].includes(o.value)
+			)
+				? data.accounts.value
+				: null}
+			query={q}
+			result={form}
+		/>
 	{:else if data.inOut}
 		{@const income = data.inOut.reduce((s, m) => s + m.income, 0)}
 		{@const expenses = data.inOut.reduce((s, m) => s + m.expenses, 0)}
