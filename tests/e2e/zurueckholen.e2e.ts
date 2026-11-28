@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -117,6 +118,7 @@ test('a deleted recurring item comes back with its due dates; logged', async ({ 
 	await expect(sheet).toBeHidden();
 
 	await page.getByRole('link', { name: /^Zeitschrift Wertstoff/ }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Dauerposten löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Dauerposten löschen' })

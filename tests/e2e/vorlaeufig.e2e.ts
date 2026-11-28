@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 import { nextBankDay } from '../../src/lib/bank-calendar';
@@ -104,6 +105,7 @@ test('a provisional booking can get another amount, date or be skipped', async (
 		.getByRole('button', { name: 'Zurücknehmen' })
 		.click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Strom' })).toBeVisible();
+	await openTab(page, 'Buchungen');
 	const recent = page.getByRole('region', { name: 'Letzte Fälligkeiten' });
 	await expect(recent).toContainText('zurückgenommen');
 
@@ -115,6 +117,7 @@ test('skipped due items can be restored with their changes', async ({ page }) =>
 	await login(page);
 	await page.goto('/dauerposten');
 	await page.getByRole('link', { name: /Strom/ }).click();
+	await openTab(page, 'Buchungen');
 	await page.getByRole('button', { name: 'Wiederherstellen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Fälligkeit wieder vorläufig gebucht.');
 	await expect(page.getByRole('region', { name: 'Letzte Fälligkeiten' })).toContainText(
@@ -146,6 +149,7 @@ test('deleting an item removes its provisional bookings; logged', async ({ page 
 	await login(page);
 	await page.goto('/dauerposten');
 	await page.getByRole('link', { name: /Strom/ }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Dauerposten löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Dauerposten löschen' })

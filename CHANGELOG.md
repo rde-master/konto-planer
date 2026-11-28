@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.84.0] – Dauerposten: Buchungen und Reiter
+
+### Neu
+
+- Dauerposten zeigen jetzt auch ihre Buchungen, nicht nur die künftigen Fälligkeiten: Der neue Reiter „Buchungen“ listet alles, was zu dem Dauerposten gebucht ist – importiert, von Hand zugeordnet oder vorläufig –, mit Anzahl und Summe. Ein Tipp öffnet die Buchung
+- Die Seite eines Dauerpostens ist in Reiter aufgeteilt, statt alles untereinander zu zeigen: „Übersicht“ (nächste Fälligkeiten, Pause, Vertrag, Rücklage, Sparziele), „Buchungen“, „Betrag“ (Betragsverlauf, Änderung planen, Darlehen), „Bearbeiten“ (Angaben ändern, archivieren, löschen) und „Mehr“ (Dokumente, Tags, Logo, Namen im Import)
+- Der gewählte Reiter bleibt beim Sichern stehen, und wer von einer Buchung zurückkommt, landet wieder im selben Reiter. Mit den Pfeiltasten wechselst du am Rechner zwischen den Reitern
+
 ## [0.83.0] – Übersicht: Konten zuerst
 
 ### Geändert

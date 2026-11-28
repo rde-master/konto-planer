@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -86,6 +87,7 @@ test('tags of a recurring item apply to its bookings', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await page.getByRole('link', { name: /^Ferienwohnung/ }).click();
+	await openTab(page, 'Mehr');
 	await page.getByRole('button', { name: 'Tags ändern' }).click();
 	const tags = page.getByRole('dialog', { name: 'Tags' });
 	await tags.getByLabel('Urlaub Italien').check();

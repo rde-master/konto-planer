@@ -46,17 +46,19 @@ import { duesBetween } from '#lib/due.js';
 import { DueError, recentDues, restoreDue } from '#lib/server/due.js';
 import { todayBerlin } from '#lib/dates.js';
 import { AssignError, listAliases, removeAlias } from '#lib/server/recurring-assign.js';
+import { itemBookings } from '#lib/server/recurring-bookings.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = locals.user!;
 	const item = await getRecurringFor(user, params.id);
 	if (!item) error(404, 'Dauerposten nicht gefunden.');
-	const [{ options }, settings, attachments, recent] = await Promise.all([
+	const [{ options }, settings, attachments, recent, booked] = await Promise.all([
 		recurringFormContext(user, item),
 		getSettings(),
 		listAttachments(item.id),
-		recentDues(item.id)
+		recentDues(item.id),
+		itemBookings(user, item.id)
 	]);
 	const today = todayBerlin();
 	// Due items after today (today's are booked provisionally), shifted to bank days.
@@ -94,6 +96,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			status: d.status,
 			bookingId: ownSide ? d.bookingId : d.targetBookingId
 		})),
+		/** Bookings of the item (tab "Buchungen"). */
+		booked,
 		today,
 		hasData: await recurringHasData(item.id),
 		/** Payee names learned from bookings assigned by hand. */

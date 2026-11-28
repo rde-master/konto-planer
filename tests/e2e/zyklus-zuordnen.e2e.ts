@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -78,6 +79,7 @@ test('a row of the file is assigned in the preview; the name is remembered', asy
 
 	// The item knows the name now …
 	await page.getByRole('link', { name: /Dauerposten.*Lesezirkel Karte/ }).click();
+	await openTab(page, 'Mehr');
 	const names = page.getByRole('region', { name: 'Namen im Import' });
 	await expect(names).toContainText('kiosk zentral');
 
@@ -96,6 +98,7 @@ test('a row of the file is assigned in the preview; the name is remembered', asy
 	// Forgetting the name is possible at the item.
 	await page.goto('/dauerposten');
 	await page.getByRole('link', { name: /Lesezirkel Karte/ }).click();
+	await openTab(page, 'Mehr');
 	await page.getByRole('button', { name: 'kiosk zentral entfernen' }).click();
 	await expect(page.getByRole('region', { name: 'Namen im Import' })).toHaveCount(0);
 });
