@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Runs after foundation (admin "erika"), kategorien (default categories without "Wohnen")
 // and lockout (user "lena").
@@ -116,6 +117,7 @@ test('due dates clamp to month end; amount history with a future change', async 
 	await expect(upcoming.getByRole('listitem').nth(1)).toContainText('28.02.2030');
 	await expect(upcoming.getByRole('listitem').nth(3)).toContainText('30.04.2030');
 
+	await openTab(page, 'Betrag');
 	await page.getByRole('button', { name: 'Änderung planen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Änderung planen' });
 	await sheet.getByLabel('Betrag in €').fill('14,99');
@@ -124,8 +126,10 @@ test('due dates clamp to month end; amount history with a future change', async 
 	await expect(sheet).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText('Betragsverlauf gesichert.');
 
+	await openTab(page, 'Übersicht');
 	await expect(upcoming.getByRole('listitem').nth(1)).toContainText(/−12,99\s€/);
 	await expect(upcoming.getByRole('listitem').nth(2)).toContainText(/−14,99\s€/);
+	await openTab(page, 'Betrag');
 	const history = page.getByRole('list', { name: 'Betragsverlauf' });
 	await expect(history).toContainText(/ab 01\.03\.2030\s*geplant · 14,99\s€/);
 	await expect(history).toContainText(/ab 31\.01\.2030\s*aktuell · 12,99\s€/);
@@ -141,9 +145,11 @@ test('due dates clamp to month end; amount history with a future change', async 
 	await sheet.getByRole('button', { name: 'Abbrechen' }).click();
 
 	// Edit fields: quarterly instead of monthly.
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Intervall').selectOption({ label: 'Vierteljährlich' });
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
+	await openTab(page, 'Übersicht');
 	await expect(upcoming.getByRole('listitem').nth(1)).toContainText('30.04.2030');
 });
 
@@ -153,8 +159,10 @@ test('lena can only view; edits are refused on the server', async ({ page }) => 
 	await expect(page.getByRole('button', { name: 'Dauerposten anlegen' })).toHaveCount(0);
 	await itemLink(page, 'Streaming').click();
 	await expect(page.getByText('Du kannst diesen Dauerposten nur ansehen.')).toBeVisible();
+	await openTab(page, 'Betrag');
 	await expect(page.getByRole('button', { name: 'Änderung planen' })).toHaveCount(0);
-	await expect(page.getByText('Archivieren')).toHaveCount(0);
+	// No tab for editing and managing at all.
+	await expect(page.getByRole('tab', { name: 'Bearbeiten' })).toHaveCount(0);
 	const res = await page.request.post(`${page.url()}?/amountAdd`, {
 		form: { amount: '1', validFrom: '2031-01-01' },
 		headers: { origin: test.info().project.use.baseURL!, 'x-sveltekit-action': 'true' }
@@ -166,12 +174,15 @@ test('archive, restore, delete; accounts with items cannot be deleted', async ({
 	await login(page, ADMIN.username, ADMIN.password);
 	await page.goto('/dauerposten');
 	await itemLink(page, 'Wasser').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Archivieren' }).click();
 	await expect(page.getByRole('status')).toHaveText('Dauerposten archiviert.');
+	await openTab(page, 'Übersicht');
 	await expect(page.getByText('Archivierte Dauerposten sind schreibgeschützt.')).toBeVisible();
 	await page.goto('/dauerposten');
 	await expect(page.getByRole('heading', { name: 'Archiviert' })).toBeVisible();
 	await itemLink(page, 'Wasser').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Wiederherstellen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Dauerposten wiederhergestellt.');
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addMonths } from '../../src/lib/recurring';
 
@@ -31,6 +32,7 @@ test('planning a change shows old, new and the difference', async ({ page }) => 
 
 	await page.getByRole('link', { name: /Fitnessstudio/ }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Fitnessstudio' })).toBeVisible();
+	await openTab(page, 'Betrag');
 	await page.getByRole('button', { name: 'Änderung planen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Änderung planen' });
 	await sheet.getByLabel('Gültig ab').fill(CHANGE);

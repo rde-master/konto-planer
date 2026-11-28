@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Runs after kategorien (user "nina"), lockout
 // (user "lena") and recurring (giro account "Alltagskonto").
@@ -104,7 +105,7 @@ test('nina sees the transfer as incoming on her account, read-only', async ({ pa
 	await row.click();
 	await expect(page.getByText(`${SOURCE} → ${TARGET}`)).toBeVisible();
 	await expect(page.getByText('Du kannst diesen Dauerposten nur ansehen.')).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Archivieren' })).toHaveCount(0);
+	await expect(page.getByRole('tab', { name: 'Bearbeiten' })).toHaveCount(0);
 	// The source account stays hidden.
 	await page.goto('/konten');
 	await expect(page.getByRole('link', { name: new RegExp(SOURCE) })).toHaveCount(0);
@@ -145,6 +146,7 @@ test('the creator keeps editing after losing edit access', async ({ page }) => {
 	await group(page, SOURCE)
 		.getByRole('link', { name: /Sparrate/ })
 		.click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Bezeichnung', { exact: true }).fill('Sparrate Erika');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');

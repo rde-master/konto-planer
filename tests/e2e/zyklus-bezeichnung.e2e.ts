@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -133,6 +134,7 @@ test('the recurring items show the alternative name; without one there is nothin
 	await expect(page.getByRole('heading', { level: 1, name: ALT })).toBeVisible();
 
 	// Taking the alternative name away brings the item's payee back in the list.
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('main').getByRole('textbox', { name: 'Alternative Bezeichnung' }).fill('');
 	await page.getByRole('button', { name: 'Sichern' }).click();
 	await expect(page.getByText('Änderungen gesichert.')).toBeVisible();

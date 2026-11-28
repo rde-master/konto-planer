@@ -4,6 +4,8 @@
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Page from '#lib/components/Page.svelte';
+	import Tabs from '#lib/components/Tabs.svelte';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import { listTitle } from '#lib/recurring-list.js';
 	import ListGroup from '#lib/components/ListGroup.svelte';
@@ -143,6 +145,36 @@
 		}[form.action];
 	});
 
+	/** Parts of the page. Editing and managing only for those who may. */
+	const tabs = $derived([
+		{ id: 'uebersicht', label: 'Übersicht' },
+		{ id: 'buchungen', label: 'Buchungen' },
+		{ id: 'betrag', label: 'Betrag' },
+		...(item.canEdit || canManage ? [{ id: 'bearbeiten', label: 'Bearbeiten' }] : []),
+		{ id: 'mehr', label: 'Mehr' }
+	]);
+	/** Where the form of an action stands: the page opens there after a submit without JavaScript. */
+	const ACTION_TABS: Record<string, string> = {
+		update: 'bearbeiten',
+		archive: 'bearbeiten',
+		restore: 'bearbeiten',
+		amount: 'betrag',
+		amountDelete: 'betrag',
+		loan: 'betrag',
+		loanDelete: 'betrag',
+		extra: 'betrag',
+		extraDelete: 'betrag',
+		loanEnd: 'betrag',
+		restoreDue: 'buchungen',
+		attachmentAdd: 'mehr',
+		attachmentDelete: 'mehr',
+		tags: 'mehr',
+		logo: 'mehr',
+		removeAlias: 'mehr'
+	};
+	// svelte-ignore state_referenced_locally
+	let tab = $state((form?.action ? ACTION_TABS[form.action] : undefined) ?? 'uebersicht');
+
 	const fieldValues = $derived(updateInput ?? { ...item, amount: undefined });
 	const contractValues = $derived(
 		updateInput ? (updateInput.contract ? updateInput : null) : item.contract
@@ -229,469 +261,540 @@
 		class="mb-8"
 	/>
 
-	{#if data.upcoming.length}
-		<ListGroup
-			header="Nächste Fälligkeiten"
-			footer="Fällt ein Termin auf ein Wochenende oder einen Bankfeiertag, gilt der nächste Bankarbeitstag."
-		>
-			{#each data.upcoming as due (due.dueDate)}
-				<ListRow
-					label={due.bookingDate === due.dueDate
-						? formatDay(due.bookingDate)
-						: `${formatDay(due.bookingDate)} (statt ${formatDay(due.dueDate)})`}
-					value={`${sign}${formatEuro(due.amount)}`}
-				/>
-			{/each}
-		</ListGroup>
-	{:else if !item.archivedAt}
-		<p class="mb-8 px-4 text-[15px] text-label-2">
-			{paused
-				? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
-				: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
-		</p>
-	{/if}
+	<Tabs {tabs} bind:active={tab} />
 
-	{#if data.logo.key && item.canEdit}
-		<LogoPicker
-			name={item.counterparty ?? item.name}
-			logo={data.logo.logo}
-			chosen={data.logo.chosen}
-		/>
-	{/if}
-
-	<TagEditor
-		allTags={data.tags.all}
-		selected={data.tags.selected}
-		canEdit={item.canEdit}
-		error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
-	/>
-
-	{#if item.kind === 'expense' && (data.loan || item.canEdit)}
-		<LoanSection
-			loan={data.loan}
-			canEdit={item.canEdit}
-			endDate={item.endDate}
-			loanInput={form?.action === 'loan' && 'loanInput' in form ? form.loanInput : undefined}
-			loanErrors={form?.action === 'loan' && 'errors' in form ? form.errors : undefined}
-			extraInput={form?.action === 'extra' && 'extraInput' in form ? form.extraInput : undefined}
-			extraErrors={form?.action === 'extra' && 'errors' in form ? form.errors : undefined}
-		/>
-	{/if}
-
-	{#if reserve !== null}
-		<ListGroup
-			header="Rücklage"
-			footer="Für Zahlungen alle drei Monate oder seltener: so viel solltest du jeden Monat zurücklegen."
-		>
-			<ListRow label="Rücklage im Monat" value={formatEuro(reserve)} />
-			{#if !data.goals.length}
-				<ListRow label="Als Sparziel anlegen" href={`ruecklagen?posten=${item.id}` as Path} />
-			{/if}
-		</ListGroup>
-	{/if}
-
-	{#if data.goals.length}
-		<section class="mb-8" aria-label="Sparziele">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+	{#if tab === 'uebersicht'}
+		{#if data.upcoming.length}
+			<ListGroup
+				header="Nächste Fälligkeiten"
+				footer="Fällt ein Termin auf ein Wochenende oder einen Bankfeiertag, gilt der nächste Bankarbeitstag."
 			>
-				{#each data.goals as goal (goal.id)}<GoalRow {goal} showAccount />{/each}
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Am Tag der Zahlung kommt das Zurückgelegte vom Sparbuch aufs Girokonto.
+				{#each data.upcoming as due (due.dueDate)}
+					<ListRow
+						label={due.bookingDate === due.dueDate
+							? formatDay(due.bookingDate)
+							: `${formatDay(due.bookingDate)} (statt ${formatDay(due.dueDate)})`}
+						value={`${sign}${formatEuro(due.amount)}`}
+					/>
+				{/each}
+			</ListGroup>
+		{:else if !item.archivedAt}
+			<p class="mb-8 px-4 text-[15px] text-label-2">
+				{paused
+					? 'Keine Fälligkeiten – der Dauerposten ruht, bis die Pause beendet wird.'
+					: 'Keine weiteren Fälligkeiten – der Dauerposten ist beendet.'}
 			</p>
-		</section>
-	{/if}
+		{/if}
 
-	{#if data.recent.length}
-		<section class="mb-8" aria-label="Letzte Fälligkeiten">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Letzte Fälligkeiten</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				{#each data.recent as due (due.id)}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-2">
-						<span class="min-w-0 flex-1">
-							{#if due.bookingId}
-								<a
-									href={resolve(`buchungen/${due.bookingId}`)}
-									class="block text-[17px] text-accent"
+		{#if paused || item.canEdit}
+			<ListGroup header="Pause" footer="Während der Pause entstehen keine Fälligkeiten.">
+				{#if paused}
+					<ListRow label="Von" value={formatDay(item.pauseFrom ?? '')} />
+					<ListRow
+						label="Bis"
+						value={item.pauseUntil ? formatDay(item.pauseUntil) : 'bis auf Weiteres'}
+					/>
+					{#if item.canEdit}
+						<li>
+							<button
+								type="button"
+								onclick={openPause}
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+							>
+								Pause ändern
+							</button>
+						</li>
+						<li>
+							<form method="POST" action="?/pauseEnd" use:enhance>
+								<button
+									type="submit"
+									class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
 								>
-									{formatDay(due.bookingDate)}
-								</a>
-							{:else}
-								<span class="block text-[17px]">{formatDay(due.bookingDate)}</span>
-							{/if}
-							<span class="block text-[13px] text-label-2">{DUE_STATUS_LABELS[due.status]}</span>
-						</span>
-						{#if due.status === 'skipped' && item.canManage}
-							<form method="POST" action="?/restoreDue" use:enhance>
-								<input type="hidden" name="dueId" value={due.id} />
-								<button type="submit" class="kp-text-button text-[15px] text-accent">
-									Wiederherstellen
+									Pause beenden
 								</button>
 							</form>
-						{:else}
-							<span
-								class={[
-									'shrink-0 text-[17px] tabular',
-									due.status === 'skipped' && 'text-label-3 line-through'
-								]}
-							>
-								{sign}{formatEuro(due.amount)}
-							</span>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Am Fälligkeitstag vorläufig gebucht; der Import bestätigt sie später.
-			</p>
-		</section>
-	{/if}
-
-	{#if paused || item.canEdit}
-		<ListGroup header="Pause" footer="Während der Pause entstehen keine Fälligkeiten.">
-			{#if paused}
-				<ListRow label="Von" value={formatDay(item.pauseFrom ?? '')} />
-				<ListRow
-					label="Bis"
-					value={item.pauseUntil ? formatDay(item.pauseUntil) : 'bis auf Weiteres'}
-				/>
-				{#if item.canEdit}
+						</li>
+					{/if}
+				{:else}
 					<li>
 						<button
 							type="button"
 							onclick={openPause}
 							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
 						>
-							Pause ändern
+							Pausieren
 						</button>
 					</li>
-					<li>
-						<form method="POST" action="?/pauseEnd" use:enhance>
-							<button
-								type="submit"
-								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
-							>
-								Pause beenden
-							</button>
-						</form>
-					</li>
 				{/if}
-			{:else}
-				<li>
-					<button
-						type="button"
-						onclick={openPause}
-						class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
-					>
-						Pausieren
-					</button>
-				</li>
-			{/if}
-		</ListGroup>
-	{/if}
+			</ListGroup>
+		{/if}
 
-	{#if contract && contractState}
-		<ListGroup
-			header="Vertrag"
-			footer={soon
-				? 'Die Kündigungsfrist läuft bald ab. Die Kündigung muss bis zum genannten Tag beim Anbieter sein.'
-				: undefined}
-		>
-			{#if contractState.state === 'fixed'}
-				<ListRow label="Kündigen bis" value={formatDay(contractState.deadline)} />
-				<ListRow label="Vertragsende dann" value={formatDay(contractState.end)} />
-			{:else if contractState.state === 'anytime'}
-				<ListRow label="Kündbar" value="jederzeit" />
-				<ListRow label="Frühestes Ende" value={formatDay(contractState.end)} />
-			{:else if contractState.state === 'ends'}
-				<ListRow label="Endet am" value={`${formatDay(contractState.end)} (ohne Kündigung)`} />
-			{:else}
-				<ListRow label="Gekündigt am" value={formatDay(contract.cancelledOn ?? '')} />
-				<ListRow label="Vertragsende" value={formatDay(contractState.end)} />
-			{/if}
-			<ListRow
-				label="Kündigungsfrist"
-				value={periodLabel(contract.noticeEvery, contract.noticeUnit)}
-			/>
-			<ListRow label="Verlängerung" value={renewalLabel(contract)} />
-			{#if contract.termEnd}<ListRow
-					label="Laufzeit bis"
-					value={formatDay(contract.termEnd)}
-				/>{/if}
-			{#if reminder}<ListRow label="Bald kündbar ab" value={formatDay(reminder)} />{/if}
-			{#if item.canEdit && !item.archivedAt && contractState.state !== 'ends'}
-				<ListRow label="Kündigungsschreiben erstellen" href={`dauerposten/${item.id}/kuendigung`} />
-			{/if}
-		</ListGroup>
-	{/if}
-
-	<section class="mb-8">
-		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Betragsverlauf</h2>
-		<ul
-			class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			aria-label="Betragsverlauf"
-		>
-			{#each item.amounts as entry (entry.id)}
-				{@const state =
-					entry.id === currentId ? 'aktuell' : entry.validFrom > data.today ? 'geplant' : null}
-				{#if item.canEdit}
-					<ListRow
-						label={`ab ${formatDay(entry.validFrom)}`}
-						value={`${state ? `${state} · ` : ''}${formatEuro(entry.amount)}`}
-						onclick={() => openAmount(entry)}
-					/>
+		{#if contract && contractState}
+			<ListGroup
+				header="Vertrag"
+				footer={soon
+					? 'Die Kündigungsfrist läuft bald ab. Die Kündigung muss bis zum genannten Tag beim Anbieter sein.'
+					: undefined}
+			>
+				{#if contractState.state === 'fixed'}
+					<ListRow label="Kündigen bis" value={formatDay(contractState.deadline)} />
+					<ListRow label="Vertragsende dann" value={formatDay(contractState.end)} />
+				{:else if contractState.state === 'anytime'}
+					<ListRow label="Kündbar" value="jederzeit" />
+					<ListRow label="Frühestes Ende" value={formatDay(contractState.end)} />
+				{:else if contractState.state === 'ends'}
+					<ListRow label="Endet am" value={`${formatDay(contractState.end)} (ohne Kündigung)`} />
 				{:else}
+					<ListRow label="Gekündigt am" value={formatDay(contract.cancelledOn ?? '')} />
+					<ListRow label="Vertragsende" value={formatDay(contractState.end)} />
+				{/if}
+				<ListRow
+					label="Kündigungsfrist"
+					value={periodLabel(contract.noticeEvery, contract.noticeUnit)}
+				/>
+				<ListRow label="Verlängerung" value={renewalLabel(contract)} />
+				{#if contract.termEnd}<ListRow
+						label="Laufzeit bis"
+						value={formatDay(contract.termEnd)}
+					/>{/if}
+				{#if reminder}<ListRow label="Bald kündbar ab" value={formatDay(reminder)} />{/if}
+				{#if item.canEdit && !item.archivedAt && contractState.state !== 'ends'}
 					<ListRow
-						label={`ab ${formatDay(entry.validFrom)}`}
-						value={`${state ? `${state} · ` : ''}${formatEuro(entry.amount)}`}
+						label="Kündigungsschreiben erstellen"
+						href={`dauerposten/${item.id}/kuendigung`}
 					/>
 				{/if}
-			{/each}
-			{#if item.canEdit}
-				<li>
-					<button
-						type="button"
-						onclick={() => openAmount(null)}
-						class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
-					>
-						Änderung planen
-					</button>
-				</li>
-			{/if}
-		</ul>
-		<p class="mt-1.5 px-4 text-[13px] text-label-2">
-			Jede Preisänderung bleibt erhalten. Eine Änderung mit künftigem „Gültig ab“ gilt erst ab dem
-			Tag; bis dahin rechnet die App mit dem bisherigen Betrag.
-		</p>
-	</section>
+			</ListGroup>
+		{/if}
 
-	{#if data.attachments.length || item.canEdit}
-		<section class="mb-8" aria-labelledby="documents-heading">
-			<h2 id="documents-heading" class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
-				Dokumente
+		{#if reserve !== null}
+			<ListGroup
+				header="Rücklage"
+				footer="Für Zahlungen alle drei Monate oder seltener: so viel solltest du jeden Monat zurücklegen."
+			>
+				<ListRow label="Rücklage im Monat" value={formatEuro(reserve)} />
+				{#if !data.goals.length}
+					<ListRow label="Als Sparziel anlegen" href={`ruecklagen?posten=${item.id}` as Path} />
+				{/if}
+			</ListGroup>
+		{/if}
+
+		{#if data.goals.length}
+			<section class="mb-8" aria-label="Sparziele">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.goals as goal (goal.id)}<GoalRow {goal} showAccount />{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Am Tag der Zahlung kommt das Zurückgelegte vom Sparbuch aufs Girokonto.
+				</p>
+			</section>
+		{/if}
+	{/if}
+
+	{#if tab === (item.canEdit ? 'bearbeiten' : 'uebersicht')}
+		{#if item.canEdit}
+			<form
+				method="POST"
+				action="?/update"
+				use:enhance={() => {
+					savePending = true;
+					return async ({ update }) => {
+						await update({ reset: false });
+						savePending = false;
+					};
+				}}
+			>
+				<RecurringFields
+					values={fieldValues}
+					errors={updateErrors}
+					accounts={data.accountOptions}
+					targets={data.targetOptions}
+					categories={data.categoryGroups}
+					contract={contractValues}
+					defaultLeadDays={data.defaultLeadDays}
+					kinds={transfer ? ['transfer'] : ['expense', 'income']}
+				/>
+				<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
+			</form>
+		{:else}
+			<ListGroup
+				header="Angaben"
+				footer={item.archivedAt
+					? 'Archivierte Dauerposten sind schreibgeschützt.'
+					: 'Du kannst diesen Dauerposten nur ansehen.'}
+			>
+				{#if transfer}
+					<ListRow label="Von Konto" value={item.account.name} />
+					<ListRow label="Auf Konto" value={item.targetAccount?.name ?? '–'} />
+				{:else}
+					<ListRow label="Konto" value={item.account.name} />
+				{/if}
+				{#if item.altName}
+					<ListRow label="Bezeichnung" value={item.name} />
+					<ListRow label="Alternative Bezeichnung" value={item.altName} />
+				{/if}
+				<ListRow label="Start" value={formatDay(item.startDate)} />
+				{#if item.endDate}<ListRow label="Ende" value={formatDay(item.endDate)} />{/if}
+				{#if item.counterparty}
+					<ListRow
+						label={item.kind === 'income' ? 'Zahler' : 'Empfänger'}
+						value={item.counterparty}
+					/>
+				{/if}
+				{#if item.iban}<ListRow label="IBAN" value={formatIban(item.iban)} />{/if}
+				{#if item.paymentMethod}
+					<ListRow label="Zahlart" value={PAYMENT_METHOD_LABELS[item.paymentMethod]} />
+				{/if}
+				{#if item.mandateReference}<ListRow
+						label="Mandatsreferenz"
+						value={item.mandateReference}
+					/>{/if}
+				{#if item.creditorId}<ListRow label="Gläubiger-ID" value={item.creditorId} />{/if}
+				{#if item.isSalary}<ListRow label="Gehalt" value="Ja" />{/if}
+			</ListGroup>
+		{/if}
+	{/if}
+
+	{#if tab === 'uebersicht'}
+		{#if !item.canEdit && (item.customerNumber || item.note || contract?.cancelName || contract?.cancelStreet || contract?.cancelCity || contract?.cancelEmail)}
+			<ListGroup header="Details">
+				{#if item.customerNumber}<ListRow label="Kundennummer" value={item.customerNumber} />{/if}
+				{#if contract && (contract.cancelName || contract.cancelStreet || contract.cancelCity || contract.cancelEmail)}
+					<li class="px-4 py-2.5">
+						<p class="text-[13px] text-label-2">Kündigungsadresse</p>
+						<p class="text-[17px] whitespace-pre-line">
+							{[
+								contract.cancelName,
+								contract.cancelStreet,
+								[contract.cancelPostalCode, contract.cancelCity].filter(Boolean).join(' '),
+								contract.cancelEmail
+							]
+								.filter(Boolean)
+								.join('\n')}
+						</p>
+					</li>
+				{/if}
+				{#if item.note}
+					<li class="px-4 py-2.5">
+						<p class="text-[13px] text-label-2">Notiz</p>
+						<p class="text-[17px] whitespace-pre-line">{item.note}</p>
+					</li>
+				{/if}
+			</ListGroup>
+		{/if}
+
+		{#if item.createdByName}
+			<p class="mb-8 px-4 text-[13px] text-label-2">Angelegt von {item.createdByName}.</p>
+		{/if}
+	{/if}
+
+	{#if tab === 'buchungen'}
+		<section class="kp-flow mb-8" aria-label="Buchungen">
+			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+				<span class="flex-1">
+					{data.booked.count}
+					{data.booked.count === 1 ? 'Buchung' : 'Buchungen'}
+				</span>
+				{#if !transfer && data.booked.count}
+					<span class="normal-case tabular" aria-label="Summe der Buchungen">
+						{formatEuro(data.booked.sum)}
+					</span>
+				{/if}
 			</h2>
+			{#if data.booked.rows.length}
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.booked.rows as b (b.id)}
+						<li>
+							<a
+								href={resolve(`buchungen/${b.id}`)}
+								class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[17px]">{formatDay(b.bookingDate)}</span>
+									<span class="block truncate text-[13px] text-label-2">
+										{#if b.source === 'provisional'}
+											<span class="font-medium text-provisional-text">vorläufig</span> ·
+										{/if}
+										{b.counterparty ?? b.purpose ?? item.name} · {b.accountName}
+									</span>
+								</span>
+								<span class={['shrink-0 text-[17px] tabular', b.amount > 0 && 'text-income']}>
+									{b.amount > 0 ? '+' : ''}{formatEuro(b.amount)}
+								</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+							</a>
+						</li>
+					{/each}
+				</ul>
+				{#if data.booked.count > data.booked.rows.length}
+					<p class="mt-1.5 px-4 text-[13px] text-label-2">
+						Die {data.booked.rows.length} jüngsten von {data.booked.count} Buchungen.
+					</p>
+				{/if}
+			{:else}
+				<p class="rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-label-2">
+					Noch keine Buchungen. Am Fälligkeitstag bucht die App den Dauerposten vorläufig; der
+					Import ersetzt das später durch die echte Buchung.
+				</p>
+			{/if}
+		</section>
+
+		{#if data.recent.length}
+			<section class="mb-8" aria-label="Letzte Fälligkeiten">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Letzte Fälligkeiten</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.recent as due (due.id)}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2">
+							<span class="min-w-0 flex-1">
+								{#if due.bookingId}
+									<a
+										href={resolve(`buchungen/${due.bookingId}`)}
+										class="block text-[17px] text-accent"
+									>
+										{formatDay(due.bookingDate)}
+									</a>
+								{:else}
+									<span class="block text-[17px]">{formatDay(due.bookingDate)}</span>
+								{/if}
+								<span class="block text-[13px] text-label-2">{DUE_STATUS_LABELS[due.status]}</span>
+							</span>
+							{#if due.status === 'skipped' && item.canManage}
+								<form method="POST" action="?/restoreDue" use:enhance>
+									<input type="hidden" name="dueId" value={due.id} />
+									<button type="submit" class="kp-text-button text-[15px] text-accent">
+										Wiederherstellen
+									</button>
+								</form>
+							{:else}
+								<span
+									class={[
+										'shrink-0 text-[17px] tabular',
+										due.status === 'skipped' && 'text-label-3 line-through'
+									]}
+								>
+									{sign}{formatEuro(due.amount)}
+								</span>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Am Fälligkeitstag vorläufig gebucht; der Import bestätigt sie später.
+				</p>
+			</section>
+		{/if}
+	{/if}
+
+	{#if tab === 'betrag'}
+		<section class="mb-8">
+			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Betragsverlauf</h2>
 			<ul
 				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				aria-label="Betragsverlauf"
 			>
-				{#each data.attachments as file (file.id)}
-					<li class="flex min-h-14 items-center gap-3 pr-2 pl-4">
-						<a
-							href={resolve(`dauerposten/${item.id}/anhang/${file.id}`)}
-							target="_blank"
-							rel="noopener"
-							class="flex min-w-0 flex-1 items-center gap-3 py-2 active:opacity-60"
-						>
-							<FileText class="size-6 shrink-0 text-danger" strokeWidth={1.8} />
-							<span class="min-w-0">
-								<span class="block truncate text-[17px]">{file.fileName}</span>
-								<span class="block text-[13px] text-label-2">
-									{formatSize(file.size)} · {file.createdAt.toLocaleDateString('de-DE')}
-								</span>
-							</span>
-						</a>
-						{#if item.canEdit}
-							<button
-								type="button"
-								aria-label={`${file.fileName} löschen`}
-								onclick={() => askDeleteAttachment(file)}
-								class="grid size-11 shrink-0 place-items-center text-danger active:opacity-60"
-							>
-								<Trash class="size-5" />
-							</button>
-						{/if}
-					</li>
+				{#each item.amounts as entry (entry.id)}
+					{@const state =
+						entry.id === currentId ? 'aktuell' : entry.validFrom > data.today ? 'geplant' : null}
+					{#if item.canEdit}
+						<ListRow
+							label={`ab ${formatDay(entry.validFrom)}`}
+							value={`${state ? `${state} · ` : ''}${formatEuro(entry.amount)}`}
+							onclick={() => openAmount(entry)}
+						/>
+					{:else}
+						<ListRow
+							label={`ab ${formatDay(entry.validFrom)}`}
+							value={`${state ? `${state} · ` : ''}${formatEuro(entry.amount)}`}
+						/>
+					{/if}
 				{/each}
 				{#if item.canEdit}
 					<li>
-						<form
-							method="POST"
-							action="?/attachmentAdd"
-							enctype="multipart/form-data"
-							use:enhance={() => {
-								uploading = true;
-								return async ({ update }) => {
-									await update();
-									uploading = false;
-								};
-							}}
+						<button
+							type="button"
+							onclick={() => openAmount(null)}
+							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
 						>
-							<label
-								class={[
-									'flex min-h-11 w-full cursor-pointer items-center px-4 py-2.5 text-accent active:bg-fill',
-									uploading && 'opacity-50'
-								]}
-							>
-								{uploading ? 'Wird hochgeladen …' : 'PDF hinzufügen'}
-								<input
-									type="file"
-									name="file"
-									accept="application/pdf,.pdf"
-									class="sr-only"
-									disabled={uploading}
-									onchange={(e) => e.currentTarget.form?.requestSubmit()}
-								/>
-							</label>
-						</form>
+							Änderung planen
+						</button>
 					</li>
 				{/if}
 			</ul>
 			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				{item.canEdit
-					? 'Z. B. Vertrag oder Preiserhöhung, nur PDF bis 10 MB.'
-					: data.attachments.length
-						? 'Tippen zum Öffnen.'
-						: ''}
+				Jede Preisänderung bleibt erhalten. Eine Änderung mit künftigem „Gültig ab“ gilt erst ab dem
+				Tag; bis dahin rechnet die App mit dem bisherigen Betrag.
 			</p>
 		</section>
-	{/if}
 
-	{#if item.canEdit}
-		<form
-			method="POST"
-			action="?/update"
-			use:enhance={() => {
-				savePending = true;
-				return async ({ update }) => {
-					await update({ reset: false });
-					savePending = false;
-				};
-			}}
-		>
-			<RecurringFields
-				values={fieldValues}
-				errors={updateErrors}
-				accounts={data.accountOptions}
-				targets={data.targetOptions}
-				categories={data.categoryGroups}
-				contract={contractValues}
-				defaultLeadDays={data.defaultLeadDays}
-				kinds={transfer ? ['transfer'] : ['expense', 'income']}
+		{#if item.kind === 'expense' && (data.loan || item.canEdit)}
+			<LoanSection
+				loan={data.loan}
+				canEdit={item.canEdit}
+				endDate={item.endDate}
+				loanInput={form?.action === 'loan' && 'loanInput' in form ? form.loanInput : undefined}
+				loanErrors={form?.action === 'loan' && 'errors' in form ? form.errors : undefined}
+				extraInput={form?.action === 'extra' && 'extraInput' in form ? form.extraInput : undefined}
+				extraErrors={form?.action === 'extra' && 'errors' in form ? form.errors : undefined}
 			/>
-			<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
-		</form>
-	{:else}
-		<ListGroup
-			header="Angaben"
-			footer={item.archivedAt
-				? 'Archivierte Dauerposten sind schreibgeschützt.'
-				: 'Du kannst diesen Dauerposten nur ansehen.'}
-		>
-			{#if transfer}
-				<ListRow label="Von Konto" value={item.account.name} />
-				<ListRow label="Auf Konto" value={item.targetAccount?.name ?? '–'} />
-			{:else}
-				<ListRow label="Konto" value={item.account.name} />
-			{/if}
-			{#if item.altName}
-				<ListRow label="Bezeichnung" value={item.name} />
-				<ListRow label="Alternative Bezeichnung" value={item.altName} />
-			{/if}
-			<ListRow label="Start" value={formatDay(item.startDate)} />
-			{#if item.endDate}<ListRow label="Ende" value={formatDay(item.endDate)} />{/if}
-			{#if item.counterparty}
-				<ListRow
-					label={item.kind === 'income' ? 'Zahler' : 'Empfänger'}
-					value={item.counterparty}
-				/>
-			{/if}
-			{#if item.iban}<ListRow label="IBAN" value={formatIban(item.iban)} />{/if}
-			{#if item.paymentMethod}
-				<ListRow label="Zahlart" value={PAYMENT_METHOD_LABELS[item.paymentMethod]} />
-			{/if}
-			{#if item.mandateReference}<ListRow
-					label="Mandatsreferenz"
-					value={item.mandateReference}
-				/>{/if}
-			{#if item.creditorId}<ListRow label="Gläubiger-ID" value={item.creditorId} />{/if}
-			{#if item.isSalary}<ListRow label="Gehalt" value="Ja" />{/if}
-		</ListGroup>
+		{/if}
 	{/if}
 
-	{#if !item.canEdit && (item.customerNumber || item.note || contract?.cancelName || contract?.cancelStreet || contract?.cancelCity || contract?.cancelEmail)}
-		<ListGroup header="Details">
-			{#if item.customerNumber}<ListRow label="Kundennummer" value={item.customerNumber} />{/if}
-			{#if contract && (contract.cancelName || contract.cancelStreet || contract.cancelCity || contract.cancelEmail)}
-				<li class="px-4 py-2.5">
-					<p class="text-[13px] text-label-2">Kündigungsadresse</p>
-					<p class="text-[17px] whitespace-pre-line">
-						{[
-							contract.cancelName,
-							contract.cancelStreet,
-							[contract.cancelPostalCode, contract.cancelCity].filter(Boolean).join(' '),
-							contract.cancelEmail
-						]
-							.filter(Boolean)
-							.join('\n')}
-					</p>
+	{#if tab === 'bearbeiten'}
+		{#if canManage}
+			<ListGroup header="Verwaltung">
+				<li>
+					<form method="POST" action={item.archivedAt ? '?/restore' : '?/archive'} use:enhance>
+						<button
+							type="submit"
+							class={[
+								'flex min-h-11 w-full items-center px-4 py-2.5 text-left active:bg-fill',
+								item.archivedAt && 'text-accent'
+							]}
+						>
+							{item.archivedAt ? 'Wiederherstellen' : 'Archivieren'}
+						</button>
+					</form>
 				</li>
-			{/if}
-			{#if item.note}
-				<li class="px-4 py-2.5">
-					<p class="text-[13px] text-label-2">Notiz</p>
-					<p class="text-[17px] whitespace-pre-line">{item.note}</p>
-				</li>
-			{/if}
-		</ListGroup>
+				{#if !data.hasData}
+					<ListRow label="Dauerposten löschen" destructive onclick={() => (deleteOpen = true)} />
+				{/if}
+			</ListGroup>
+		{/if}
 	{/if}
 
-	{#if data.aliases.length}
-		<section class="mb-8" aria-label="Namen im Import">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Namen im Import</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				{#each data.aliases as alias (alias.id)}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
-						<span class="min-w-0 flex-1 truncate text-[17px]">{alias.name}</span>
-						{#if item.canEdit}
-							<form method="POST" action="?/removeAlias" use:enhance>
-								<input type="hidden" name="aliasId" value={alias.id} />
+	{#if tab === 'mehr'}
+		{#if data.attachments.length || item.canEdit}
+			<section class="mb-8" aria-labelledby="documents-heading">
+				<h2 id="documents-heading" class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">
+					Dokumente
+				</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.attachments as file (file.id)}
+						<li class="flex min-h-14 items-center gap-3 pr-2 pl-4">
+							<a
+								href={resolve(`dauerposten/${item.id}/anhang/${file.id}`)}
+								target="_blank"
+								rel="noopener"
+								class="flex min-w-0 flex-1 items-center gap-3 py-2 active:opacity-60"
+							>
+								<FileText class="size-6 shrink-0 text-danger" strokeWidth={1.8} />
+								<span class="min-w-0">
+									<span class="block truncate text-[17px]">{file.fileName}</span>
+									<span class="block text-[13px] text-label-2">
+										{formatSize(file.size)} · {file.createdAt.toLocaleDateString('de-DE')}
+									</span>
+								</span>
+							</a>
+							{#if item.canEdit}
 								<button
-									type="submit"
-									aria-label={`${alias.name} entfernen`}
-									class="kp-text-button text-[15px] text-danger active:opacity-60"
+									type="button"
+									aria-label={`${file.fileName} löschen`}
+									onclick={() => askDeleteAttachment(file)}
+									class="grid size-11 shrink-0 place-items-center text-danger active:opacity-60"
 								>
-									Entfernen
+									<Trash class="size-5" />
 								</button>
+							{/if}
+						</li>
+					{/each}
+					{#if item.canEdit}
+						<li>
+							<form
+								method="POST"
+								action="?/attachmentAdd"
+								enctype="multipart/form-data"
+								use:enhance={() => {
+									uploading = true;
+									return async ({ update }) => {
+										await update();
+										uploading = false;
+									};
+								}}
+							>
+								<label
+									class={[
+										'flex min-h-11 w-full cursor-pointer items-center px-4 py-2.5 text-accent active:bg-fill',
+										uploading && 'opacity-50'
+									]}
+								>
+									{uploading ? 'Wird hochgeladen …' : 'PDF hinzufügen'}
+									<input
+										type="file"
+										name="file"
+										accept="application/pdf,.pdf"
+										class="sr-only"
+										disabled={uploading}
+										onchange={(e) => e.currentTarget.form?.requestSubmit()}
+									/>
+								</label>
 							</form>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Unter diesen Namen hast du Buchungen von Hand zugeordnet. Der Import erkennt den Dauerposten
-				daran wieder.
-			</p>
-		</section>
-	{/if}
+						</li>
+					{/if}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					{item.canEdit
+						? 'Z. B. Vertrag oder Preiserhöhung, nur PDF bis 10 MB.'
+						: data.attachments.length
+							? 'Tippen zum Öffnen.'
+							: ''}
+				</p>
+			</section>
+		{/if}
 
-	{#if item.createdByName}
-		<p class="mb-8 px-4 text-[13px] text-label-2">Angelegt von {item.createdByName}.</p>
-	{/if}
+		<TagEditor
+			allTags={data.tags.all}
+			selected={data.tags.selected}
+			canEdit={item.canEdit}
+			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
+		/>
 
-	{#if canManage}
-		<ListGroup header="Verwaltung">
-			<li>
-				<form method="POST" action={item.archivedAt ? '?/restore' : '?/archive'} use:enhance>
-					<button
-						type="submit"
-						class={[
-							'flex min-h-11 w-full items-center px-4 py-2.5 text-left active:bg-fill',
-							item.archivedAt && 'text-accent'
-						]}
-					>
-						{item.archivedAt ? 'Wiederherstellen' : 'Archivieren'}
-					</button>
-				</form>
-			</li>
-			{#if !data.hasData}
-				<ListRow label="Dauerposten löschen" destructive onclick={() => (deleteOpen = true)} />
-			{/if}
-		</ListGroup>
+		{#if data.logo.key && item.canEdit}
+			<LogoPicker
+				name={item.counterparty ?? item.name}
+				logo={data.logo.logo}
+				chosen={data.logo.chosen}
+			/>
+		{/if}
+
+		{#if data.aliases.length}
+			<section class="mb-8" aria-label="Namen im Import">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Namen im Import</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.aliases as alias (alias.id)}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
+							<span class="min-w-0 flex-1 truncate text-[17px]">{alias.name}</span>
+							{#if item.canEdit}
+								<form method="POST" action="?/removeAlias" use:enhance>
+									<input type="hidden" name="aliasId" value={alias.id} />
+									<button
+										type="submit"
+										aria-label={`${alias.name} entfernen`}
+										class="kp-text-button text-[15px] text-danger active:opacity-60"
+									>
+										Entfernen
+									</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Unter diesen Namen hast du Buchungen von Hand zugeordnet. Der Import erkennt den
+					Dauerposten daran wieder.
+				</p>
+			</section>
+		{/if}
 	{/if}
 </Page>
 

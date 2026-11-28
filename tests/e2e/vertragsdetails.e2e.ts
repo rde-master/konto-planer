@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import path from 'node:path';
 
 // Runs after vertraege ("Handyvertrag" on "Alltagskonto", which lena may only view;
@@ -32,6 +33,7 @@ test('customer number, note and cancellation address', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1, name: 'Handyvertrag' })).toBeVisible();
 	itemUrl = new URL(page.url()).pathname;
 
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Kundennummer (optional)').fill('KD-0815');
 	await page.getByLabel('Notiz (optional)').fill('Tarif M\nRufnummer behalten');
 	await page.getByLabel('Firma (optional)').fill('Mobilfunk Muster GmbH');
@@ -53,6 +55,7 @@ test('customer number, note and cancellation address', async ({ page }) => {
 test('PDF upload: only real PDFs; the file can be opened', async ({ page }) => {
 	await login(page, ADMIN);
 	await page.goto(itemUrl);
+	await openTab(page, 'Mehr');
 	const documents = page.getByRole('region', { name: 'Dokumente' });
 
 	await documents.locator('input[type=file]').setInputFiles({
@@ -82,6 +85,7 @@ test('viewers see the details read-only; others get 404', async ({ page }) => {
 	await expect(details).toContainText('Mobilfunk Muster GmbH');
 	await expect(details).toContainText('12345 Musterstadt');
 	await expect(details).toContainText('Rufnummer behalten');
+	await openTab(page, 'Mehr');
 	const documents = page.getByRole('region', { name: 'Dokumente' });
 	await expect(documents.getByRole('link', { name: /testvertrag\.pdf/ })).toBeVisible();
 	await expect(documents.getByText('PDF hinzufügen')).toHaveCount(0);
@@ -94,6 +98,7 @@ test('viewers see the details read-only; others get 404', async ({ page }) => {
 test('deleting a PDF; uploads and deletions are logged', async ({ page }) => {
 	await login(page, ADMIN);
 	await page.goto(itemUrl);
+	await openTab(page, 'Mehr');
 	await page.getByRole('button', { name: 'testvertrag.pdf löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'PDF löschen' })

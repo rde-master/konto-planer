@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays, addMonths } from '../../src/lib/recurring';
 import { noticeDeadline } from '../../src/lib/contracts';
@@ -89,6 +90,7 @@ test('the default lead time is an admin setting; each contract can override it',
 	await expect(soonList(page)).toHaveCount(0);
 
 	await page.getByRole('link', { name: /Handyvertrag/ }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Vorlauf in Tagen (optional)').fill('60');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
@@ -105,13 +107,16 @@ test('"Gekündigt am" sets the end of the recurring item', async ({ page }) => {
 		.getByRole('link', { name: /Handyvertrag/ })
 		.first()
 		.click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Gekündigt am (optional)').fill(today);
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
 
+	await openTab(page, 'Übersicht');
 	const contract = page.getByRole('region', { name: 'Vertrag' });
 	await expect(contract).toContainText(row('Gekündigt am', formatDay(today)));
 	await expect(contract).toContainText(row('Vertragsende', formatDay(TERM_END)));
+	await openTab(page, 'Bearbeiten');
 	await expect(page.getByLabel('Ende (optional)')).toHaveValue(TERM_END);
 
 	await page.goto('/dauerposten');

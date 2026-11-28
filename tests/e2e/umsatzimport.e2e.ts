@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Imports the fictional Volksbank export (tests/fixtures) into its own giro account.
 test.describe.configure({ mode: 'serial' });
@@ -150,6 +151,7 @@ test('taking over: bookings, counter bookings, new items, balance check', async 
 	await page.goto('/dauerposten');
 	await expect(page.getByRole('link', { name: /^Beispiel Maschinenbau GmbH/ })).toBeVisible();
 	await page.getByRole('link', { name: /^Energie/ }).click();
+	await openTab(page, 'Buchungen');
 	await expect(page.getByRole('region', { name: 'Letzte Fälligkeiten' })).toContainText('gebucht');
 });
 
@@ -207,6 +209,7 @@ test('the latest import can be undone completely', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await expect(page.getByRole('link', { name: /^Beispiel Maschinenbau GmbH/ })).toHaveCount(0);
 	await page.getByRole('link', { name: /^Energie/ }).click();
+	await openTab(page, 'Buchungen');
 	await expect(page.getByRole('region', { name: 'Letzte Fälligkeiten' })).toContainText(
 		'vorläufig gebucht'
 	);

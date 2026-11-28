@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addMonths } from '../../src/lib/recurring';
 import { balanceOn, installmentsOf, loanPlan } from '../../src/lib/loans';
@@ -75,6 +76,7 @@ test('loan data gives remaining debt and end', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await openItem(page);
+	await openTab(page, 'Betrag');
 	await page.getByRole('button', { name: 'Darlehen erfassen' }).click();
 	const loan = page.getByRole('dialog', { name: 'Darlehen' });
 	await loan.getByLabel('Darlehenssumme in €').fill('10.000');
@@ -98,6 +100,7 @@ test('loan data gives remaining debt and end', async ({ page }) => {
 test('an extra repayment lowers the debt; the end can be taken over', async ({ page }) => {
 	await login(page);
 	await openItem(page);
+	await openTab(page, 'Betrag');
 	await page.getByRole('button', { name: 'Sondertilgung erfassen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Sondertilgung' });
 	await sheet.getByLabel('Datum').fill(today);

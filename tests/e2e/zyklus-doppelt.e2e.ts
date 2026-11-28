@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -80,6 +81,7 @@ test('a payment released by hand is not taken again', async ({ page }) => {
 	await expect(await found(page, ITEM, '3,49')).toHaveCount(1);
 	await page.goto('/dauerposten');
 	await page.getByRole('link', { name: new RegExp(ITEM) }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.locator('form[action="?/update"]').getByRole('button', { name: 'Sichern' }).click();
 	await expect(page.getByRole('status')).toBeVisible();
 	await expect(await found(page, ITEM, '3,49')).toHaveCount(1);

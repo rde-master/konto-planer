@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -42,6 +43,7 @@ test('a higher amount shows up as price increase', async ({ page }) => {
 	await expect(create).toBeHidden();
 
 	await page.getByRole('link', { name: /Videodienst Wächter/ }).click();
+	await openTab(page, 'Betrag');
 	await page.getByRole('button', { name: 'Änderung planen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Änderung planen' });
 	await sheet.getByLabel('Gültig ab').fill(addDays(today, 30));

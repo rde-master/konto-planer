@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays, addMonths } from '../../src/lib/recurring';
 
@@ -76,6 +77,7 @@ test('a cancellation letter is created, stored and the contract marked as cancel
 	await expect(page.getByRole('heading', { level: 1, name: ITEM })).toBeVisible();
 	await expect(page.getByText('Gekündigt am', { exact: true })).toBeVisible();
 	// Stored as attachment at the item.
+	await openTab(page, 'Mehr');
 	await expect(page.getByRole('main')).toContainText(/Kuendigung-Kraftraum-Brief/);
 
 	// The sender address is remembered.

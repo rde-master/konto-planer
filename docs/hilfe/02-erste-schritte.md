@@ -28,6 +28,18 @@ Am Fälligkeitstag bucht die App den Posten **vorläufig**. Kommt später der Um
 
 Ändert sich ein Betrag, trage ihn mit **Änderung planen** und „gültig ab“ ein – die Vorschau rechnet ab dann damit.
 
+### Die Seite eines Dauerpostens
+
+Ein Tipp auf einen Dauerposten öffnet seine Seite. Sie ist in Reiter aufgeteilt, damit nicht alles untereinander steht:
+
+- **Übersicht**: die nächsten Fälligkeiten, Pause, Vertrag mit Kündigungsfrist, Rücklage und Sparziele
+- **Buchungen**: alles, was zu dem Dauerposten gebucht ist – importiert, von Hand zugeordnet oder vorläufig – mit Anzahl und Summe; ein Tipp öffnet die Buchung
+- **Betrag**: der Betragsverlauf mit „Änderung planen“ und, bei Krediten, die Darlehensdaten
+- **Bearbeiten**: die Angaben ändern, archivieren oder löschen
+- **Mehr**: Dokumente (PDF), Tags, Logo und die Namen, unter denen der Import den Dauerposten erkennt
+
+Der Reiter bleibt beim Sichern stehen; wer von einer Buchung zurückkommt, landet wieder im selben Reiter.
+
 ### Dauerposten finden
 
 Über der Liste steht ein Suchfeld: Es sucht in Name, alternativer Bezeichnung, Empfänger, Kategorie, IBAN und Notiz. Darunter filterst du nach Art (Ausgaben, Einnahmen, Umbuchungen), Kategorie und Rhythmus und wählst die Reihenfolge – nächste Fälligkeit, Name, Betrag oder Kategorie. Die Liste bleibt nach Konten gruppiert; die Monatssummen gelten dann für die Auswahl. So siehst du zum Beispiel mit dem Filter „Versicherungen“, was sie dich im Monat kosten.
