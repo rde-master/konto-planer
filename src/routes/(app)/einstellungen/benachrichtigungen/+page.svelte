@@ -20,6 +20,9 @@
 	const haErrors = $derived<Errors | undefined>(
 		form?.action === 'ha' && 'errors' in form ? (form.errors as Errors) : undefined
 	);
+	const pushoverErrors = $derived<Errors | undefined>(
+		form?.action === 'pushover' && 'errors' in form ? (form.errors as Errors) : undefined
+	);
 	const status = $derived(form && 'success' in form ? form.success : undefined);
 	const message = $derived(form && 'message' in form ? form.message : undefined);
 
@@ -186,6 +189,44 @@
 		</form>
 	</section>
 
+	<section class="mb-8" aria-label="Pushover">
+		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Pushover</h2>
+		<form
+			method="POST"
+			action="?/pushover"
+			use:enhance={() =>
+				async ({ result, update }) =>
+					update({ reset: result.type === 'success' })}
+		>
+			<ul
+				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+			>
+				<FormField
+					label="API-Token der Anwendung"
+					name="token"
+					type="password"
+					autocomplete="off"
+					placeholder={s.pushoverSet ? 'gespeichert – neu eintragen zum Ersetzen' : ''}
+					error={pushoverErrors?.token}
+				/>
+			</ul>
+			<p class="mt-1.5 px-4 text-[13px] text-label-2">
+				Lege auf pushover.net eine Anwendung an („Create an Application/API Token“) und trage ihr
+				Token hier ein; es wird verschlüsselt gespeichert. Seinen Benutzerschlüssel trägt jeder
+				unter „Meine Benachrichtigungen“ ein. Die Meldungen laufen über die Server von Pushover.
+			</p>
+			<div class="mt-3"><Button type="submit">Pushover sichern</Button></div>
+		</form>
+		{#if s.pushoverSet}
+			<form method="POST" action="?/testPushover" use:enhance class="mt-3">
+				<Button type="submit" variant="tinted">Pushover-Test an mich</Button>
+			</form>
+			<form method="POST" action="?/pushoverRemove" use:enhance class="mt-3">
+				<Button type="submit" variant="destructive">Pushover entfernen</Button>
+			</form>
+		{/if}
+	</section>
+
 	{#each data.rules as rule (rule.type)}
 		{@const mode = modes[rule.type] ?? (rule.recipients ? 'chosen' : 'editors')}
 		<section class="mb-8" aria-label="Meldungsregel {NOTIFICATION_LABELS[rule.type]}">
@@ -215,6 +256,12 @@
 						name="push"
 						initial={rule.push}
 						hint="An die Geräte, die jeder unter „Meine Benachrichtigungen“ anmeldet"
+					/>
+					<ToggleField
+						label="Über Pushover"
+						name="pushover"
+						initial={rule.pushover}
+						hint="An alle, die ihren Benutzerschlüssel eingetragen haben"
 					/>
 					<SegmentedField
 						name="repeat"
@@ -300,7 +347,9 @@
 								? 'E-Mail'
 								: l.channel === 'push'
 									? 'Push'
-									: 'Home Assistant'} · {l.userName ?? '–'}{l.ok ? '' : ` · Fehler: ${l.error}`}
+									: l.channel === 'pushover'
+										? 'Pushover'
+										: 'Home Assistant'} · {l.userName ?? '–'}{l.ok ? '' : ` · Fehler: ${l.error}`}
 						</span>
 					</li>
 				{/each}

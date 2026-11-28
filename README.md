@@ -18,7 +18,7 @@ Selbst gehostete Web-App für das Heimnetz: SvelteKit und PostgreSQL als Docker-
 docker compose -f docker-compose.demo.yml up -d
 ```
 
-Dann http://localhost:3001 öffnen: erfundener Haushalt „Beispiel“ mit Konten, Dauerposten, Kreditkarte und sechs Monaten Buchungen, ohne Anmeldung. Änderungen werden jede Nacht zurückgesetzt; E-Mail, Push und Home Assistant sind abgeschaltet. Die Screenshots oben entstehen mit `BASE_URL=http://localhost:3001 node scripts/screenshots.mjs` aus dieser Demo.
+Dann http://localhost:3001 öffnen: erfundener Haushalt „Beispiel“ mit Konten, Dauerposten, Kreditkarte und sechs Monaten Buchungen, ohne Anmeldung. Änderungen werden jede Nacht zurückgesetzt; E-Mail, Push, Pushover und Home Assistant sind abgeschaltet. Die Screenshots oben entstehen mit `BASE_URL=http://localhost:3001 node scripts/screenshots.mjs` aus dieser Demo.
 
 ## Installation
 

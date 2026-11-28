@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.81.0] – Benachrichtigungen über Pushover
+
+### Neu
+
+- Pushover als vierter Weg für Benachrichtigungen, neben E-Mail, Home Assistant und Push aus der Web-App. Die Meldungen kommen als Push-Mitteilung in der Pushover-App an (iPhone, Android, Desktop); ein Tipp auf den Link darin öffnet die passende Seite im Konto Planer
+- Einrichten: Der Admin legt auf pushover.net eine Anwendung an und trägt ihr API-Token unter Einstellungen › Benachrichtigungen ein. Jeder Benutzer trägt unter „Meine Benachrichtigungen“ seinen eigenen Benutzerschlüssel ein. Beides wird verschlüsselt gespeichert und nie wieder angezeigt
+- Je Meldungsregel gibt es den Schalter „Über Pushover“ – so legst du fest, welche Meldungen diesen Weg nehmen. Mit „Pushover-Test an mich“ prüfst du, ob alles ankommt; ein falsches Token oder ein unbekannter Schlüssel wird beim Test gemeldet
+- Gut zu wissen: Pushover ist ein Dienst eines anderen Anbieters. Titel und Text der Meldungen (zum Beispiel Kontoname und Betrag) laufen über dessen Server
+
 ## [0.80.0] – Alternative Bezeichnung für Dauerposten
 
 ### Neu

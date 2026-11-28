@@ -30,6 +30,8 @@ export const users = pgTable('users', {
 	role: userRole('role').notNull().default('user'),
 	/** Home Assistant notify services that get this user's notifications ("mobile_app_…"). */
 	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
+	/** Pushover user (or group) key that gets this user's notifications, encrypted. */
+	pushoverKeyEnc: text('pushover_key_enc'),
 	/** Monthly report by e-mail (opt-in). */
 	monthlyReport: boolean('monthly_report').notNull().default(false),
 	/** Bookings show the alternative name of their recurring item instead of the payee. */
@@ -335,6 +337,8 @@ export const appSettings = pgTable(
 		// Web push: VAPID key pair, created on first use; the private key is encrypted.
 		vapidPublicKey: text('vapid_public_key'),
 		vapidPrivateKeyEnc: text('vapid_private_key_enc'),
+		/** Pushover: API token of the application (encrypted); users add their own key. */
+		pushoverTokenEnc: text('pushover_token_enc'),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [check('app_settings_single_row', sql`${t.id} = 1`)]
@@ -1007,6 +1011,7 @@ export const notificationRules = pgTable('notification_rules', {
 	email: boolean('email').notNull().default(true),
 	homeAssistant: boolean('home_assistant').notNull().default(false),
 	push: boolean('push').notNull().default(false),
+	pushover: boolean('pushover').notNull().default(false),
 	recipients: jsonb('recipients').$type<string[] | null>(),
 	repeat: text('repeat').notNull().default('once'),
 	toleranceDays: integer('tolerance_days').notNull().default(3),
