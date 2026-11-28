@@ -118,6 +118,7 @@ test('a booking is assigned at the booking and released again', async ({ page })
 	await expect(sheet).toBeHidden();
 
 	await (await found(page, 'Garage Nord', '12,40')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Dauerposten zuordnen' }).click();
 	const assign = page.getByRole('dialog', { name: 'Dauerposten zuordnen' });
 	await assign.getByLabel('Dauerposten').selectOption({ label: 'Parkhaus Karte' });
@@ -127,13 +128,15 @@ test('a booking is assigned at the booking and released again', async ({ page })
 		'Dem Dauerposten „Parkhaus Karte“ zugeordnet.'
 	);
 	await expect(page.getByRole('status')).toContainText('gilt als bezahlt');
-	await expect(page.getByRole('link', { name: /Dauerposten.*Parkhaus Karte/ })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Dauerposten zuordnen' })).toHaveCount(0);
+	await openTab(page, 'Buchung');
+	await expect(page.getByRole('link', { name: /Dauerposten.*Parkhaus Karte/ })).toBeVisible();
 	// No longer twice: the provisional booking is gone.
 	await expect(await found(page, 'Parkhaus Karte', '12,00')).toHaveCount(0);
 
 	// Released: the due date is open and booked provisionally again.
 	await (await found(page, 'Garage Nord', '12,40')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Zuordnung lösen' }).click();
 	const release = page.getByRole('dialog', { name: 'Zuordnung lösen' });
 	await release.getByRole('button', { name: 'Lösen' }).click();

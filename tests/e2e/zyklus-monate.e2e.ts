@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 import { debitDateFor, statementDates } from '../../src/lib/credit-card';
@@ -30,6 +31,7 @@ test('the account page sums up what left the account in each month', async ({ pa
 	await page.getByRole('link', { name: new RegExp(GIRO) }).click();
 	await expect(page.getByRole('heading', { level: 1, name: GIRO })).toBeVisible();
 
+	await openTab(page, 'Verlauf');
 	const months = page.getByRole('region', { name: 'Monatsübersicht' });
 	// From the month the account was opened in up to the running one.
 	await expect(months.getByRole('link').first()).toContainText('bisher');

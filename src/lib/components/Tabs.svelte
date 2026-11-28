@@ -71,7 +71,11 @@
 				role="tab"
 				aria-selected={active === t.id}
 				tabindex={active === t.id ? 0 : -1}
-				onclick={() => (active = t.id)}
+				onclick={(e) => {
+					active = t.id;
+					// A tab cut off at the edge of a narrow screen comes into view.
+					e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				}}
 				class={[
 					'flex-1 shrink-0 rounded-full px-3 py-1.5 text-center text-[13px] font-medium whitespace-nowrap focus-visible:outline-3 focus-visible:outline-accent',
 					active === t.id ? 'bg-card shadow-sm' : 'text-label-2'

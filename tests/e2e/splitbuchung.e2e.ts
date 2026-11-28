@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -46,6 +47,7 @@ test('a booking is split; the rest keeps its category', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await openBooking(page);
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Aufteilen' }).click();
 	const split = page.getByRole('dialog', { name: 'Aufteilen' });
 	await split.getByLabel('Betrag Teil 1').fill('12,50');
@@ -65,6 +67,7 @@ test('a booking is split; the rest keeps its category', async ({ page }) => {
 	await expect(split).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText('Aufteilung gesichert.');
 
+	await openTab(page, 'Einordnen');
 	const parts = page.getByRole('region', { name: 'Aufteilung' });
 	await expect(parts).toContainText('Drogerie');
 	await expect(parts).toContainText('Supermarkt');
@@ -83,6 +86,7 @@ test('the amount cannot drop below the split; the split can be removed', async (
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('alert')).toContainText('Der Betrag passt nicht mehr zur Aufteilung');
 
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Aufteilung ändern' }).click();
 	await page
 		.getByRole('dialog', { name: 'Aufteilen' })

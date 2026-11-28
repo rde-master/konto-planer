@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { dayLabel, formatDay, todayBerlin } from '../../src/lib/dates';
 
 // Own savings account opened on 1 January of last year: last year's interest is final.
@@ -47,6 +48,7 @@ test('a rate books last year’s interest provisionally', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await openAccount(page);
+	await openTab(page, 'Zinsen');
 	const zinsen = page.getByRole('region', { name: 'Zinsen', exact: true });
 	await expect(zinsen.getByLabel('Zinssatz')).toHaveText('keiner');
 
@@ -90,6 +92,7 @@ test('the bank’s amount replaces the computed one, and back', async ({ page })
 test('quarterly credits compound; changes are logged', async ({ page }) => {
 	await login(page);
 	await openAccount(page);
+	await openTab(page, 'Zinsen');
 	await page.getByLabel('Gutschrift', { exact: true }).selectOption({ label: 'vierteljährlich' });
 	await expect(page.getByRole('status')).toHaveText('Rhythmus der Gutschrift gesichert.');
 

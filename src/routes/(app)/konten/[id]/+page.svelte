@@ -6,6 +6,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { resolve } from '$app/paths';
 	import Page from '#lib/components/Page.svelte';
+	import Tabs from '#lib/components/Tabs.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -128,6 +129,26 @@
 		}[form.action];
 	});
 
+	/** Parts of the page; which ones there are depends on the kind of account and the rights. */
+	const tabs = $derived([
+		{ id: 'uebersicht', label: 'Übersicht' },
+		...(data.interest ? [{ id: 'zinsen', label: 'Zinsen' }] : []),
+		...(data.forecast || data.months.length ? [{ id: 'verlauf', label: 'Verlauf' }] : []),
+		...(canEdit || data.isAdmin ? [{ id: 'bearbeiten', label: 'Bearbeiten' }] : [])
+	]);
+	/** Where the form of an action stands (the page opens there after a submit without JavaScript). */
+	const ACTION_TABS: Record<string, string> = {
+		update: 'bearbeiten',
+		access: 'bearbeiten',
+		archive: 'bearbeiten',
+		restore: 'bearbeiten',
+		rate: 'zinsen',
+		rateDelete: 'zinsen',
+		rhythm: 'zinsen'
+	};
+	// svelte-ignore state_referenced_locally
+	let tab = $state((form?.action ? ACTION_TABS[form.action] : undefined) ?? 'uebersicht');
+
 	const fieldValues = $derived(
 		updateInput ? { ...updateInput, type: account.type } : { ...account }
 	);
@@ -187,591 +208,613 @@
 		</div>
 	</section>
 
-	{#if data.card}
-		{@const limit = account.overdraftLimit}
-		{#if limit && data.balance < -limit}
-			<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
-				<p class="text-[17px] font-semibold">Kreditrahmen überschritten</p>
-				<p class="mt-1 text-[15px]">
-					Der Saldo liegt {formatEuro(-data.balance - limit)} über dem Kreditrahmen von {formatEuro(
-						limit
-					)}.
-				</p>
-			</div>
-		{/if}
-		<section class="mb-8" aria-label="Abrechnung">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Abrechnung</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1">Abbuchung von</span>
-					<span class="text-label-2">{data.card.giroName ?? 'nicht festgelegt'}</span>
-				</li>
-				{#if account.statementDay && account.debitDay}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-						<span class="flex-1">Rhythmus</span>
-						<span class="text-label-2">
-							{settlementText(account.statementDay, account.debitDay)}
-						</span>
-					</li>
-				{/if}
-				{#if limit}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-						<span class="flex-1">Kreditrahmen frei</span>
-						<span class={['tabular', limit + data.balance < 0 ? 'text-danger' : 'text-label-2']}>
-							{formatEuro(limit + data.balance)} von {formatEuro(limit)}
-						</span>
-					</li>
-				{/if}
-				{#each data.card.settlements as s (s.statementDate)}
-					<li
-						class="flex min-h-11 items-center gap-3 px-4 py-2.5"
-						aria-label="Abrechnung {formatDay(s.statementDate)}"
-					>
-						<span class="min-w-0 flex-1">
-							<span class="block">Abrechnung {formatDay(s.statementDate)}</span>
-							<span class="block text-[13px] text-label-2">
-								Abbuchung {formatDay(s.debitDate)} von {s.giroName}
-							</span>
-						</span>
-						<span class="tabular">{s.amount ? formatEuro(s.amount) : 'nichts'}</span>
-					</li>
-				{/each}
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Beträge nach Plan: Saldo am Abrechnungstag samt erwarteter Zahlungen. Am Abbuchungstag wird
-				die Abrechnung auf beiden Konten gebucht; der Import ersetzt sie durch die echte Buchung.
-			</p>
-		</section>
-	{/if}
+	<Tabs {tabs} bind:active={tab} />
 
-	{#if data.plan}
-		{@const p = data.plan.plan}
-		{@const cut = data.plan.cutoff}
-		{#if p.exceedsOverdraft}
-			<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
-				<p class="text-[17px] font-semibold">
-					{account.overdraftLimit ? 'Der Dispo reicht nicht' : 'Das Konto rutscht ins Minus'}
-				</p>
-				<p class="mt-1 text-[15px]">
-					Am {formatDay(p.lowest!.date)} fällt der Stand auf {formatEuro(
-						p.lowest!.balance
-					)}{account.overdraftLimit
-						? `, ${formatEuro(-p.lowest!.balance - account.overdraftLimit)} über dem Dispo von ${formatEuro(account.overdraftLimit)}`
-						: ''}. Zahle vorher {formatEuro(-p.lowest!.balance - account.overdraftLimit)} ein.
-				</p>
-			</div>
-		{:else if p.goesNegative}
-			<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
-				Bis zum Stichtag rutscht das Konto ins Minus: am {formatDay(p.lowest!.date)} auf {formatEuro(
-					p.lowest!.balance
-				)}. Der Dispo reicht dafür.
-			</p>
-		{/if}
-		{#if p.overdraftInUse}
-			<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
-				Du nutzt den Dispo: {formatEuro(-data.balance)}{account.overdraftLimit
-					? ` von ${formatEuro(account.overdraftLimit)}`
-					: ' – für das Konto ist kein Dispo eingetragen'}.
-			</p>
-		{/if}
-
-		<section class="mb-8" aria-label="Bis zum Stichtag">
-			<div class="rounded-t-[var(--radius-row)] bg-card px-4 pt-4 pb-3">
-				<p class="text-[13px] text-label-2">Verfügbar bis {formatDay(cut.date)}</p>
-				<p
-					class={['text-[28px] font-bold tabular', p.available < 0 ? 'text-danger' : 'text-income']}
-					aria-label="Verfügbar"
-				>
-					{formatEuro(p.available)}
-				</p>
-			</div>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-b-[var(--radius-row)] border-t-[0.5px] border-separator bg-card"
-			>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1 text-[17px]">Mindestbestand</span>
-					<span class="text-label-2 tabular" aria-label="Mindestbestand">
-						{formatEuro(p.minimum)}
-					</span>
-				</li>
-				{#if p.buffer}
-					<li class="flex min-h-11 items-center gap-3 py-2.5 pr-4 pl-8">
-						<span class="flex-1 text-[15px] text-label-2">davon Puffer</span>
-						<span class="text-[15px] text-label-2 tabular">{formatEuro(p.buffer)}</span>
-					</li>
-				{/if}
-				<li>
-					<svelte:element
-						this={canEdit ? 'button' : 'div'}
-						type={canEdit ? 'button' : undefined}
-						onclick={canEdit ? openCutoff : undefined}
-						role={canEdit ? undefined : 'group'}
-						class="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left active:bg-fill"
-					>
-						<span class="flex-1 text-[17px]">Stichtag</span>
-						<span class="min-w-0 truncate text-right text-label-2">{cutoffText}</span>
-						{#if canEdit}<ChevronRight
-								class="size-5 shrink-0 text-label-3"
-								strokeWidth={2.5}
-							/>{/if}
-					</svelte:element>
-				</li>
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				{#if cut.fallback === 'no_salary'}
-					Kein Gehaltseingang gefunden – gerechnet wird bis Monatsende. Markiere eine Einnahme als
-					Gehalt oder wähle einen Eingang als Stichtag.
-				{:else if cut.fallback === 'date_passed'}
-					Das feste Datum ist vorbei – gerechnet wird bis Monatsende.
-				{:else}
-					So viel muss heute auf dem Konto sein, damit es bis zum Stichtag nicht ins Minus geht. Der
-					Dispo zählt nie dazu.
-				{/if}
-			</p>
-		</section>
-
-		{#if data.plan.later.length}
-			<section class="mb-8" aria-label="Danach geplant">
-				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Danach geplant</h2>
+	{#if tab === 'uebersicht'}
+		{#if data.card}
+			{@const limit = account.overdraftLimit}
+			{#if limit && data.balance < -limit}
+				<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
+					<p class="text-[17px] font-semibold">Kreditrahmen überschritten</p>
+					<p class="mt-1 text-[15px]">
+						Der Saldo liegt {formatEuro(-data.balance - limit)} über dem Kreditrahmen von {formatEuro(
+							limit
+						)}.
+					</p>
+				</div>
+			{/if}
+			<section class="mb-8" aria-label="Abrechnung">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Abrechnung</h2>
 				<ul
 					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
 				>
-					{#each data.plan.later as l (l.id)}
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1">Abbuchung von</span>
+						<span class="text-label-2">{data.card.giroName ?? 'nicht festgelegt'}</span>
+					</li>
+					{#if account.statementDay && account.debitDay}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+							<span class="flex-1">Rhythmus</span>
+							<span class="text-label-2">
+								{settlementText(account.statementDay, account.debitDay)}
+							</span>
+						</li>
+					{/if}
+					{#if limit}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+							<span class="flex-1">Kreditrahmen frei</span>
+							<span class={['tabular', limit + data.balance < 0 ? 'text-danger' : 'text-label-2']}>
+								{formatEuro(limit + data.balance)} von {formatEuro(limit)}
+							</span>
+						</li>
+					{/if}
+					{#each data.card.settlements as s (s.statementDate)}
+						<li
+							class="flex min-h-11 items-center gap-3 px-4 py-2.5"
+							aria-label="Abrechnung {formatDay(s.statementDate)}"
+						>
+							<span class="min-w-0 flex-1">
+								<span class="block">Abrechnung {formatDay(s.statementDate)}</span>
+								<span class="block text-[13px] text-label-2">
+									Abbuchung {formatDay(s.debitDate)} von {s.giroName}
+								</span>
+							</span>
+							<span class="tabular">{s.amount ? formatEuro(s.amount) : 'nichts'}</span>
+						</li>
+					{/each}
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Beträge nach Plan: Saldo am Abrechnungstag samt erwarteter Zahlungen. Am Abbuchungstag
+					wird die Abrechnung auf beiden Konten gebucht; der Import ersetzt sie durch die echte
+					Buchung.
+				</p>
+			</section>
+		{/if}
+
+		{#if data.plan}
+			{@const p = data.plan.plan}
+			{@const cut = data.plan.cutoff}
+			{#if p.exceedsOverdraft}
+				<div role="alert" class="mb-4 rounded-[var(--radius-card)] bg-danger px-5 py-4 text-white">
+					<p class="text-[17px] font-semibold">
+						{account.overdraftLimit ? 'Der Dispo reicht nicht' : 'Das Konto rutscht ins Minus'}
+					</p>
+					<p class="mt-1 text-[15px]">
+						Am {formatDay(p.lowest!.date)} fällt der Stand auf {formatEuro(
+							p.lowest!.balance
+						)}{account.overdraftLimit
+							? `, ${formatEuro(-p.lowest!.balance - account.overdraftLimit)} über dem Dispo von ${formatEuro(account.overdraftLimit)}`
+							: ''}. Zahle vorher {formatEuro(-p.lowest!.balance - account.overdraftLimit)} ein.
+					</p>
+				</div>
+			{:else if p.goesNegative}
+				<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+					Bis zum Stichtag rutscht das Konto ins Minus: am {formatDay(p.lowest!.date)} auf {formatEuro(
+						p.lowest!.balance
+					)}. Der Dispo reicht dafür.
+				</p>
+			{/if}
+			{#if p.overdraftInUse}
+				<p class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]">
+					Du nutzt den Dispo: {formatEuro(-data.balance)}{account.overdraftLimit
+						? ` von ${formatEuro(account.overdraftLimit)}`
+						: ' – für das Konto ist kein Dispo eingetragen'}.
+				</p>
+			{/if}
+
+			<section class="mb-8" aria-label="Bis zum Stichtag">
+				<div class="rounded-t-[var(--radius-row)] bg-card px-4 pt-4 pb-3">
+					<p class="text-[13px] text-label-2">Verfügbar bis {formatDay(cut.date)}</p>
+					<p
+						class={[
+							'text-[28px] font-bold tabular',
+							p.available < 0 ? 'text-danger' : 'text-income'
+						]}
+						aria-label="Verfügbar"
+					>
+						{formatEuro(p.available)}
+					</p>
+				</div>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-b-[var(--radius-row)] border-t-[0.5px] border-separator bg-card"
+				>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Mindestbestand</span>
+						<span class="text-label-2 tabular" aria-label="Mindestbestand">
+							{formatEuro(p.minimum)}
+						</span>
+					</li>
+					{#if p.buffer}
+						<li class="flex min-h-11 items-center gap-3 py-2.5 pr-4 pl-8">
+							<span class="flex-1 text-[15px] text-label-2">davon Puffer</span>
+							<span class="text-[15px] text-label-2 tabular">{formatEuro(p.buffer)}</span>
+						</li>
+					{/if}
+					<li>
+						<svelte:element
+							this={canEdit ? 'button' : 'div'}
+							type={canEdit ? 'button' : undefined}
+							onclick={canEdit ? openCutoff : undefined}
+							role={canEdit ? undefined : 'group'}
+							class="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left active:bg-fill"
+						>
+							<span class="flex-1 text-[17px]">Stichtag</span>
+							<span class="min-w-0 truncate text-right text-label-2">{cutoffText}</span>
+							{#if canEdit}<ChevronRight
+									class="size-5 shrink-0 text-label-3"
+									strokeWidth={2.5}
+								/>{/if}
+						</svelte:element>
+					</li>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					{#if cut.fallback === 'no_salary'}
+						Kein Gehaltseingang gefunden – gerechnet wird bis Monatsende. Markiere eine Einnahme als
+						Gehalt oder wähle einen Eingang als Stichtag.
+					{:else if cut.fallback === 'date_passed'}
+						Das feste Datum ist vorbei – gerechnet wird bis Monatsende.
+					{:else}
+						So viel muss heute auf dem Konto sein, damit es bis zum Stichtag nicht ins Minus geht.
+						Der Dispo zählt nie dazu.
+					{/if}
+				</p>
+			</section>
+
+			{#if data.plan.later.length}
+				<section class="mb-8" aria-label="Danach geplant">
+					<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Danach geplant</h2>
+					<ul
+						class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+					>
+						{#each data.plan.later as l (l.id)}
+							<li>
+								<a
+									href={resolve(`dauerposten/${l.id}`)}
+									class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+								>
+									<span class="min-w-0 flex-1 truncate text-[17px]">{l.name}</span>
+									<span class="text-[15px] text-label-2">{formatDay(l.date)}</span>
+									<span class={['text-[17px] tabular', l.amount > 0 && 'text-income']}>
+										{l.amount > 0 ? '+' : ''}{formatEuro(l.amount)}
+									</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+					<p class="mt-1.5 px-4 text-[13px] text-label-2">
+						Liegt nach dem Stichtag und zählt noch nicht zum Mindestbestand.
+					</p>
+				</section>
+			{/if}
+
+			{#if p.steps.length}
+				<section class="mb-8" aria-label="Bis zum Stichtag fällig">
+					<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Bis zum Stichtag</h2>
+					<ul
+						class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+					>
+						{#each p.steps as step, i (i)}
+							{@const low =
+								p.lowest && step.date === p.lowest.date && step.balance === p.lowest.balance}
+							<li class="flex min-h-14 items-center gap-3 px-4 py-2">
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-[17px]">{step.label}</span>
+									<span class="block text-[13px] text-label-2">
+										{formatDay(step.date)} · danach {formatEuro(step.balance)}{low
+											? ' · tiefster Stand'
+											: ''}
+									</span>
+								</span>
+								<span class={['shrink-0 text-[17px] tabular', step.amount > 0 && 'text-income']}>
+									{step.amount > 0 ? '+' : ''}{formatEuro(step.amount)}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+		{/if}
+
+		{#if data.goals && (data.goals.length || (canEdit && !data.account.archivedAt))}
+			{@const allocated = data.goals.reduce((sum, g) => sum + g.allocated, 0)}
+			{@const reserves = data.goals.reduce((sum, g) => sum + (g.reserve ?? 0), 0)}
+			<section class="mb-8" aria-label="Sparziele">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.goals as goal (goal.id)}<GoalRow {goal} />{/each}
+					{#if reserves > 0}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+							<span class="flex-1 text-[17px]">Rücklagen im Monat</span>
+							<span class="text-label-2 tabular" aria-label="Rücklagen im Monat">
+								{formatEuro(reserves)}
+							</span>
+						</li>
+					{/if}
+					{#if data.goals.length}
+						<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+							<span class="flex-1 text-[17px]">Frei</span>
+							<span
+								class={['tabular', data.balance - allocated < 0 ? 'text-danger' : 'text-label-2']}
+								aria-label="Frei für Sparziele"
+							>
+								{formatEuro(data.balance - allocated)}
+							</span>
+						</li>
+					{/if}
+					{#if canEdit}
 						<li>
 							<a
-								href={resolve(`dauerposten/${l.id}`)}
-								class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+								href="{resolve('sparziele')}?konto={data.account.id}"
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-[17px] text-accent active:bg-fill"
 							>
-								<span class="min-w-0 flex-1 truncate text-[17px]">{l.name}</span>
-								<span class="text-[15px] text-label-2">{formatDay(l.date)}</span>
-								<span class={['text-[17px] tabular', l.amount > 0 && 'text-income']}>
-									{l.amount > 0 ? '+' : ''}{formatEuro(l.amount)}
+								Sparziel anlegen
+							</a>
+						</li>
+					{/if}
+				</ul>
+				{#if data.balance - allocated < 0}
+					<p class="mt-1.5 px-4 text-[13px] text-danger">
+						Für die Sparziele ist mehr zurückgelegt, als auf dem Sparbuch ist.
+					</p>
+				{/if}
+			</section>
+		{/if}
+
+		<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
+			<li>
+				<a
+					href={resolve(`buchungen?konto=${account.id}`)}
+					class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+				>
+					<span class="flex-1 text-[17px]">Buchungen</span>
+					<span class="text-label-2 tabular">{data.bookingCount}</span>
+					<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+				</a>
+			</li>
+			<li class="border-t-[0.5px] border-separator">
+				<a
+					href={resolve(`offene-zahlungen?konto=${account.id}`)}
+					class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
+				>
+					<span class="flex-1 text-[17px]">Offene Zahlungen</span>
+					<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+				</a>
+			</li>
+			{#if canEdit}
+				<li class="border-t-[0.5px] border-separator">
+					<button
+						type="button"
+						onclick={openAdjust}
+						class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+					>
+						Kontostand korrigieren
+					</button>
+				</li>
+				<li class="border-t-[0.5px] border-separator">
+					<a
+						href={resolve(`konten/${account.id}/import`)}
+						class="flex min-h-11 items-center gap-3 px-4 py-2.5 text-[17px] text-accent active:bg-fill"
+					>
+						<span class="flex-1">CSV importieren</span>
+						<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
+					</a>
+				</li>
+			{/if}
+		</ul>
+	{/if}
+
+	{#if tab === 'zinsen'}
+		{#if data.interest}
+			{@const zi = data.interest}
+			<section class="mb-8" aria-label="Zinsen">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinsen</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Zinssatz</span>
+						<span class="text-label-2 tabular" aria-label="Zinssatz">
+							{zi.currentRate ? `${formatRate(zi.currentRate)} p. a.` : 'keiner'}
+						</span>
+					</li>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Bisher in dieser Periode</span>
+						<span class="text-label-2 tabular" aria-label="Bisher in dieser Periode">
+							{formatEuro(zi.accrued)}
+						</span>
+					</li>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1 text-[17px]">Gutschrift am {formatDay(zi.expected.date)}</span>
+						<span class="text-income tabular" aria-label="Erwartete Gutschrift">
+							+{formatEuro(zi.expected.amount)}
+						</span>
+					</li>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
+						{#if canEdit}
+							<form method="POST" action="?/rhythm" use:enhance class="contents">
+								<label for="interest-rhythm" class="flex-1 text-[17px]">Gutschrift</label>
+								<select
+									id="interest-rhythm"
+									name="interestRhythm"
+									onchange={submitRhythm}
+									class="bg-transparent text-right text-label-2"
+								>
+									{#each INTEREST_RHYTHMS as r (r)}
+										<option value={r} selected={r === zi.rhythm}>
+											{INTEREST_RHYTHM_LABELS[r]}
+										</option>
+									{/each}
+								</select>
+							</form>
+						{:else}
+							<span class="flex-1 text-[17px]">Gutschrift</span>
+							<span class="text-label-2">{INTEREST_RHYTHM_LABELS[zi.rhythm]}</span>
+						{/if}
+					</li>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Tagegenau auf den Stand am Ende jedes Tages (act/365), ohne Steuern. Am Ende der Periode
+					bucht die App die Zinsen vorläufig; weicht die Bank ab, passe den Betrag an der Buchung
+					an.
+				</p>
+			</section>
+
+			{#if zi.rates.length || canEdit}
+				<section class="mb-8" aria-label="Zinssätze">
+					<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinssätze</h2>
+					<ul
+						class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+					>
+						{#each [...zi.rates].reverse() as r (r.id)}
+							<li class="flex min-h-11 items-center gap-3 px-4 py-2">
+								<span class="flex-1 text-[17px]">ab {formatDay(r.validFrom)}</span>
+								<span class="tabular">{formatRate(r.rate)}</span>
+								{#if canEdit}
+									<form method="POST" action="?/rateDelete" use:enhance>
+										<input type="hidden" name="rateId" value={r.id} />
+										<button
+											type="submit"
+											class="kp-text-button text-[15px] text-danger"
+											aria-label="Zinssatz ab {formatDay(r.validFrom)} löschen"
+										>
+											Löschen
+										</button>
+									</form>
+								{/if}
+							</li>
+						{/each}
+						{#if canEdit}
+							<li>
+								<button
+									type="button"
+									onclick={openRate}
+									class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+								>
+									Zinssatz ändern
+								</button>
+							</li>
+						{/if}
+					</ul>
+				</section>
+			{/if}
+
+			{#if zi.series.length > 1}
+				<section class="mb-8" aria-label="Verlauf">
+					<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Verlauf</h2>
+					<BalanceChart series={zi.series} label="Kontostand im Verlauf" />
+				</section>
+			{/if}
+		{/if}
+	{/if}
+
+	{#if tab === 'verlauf'}
+		{#if data.forecast}
+			{@const f = data.forecast}
+			<section class="mb-8" aria-label="Vorschau 12 Monate">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Vorschau 12 Monate</h2>
+				<BalanceChart
+					series={f.series}
+					label="Kontostand in den nächsten 12 Monaten"
+					low={f.lowest ? [f.lowest.date, f.lowest.balance] : null}
+					limit={account.type === 'giro' ? account.overdraftLimit : 0}
+				/>
+				<ul
+					class="mt-2 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1">Tiefster Stand</span>
+						<span
+							class={['tabular', f.lowest && f.lowest.balance < 0 ? 'text-danger' : 'text-label-2']}
+							aria-label="Tiefster Stand"
+						>
+							{f.lowest
+								? `${formatEuro(f.lowest.balance)} am ${formatDay(f.lowest.date)}`
+								: 'keine Bewegung geplant'}
+						</span>
+					</li>
+					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
+						<span class="flex-1">Am {formatDay(f.until)}</span>
+						<span class="text-label-2 tabular" aria-label="Stand in 12 Monaten">
+							{formatEuro(f.end)}
+						</span>
+					</li>
+				</ul>
+				{#if f.lowest && f.lowest.balance < -(account.type === 'giro' ? account.overdraftLimit : 0)}
+					<p class="mt-1.5 px-4 text-[13px] text-danger" data-testid="forecast-warning">
+						Nach Plan reicht das Geld im Laufe des Jahres nicht: {account.overdraftLimit
+							? 'der Dispo würde überschritten.'
+							: 'das Konto rutscht ins Minus.'}
+					</p>
+				{:else}
+					<p class="mt-1.5 px-4 text-[13px] text-label-2">
+						Aus Stand, Dauerposten, geplanten Zahlungen und Umbuchungen; schwankende Beträge mit dem
+						letzten Wert.
+					</p>
+				{/if}
+			</section>
+		{/if}
+
+		{#if data.months.length}
+			<section class="mb-8" aria-label="Monatsübersicht">
+				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Monatsübersicht</h2>
+				<ul
+					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+				>
+					{#each data.months as m (m.month)}
+						<li>
+							<a
+								href={monthHref(m)}
+								aria-label="{m.label}: Abbuchungen {formatEuro(m.outgoing)}"
+								class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
+							>
+								<span class="min-w-0 flex-1">
+									<span class="flex items-baseline gap-3">
+										<span class="min-w-0 flex-1 truncate text-[17px]">
+											{m.label}
+										</span>
+										<span class="shrink-0 text-[17px] tabular">{formatEuro(m.outgoing)}</span>
+									</span>
+									<span class="block text-[13px] text-label-2 tabular">
+										{m.outCount === 1 ? '1 Abbuchung' : `${m.outCount} Abbuchungen`}{m.current
+											? ' bisher'
+											: ''}{#if m.transfersOut}{` · umgebucht ${formatEuro(m.transfersOut)}`}{/if}
+									</span>
+									<span class="block text-[13px] text-label-2 tabular">
+										Eingänge {formatEuro(m.incoming)} · Saldo {m.net > 0 ? '+' : ''}{formatEuro(
+											m.net
+										)}
+									</span>
 								</span>
+								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 							</a>
 						</li>
 					{/each}
 				</ul>
 				<p class="mt-1.5 px-4 text-[13px] text-label-2">
-					Liegt nach dem Stichtag und zählt noch nicht zum Mindestbestand.
+					Abbuchungen sind alles, was vom Konto abgeht. „Umgebucht“ ist der Teil davon, der auf
+					eigene Konten ging{account.type === 'giro' ? ' – auch die Kreditkartenabrechnung' : ''}.
+					Ein Tipp zeigt die Abbuchungen des Monats.
 				</p>
-			</section>
-		{/if}
-
-		{#if p.steps.length}
-			<section class="mb-8" aria-label="Bis zum Stichtag fällig">
-				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Bis zum Stichtag</h2>
-				<ul
-					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-				>
-					{#each p.steps as step, i (i)}
-						{@const low =
-							p.lowest && step.date === p.lowest.date && step.balance === p.lowest.balance}
-						<li class="flex min-h-14 items-center gap-3 px-4 py-2">
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[17px]">{step.label}</span>
-								<span class="block text-[13px] text-label-2">
-									{formatDay(step.date)} · danach {formatEuro(step.balance)}{low
-										? ' · tiefster Stand'
-										: ''}
-								</span>
-							</span>
-							<span class={['shrink-0 text-[17px] tabular', step.amount > 0 && 'text-income']}>
-								{step.amount > 0 ? '+' : ''}{formatEuro(step.amount)}
-							</span>
-						</li>
-					{/each}
-				</ul>
 			</section>
 		{/if}
 	{/if}
 
-	{#if data.goals && (data.goals.length || (canEdit && !data.account.archivedAt))}
-		{@const allocated = data.goals.reduce((sum, g) => sum + g.allocated, 0)}
-		{@const reserves = data.goals.reduce((sum, g) => sum + (g.reserve ?? 0), 0)}
-		<section class="mb-8" aria-label="Sparziele">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Sparziele</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				{#each data.goals as goal (goal.id)}<GoalRow {goal} />{/each}
-				{#if reserves > 0}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-						<span class="flex-1 text-[17px]">Rücklagen im Monat</span>
-						<span class="text-label-2 tabular" aria-label="Rücklagen im Monat">
-							{formatEuro(reserves)}
-						</span>
-					</li>
-				{/if}
-				{#if data.goals.length}
-					<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-						<span class="flex-1 text-[17px]">Frei</span>
-						<span
-							class={['tabular', data.balance - allocated < 0 ? 'text-danger' : 'text-label-2']}
-							aria-label="Frei für Sparziele"
-						>
-							{formatEuro(data.balance - allocated)}
-						</span>
-					</li>
-				{/if}
-				{#if canEdit}
-					<li>
-						<a
-							href="{resolve('sparziele')}?konto={data.account.id}"
-							class="flex min-h-11 w-full items-center px-4 py-2.5 text-[17px] text-accent active:bg-fill"
-						>
-							Sparziel anlegen
-						</a>
-					</li>
-				{/if}
-			</ul>
-			{#if data.balance - allocated < 0}
-				<p class="mt-1.5 px-4 text-[13px] text-danger">
-					Für die Sparziele ist mehr zurückgelegt, als auf dem Sparbuch ist.
-				</p>
-			{/if}
-		</section>
-	{/if}
-
-	{#if data.interest}
-		{@const zi = data.interest}
-		<section class="mb-8" aria-label="Zinsen">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinsen</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1 text-[17px]">Zinssatz</span>
-					<span class="text-label-2 tabular" aria-label="Zinssatz">
-						{zi.currentRate ? `${formatRate(zi.currentRate)} p. a.` : 'keiner'}
-					</span>
-				</li>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1 text-[17px]">Bisher in dieser Periode</span>
-					<span class="text-label-2 tabular" aria-label="Bisher in dieser Periode">
-						{formatEuro(zi.accrued)}
-					</span>
-				</li>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1 text-[17px]">Gutschrift am {formatDay(zi.expected.date)}</span>
-					<span class="text-income tabular" aria-label="Erwartete Gutschrift">
-						+{formatEuro(zi.expected.amount)}
-					</span>
-				</li>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-1.5">
-					{#if canEdit}
-						<form method="POST" action="?/rhythm" use:enhance class="contents">
-							<label for="interest-rhythm" class="flex-1 text-[17px]">Gutschrift</label>
-							<select
-								id="interest-rhythm"
-								name="interestRhythm"
-								onchange={submitRhythm}
-								class="bg-transparent text-right text-label-2"
-							>
-								{#each INTEREST_RHYTHMS as r (r)}
-									<option value={r} selected={r === zi.rhythm}>{INTEREST_RHYTHM_LABELS[r]}</option>
-								{/each}
-							</select>
-						</form>
-					{:else}
-						<span class="flex-1 text-[17px]">Gutschrift</span>
-						<span class="text-label-2">{INTEREST_RHYTHM_LABELS[zi.rhythm]}</span>
-					{/if}
-				</li>
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Tagegenau auf den Stand am Ende jedes Tages (act/365), ohne Steuern. Am Ende der Periode
-				bucht die App die Zinsen vorläufig; weicht die Bank ab, passe den Betrag an der Buchung an.
-			</p>
-		</section>
-
-		{#if zi.rates.length || canEdit}
-			<section class="mb-8" aria-label="Zinssätze">
-				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zinssätze</h2>
-				<ul
-					class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-				>
-					{#each [...zi.rates].reverse() as r (r.id)}
-						<li class="flex min-h-11 items-center gap-3 px-4 py-2">
-							<span class="flex-1 text-[17px]">ab {formatDay(r.validFrom)}</span>
-							<span class="tabular">{formatRate(r.rate)}</span>
-							{#if canEdit}
-								<form method="POST" action="?/rateDelete" use:enhance>
-									<input type="hidden" name="rateId" value={r.id} />
-									<button
-										type="submit"
-										class="kp-text-button text-[15px] text-danger"
-										aria-label="Zinssatz ab {formatDay(r.validFrom)} löschen"
-									>
-										Löschen
-									</button>
-								</form>
-							{/if}
-						</li>
-					{/each}
-					{#if canEdit}
-						<li>
-							<button
-								type="button"
-								onclick={openRate}
-								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
-							>
-								Zinssatz ändern
-							</button>
-						</li>
-					{/if}
-				</ul>
-			</section>
-		{/if}
-
-		{#if zi.series.length > 1}
-			<section class="mb-8" aria-label="Verlauf">
-				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Verlauf</h2>
-				<BalanceChart series={zi.series} label="Kontostand im Verlauf" />
-			</section>
-		{/if}
-	{/if}
-
-	{#if data.forecast}
-		{@const f = data.forecast}
-		<section class="mb-8" aria-label="Vorschau 12 Monate">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Vorschau 12 Monate</h2>
-			<BalanceChart
-				series={f.series}
-				label="Kontostand in den nächsten 12 Monaten"
-				low={f.lowest ? [f.lowest.date, f.lowest.balance] : null}
-				limit={account.type === 'giro' ? account.overdraftLimit : 0}
-			/>
-			<ul
-				class="mt-2 divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1">Tiefster Stand</span>
-					<span
-						class={['tabular', f.lowest && f.lowest.balance < 0 ? 'text-danger' : 'text-label-2']}
-						aria-label="Tiefster Stand"
-					>
-						{f.lowest
-							? `${formatEuro(f.lowest.balance)} am ${formatDay(f.lowest.date)}`
-							: 'keine Bewegung geplant'}
-					</span>
-				</li>
-				<li class="flex min-h-11 items-center gap-3 px-4 py-2.5">
-					<span class="flex-1">Am {formatDay(f.until)}</span>
-					<span class="text-label-2 tabular" aria-label="Stand in 12 Monaten">
-						{formatEuro(f.end)}
-					</span>
-				</li>
-			</ul>
-			{#if f.lowest && f.lowest.balance < -(account.type === 'giro' ? account.overdraftLimit : 0)}
-				<p class="mt-1.5 px-4 text-[13px] text-danger" data-testid="forecast-warning">
-					Nach Plan reicht das Geld im Laufe des Jahres nicht: {account.overdraftLimit
-						? 'der Dispo würde überschritten.'
-						: 'das Konto rutscht ins Minus.'}
-				</p>
-			{:else}
-				<p class="mt-1.5 px-4 text-[13px] text-label-2">
-					Aus Stand, Dauerposten, geplanten Zahlungen und Umbuchungen; schwankende Beträge mit dem
-					letzten Wert.
-				</p>
-			{/if}
-		</section>
-	{/if}
-
-	<ul class="mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
-		<li>
-			<a
-				href={resolve(`buchungen?konto=${account.id}`)}
-				class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
-			>
-				<span class="flex-1 text-[17px]">Buchungen</span>
-				<span class="text-label-2 tabular">{data.bookingCount}</span>
-				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
-			</a>
-		</li>
-		<li class="border-t-[0.5px] border-separator">
-			<a
-				href={resolve(`offene-zahlungen?konto=${account.id}`)}
-				class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
-			>
-				<span class="flex-1 text-[17px]">Offene Zahlungen</span>
-				<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
-			</a>
-		</li>
+	{#if tab === (canEdit ? 'bearbeiten' : 'uebersicht')}
 		{#if canEdit}
-			<li class="border-t-[0.5px] border-separator">
-				<button
-					type="button"
-					onclick={openAdjust}
-					class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
-				>
-					Kontostand korrigieren
-				</button>
-			</li>
-			<li class="border-t-[0.5px] border-separator">
-				<a
-					href={resolve(`konten/${account.id}/import`)}
-					class="flex min-h-11 items-center gap-3 px-4 py-2.5 text-[17px] text-accent active:bg-fill"
-				>
-					<span class="flex-1">CSV importieren</span>
-					<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
-				</a>
-			</li>
-		{/if}
-	</ul>
-
-	{#if data.months.length}
-		<section class="mb-8" aria-label="Monatsübersicht">
-			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Monatsübersicht</h2>
-			<ul
-				class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-			>
-				{#each data.months as m (m.month)}
-					<li>
-						<a
-							href={monthHref(m)}
-							aria-label="{m.label}: Abbuchungen {formatEuro(m.outgoing)}"
-							class="flex min-h-14 items-center gap-3 px-4 py-2 active:bg-fill"
-						>
-							<span class="min-w-0 flex-1">
-								<span class="flex items-baseline gap-3">
-									<span class="min-w-0 flex-1 truncate text-[17px]">
-										{m.label}
-									</span>
-									<span class="shrink-0 text-[17px] tabular">{formatEuro(m.outgoing)}</span>
-								</span>
-								<span class="block text-[13px] text-label-2 tabular">
-									{m.outCount === 1 ? '1 Abbuchung' : `${m.outCount} Abbuchungen`}{m.current
-										? ' bisher'
-										: ''}{#if m.transfersOut}{` · umgebucht ${formatEuro(m.transfersOut)}`}{/if}
-								</span>
-								<span class="block text-[13px] text-label-2 tabular">
-									Eingänge {formatEuro(m.incoming)} · Saldo {m.net > 0 ? '+' : ''}{formatEuro(
-										m.net
-									)}
-								</span>
-							</span>
-							<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
-						</a>
-					</li>
-				{/each}
-			</ul>
-			<p class="mt-1.5 px-4 text-[13px] text-label-2">
-				Abbuchungen sind alles, was vom Konto abgeht. „Umgebucht“ ist der Teil davon, der auf eigene
-				Konten ging{account.type === 'giro' ? ' – auch die Kreditkartenabrechnung' : ''}. Ein Tipp
-				zeigt die Abbuchungen des Monats.
-			</p>
-		</section>
-	{/if}
-
-	{#if canEdit}
-		<form
-			method="POST"
-			action="?/update"
-			use:enhance={() => {
-				savePending = true;
-				return async ({ update }) => {
-					await update({ reset: false });
-					savePending = false;
-				};
-			}}
-		>
-			<AccountFields
-				values={fieldValues}
-				errors={updateErrors}
-				giroAccounts={data.card?.giroAccounts ?? []}
-			/>
-			<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
-		</form>
-	{:else}
-		<ListGroup
-			header="Kontodaten"
-			footer={archived
-				? 'Archivierte Konten sind schreibgeschützt.'
-				: 'Du kannst dieses Konto nur ansehen.'}
-		>
-			<ListRow label="IBAN" value={account.iban ? formatIban(account.iban) : '–'} />
-			{#if account.type === 'giro'}
-				<ListRow
-					label="Dispo"
-					value={account.overdraftLimit ? formatEuro(account.overdraftLimit) : 'keiner'}
-				/>
-				<ListRow label="Puffer" value={account.buffer ? formatEuro(account.buffer) : 'keiner'} />
-			{/if}
-		</ListGroup>
-	{/if}
-
-	{#if data.isAdmin}
-		{#if data.access.length}
 			<form
 				method="POST"
-				action="?/access"
-				use:enhance={() =>
-					async ({ update }) =>
-						update({ reset: false })}
+				action="?/update"
+				use:enhance={() => {
+					savePending = true;
+					return async ({ update }) => {
+						await update({ reset: false });
+						savePending = false;
+					};
+				}}
 			>
-				<section class="mb-8">
-					<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zugriff</h2>
-					<ul
-						class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
-					>
-						{#each data.access as entry (entry.userId)}
-							<SelectField
-								label={entry.name}
-								name={`access:${entry.userId}`}
-								options={ACCESS_OPTIONS}
-								value={entry.level ?? ''}
-							/>
-						{/each}
-					</ul>
-					<p class="mt-1.5 px-4 text-[13px] text-label-2">
-						Admins sehen und bearbeiten alle Konten. „Bearbeiten“ erlaubt Buchungen, Dauerposten und
-						Kontodaten.
-					</p>
-				</section>
-				<Button type="submit" variant="tinted" class="mb-8">Zugriffe sichern</Button>
+				<AccountFields
+					values={fieldValues}
+					errors={updateErrors}
+					giroAccounts={data.card?.giroAccounts ?? []}
+				/>
+				<Button type="submit" disabled={savePending} class="mb-8">Sichern</Button>
 			</form>
 		{:else}
-			<p class="mb-8 px-4 text-[13px] text-label-2">
-				Es gibt noch keine Benutzer ohne Admin-Rolle, denen du das Konto freigeben könntest.
-			</p>
+			<ListGroup
+				header="Kontodaten"
+				footer={archived
+					? 'Archivierte Konten sind schreibgeschützt.'
+					: 'Du kannst dieses Konto nur ansehen.'}
+			>
+				<ListRow label="IBAN" value={account.iban ? formatIban(account.iban) : '–'} />
+				{#if account.type === 'giro'}
+					<ListRow
+						label="Dispo"
+						value={account.overdraftLimit ? formatEuro(account.overdraftLimit) : 'keiner'}
+					/>
+					<ListRow label="Puffer" value={account.buffer ? formatEuro(account.buffer) : 'keiner'} />
+				{/if}
+			</ListGroup>
 		{/if}
-
-		<ListGroup header="Verwaltung">
-			{#if archived}
-				<li>
-					<form method="POST" action="?/restore" use:enhance>
-						<button
-							type="submit"
-							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
-						>
-							Wiederherstellen
-						</button>
-					</form>
-				</li>
-			{:else}
-				<li>
-					<form method="POST" action="?/archive" use:enhance>
-						<button
-							type="submit"
-							class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
-						>
-							Archivieren
-						</button>
-					</form>
-				</li>
-			{/if}
-			{#if !data.hasData}
-				<ListRow label="Konto löschen" destructive onclick={() => (deleteOpen = true)} />
-			{/if}
-		</ListGroup>
 	{/if}
-	<HelpLink
-		chapter="erste-schritte"
-		anchor="mindestbestand-verstehen"
-		label="Wie rechnet die App den Mindestbestand?"
-	/>
+
+	{#if tab === 'bearbeiten'}
+		{#if data.isAdmin}
+			{#if data.access.length}
+				<form
+					method="POST"
+					action="?/access"
+					use:enhance={() =>
+						async ({ update }) =>
+							update({ reset: false })}
+				>
+					<section class="mb-8">
+						<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Zugriff</h2>
+						<ul
+							class="divide-y-[0.5px] divide-separator overflow-hidden rounded-[var(--radius-row)] bg-card"
+						>
+							{#each data.access as entry (entry.userId)}
+								<SelectField
+									label={entry.name}
+									name={`access:${entry.userId}`}
+									options={ACCESS_OPTIONS}
+									value={entry.level ?? ''}
+								/>
+							{/each}
+						</ul>
+						<p class="mt-1.5 px-4 text-[13px] text-label-2">
+							Admins sehen und bearbeiten alle Konten. „Bearbeiten“ erlaubt Buchungen, Dauerposten
+							und Kontodaten.
+						</p>
+					</section>
+					<Button type="submit" variant="tinted" class="mb-8">Zugriffe sichern</Button>
+				</form>
+			{:else}
+				<p class="mb-8 px-4 text-[13px] text-label-2">
+					Es gibt noch keine Benutzer ohne Admin-Rolle, denen du das Konto freigeben könntest.
+				</p>
+			{/if}
+
+			<ListGroup header="Verwaltung">
+				{#if archived}
+					<li>
+						<form method="POST" action="?/restore" use:enhance>
+							<button
+								type="submit"
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+							>
+								Wiederherstellen
+							</button>
+						</form>
+					</li>
+				{:else}
+					<li>
+						<form method="POST" action="?/archive" use:enhance>
+							<button
+								type="submit"
+								class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-accent active:bg-fill"
+							>
+								Archivieren
+							</button>
+						</form>
+					</li>
+				{/if}
+				{#if !data.hasData}
+					<ListRow label="Konto löschen" destructive onclick={() => (deleteOpen = true)} />
+				{/if}
+			</ListGroup>
+		{/if}
+	{/if}
+
+	{#if tab === 'uebersicht'}
+		<HelpLink
+			chapter="erste-schritte"
+			anchor="mindestbestand-verstehen"
+			label="Wie rechnet die App den Mindestbestand?"
+		/>
+	{/if}
 </Page>
 
 {#if data.isAdmin}

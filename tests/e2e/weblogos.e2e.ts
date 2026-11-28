@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Company logos from the web: a local server stands in for company websites and the
 // favicon service (LOGO_TEST_BASE in playwright.config.ts).
@@ -121,6 +122,7 @@ test('a logo can be fetched by hand: website, favicon service or image address',
 		.getByRole('main')
 		.getByRole('link', { name: /Erika Beispielfrau.*50,00/ })
 		.click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Logo ändern' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Logo' });
 	const field = sheet.getByLabel('Webseite oder Bild-Adresse');

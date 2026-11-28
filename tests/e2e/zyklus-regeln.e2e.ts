@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -56,6 +57,7 @@ test('a rule from a booking can require the bank’s category as well', async ({
 	await expect(await row(page, '9,37')).toContainText('Ohne Kategorie');
 
 	await (await row(page, '9,37')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Immer so einordnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Immer so einordnen' });
 	// Everything the booking can be known by is offered; the payee is ticked.

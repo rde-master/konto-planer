@@ -14,6 +14,15 @@ Wichtig ist der **Startsaldo mit Datum** („Stand am“): Der Kontostand ist di
 
 Die IBAN ist optional; der Umsatzimport prüft damit, ob die Datei zum Konto passt.
 
+## Die Seite eines Kontos
+
+Ein Tipp auf ein Konto öffnet seine Seite mit dem Kontostand oben und Reitern darunter:
+
+- **Übersicht**: verfügbar und Mindestbestand bis zum Stichtag, Sparziele (Sparbuch), Abrechnung (Kreditkarte), dazu Buchungen, offene Zahlungen, „Kontostand korrigieren“ und der CSV-Import
+- **Zinsen** (nur Sparbuch): Zinssatz, erwartete Gutschrift und Verlauf
+- **Verlauf**: die Vorschau für 12 Monate und die Monatsübersicht
+- **Bearbeiten**: Kontodaten, Zugriff der Benutzer, archivieren und löschen
+
 ## Monatsübersicht eines Kontos
 
 Auf der Kontoseite zeigt **Monatsübersicht** für die letzten zwölf Monate, was vom Konto abgegangen ist: die Summe aller **Abbuchungen** (jede Buchung mit Minusbetrag – Lastschriften, Kartenzahlungen, Überweisungen, auch Umbuchungen auf eigene Konten und die Kreditkartenabrechnung), ihre Anzahl, die Eingänge und den Saldo des Monats. „Umgebucht“ nennt den Teil der Abbuchungen, der auf eigene Konten ging. Ein Tipp auf einen Monat öffnet die Buchungsliste mit genau diesen Abbuchungen. Gezählt wird ab dem Startsaldo-Datum und bis heute; der laufende Monat ist mit „bisher“ gekennzeichnet.

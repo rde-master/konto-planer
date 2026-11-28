@@ -57,12 +57,14 @@ test('a deleted booking comes back with its category and tag', async ({ page }) 
 	await expect(sheet).toBeHidden();
 
 	await page.getByRole('link', { name: new RegExp(PAYEE) }).click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Tags ändern' }).click();
 	const tags = page.getByRole('dialog', { name: 'Tags' });
 	await tags.getByLabel('Neuer Tag').fill('Recycling');
 	await tags.getByRole('button', { name: 'Sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Tags gesichert.');
 
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Buchung löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Buchung löschen' })
@@ -75,6 +77,7 @@ test('a deleted booking comes back with its category and tag', async ({ page }) 
 	await page.goto('/buchungen');
 	await page.getByRole('link', { name: new RegExp(PAYEE) }).click();
 	await expect(page.locator('main')).toContainText(CATEGORY);
+	await openTab(page, 'Einordnen');
 	await expect(
 		page.getByRole('region', { name: 'Tags' }).getByRole('link', { name: 'Recycling' })
 	).toBeVisible();

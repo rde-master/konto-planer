@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 
 // "Dauerposten daraus machen": a booking becomes the first payment of a new recurring item.
@@ -42,6 +43,7 @@ test('a booking becomes a recurring item without being booked twice', async ({ p
 		.getByRole('main')
 		.getByRole('link', { name: new RegExp(`${PAYEE}.*9,90`) })
 		.click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Dauerposten daraus machen' }).click();
 
 	// The form is open and filled from the booking.
@@ -72,6 +74,7 @@ test('a booking becomes a recurring item without being booked twice', async ({ p
 		.getByRole('main')
 		.getByRole('link', { name: new RegExp(`${PAYEE}.*9,90`) })
 		.click();
+	await openTab(page, 'Aktionen');
 	await expect(page.getByRole('button', { name: 'Als Vorlage sichern' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Dauerposten daraus machen' })).toHaveCount(0);
 });

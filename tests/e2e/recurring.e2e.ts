@@ -40,6 +40,7 @@ test('setup: account shared read-only with lena', async ({ page }) => {
 	await sheet.getByRole('button', { name: 'Anlegen' }).click();
 	await expect(sheet).toBeHidden();
 	await page.getByRole('link', { name: new RegExp(ACCOUNT) }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel(LENA.name).selectOption('view');
 	await page.getByRole('button', { name: 'Zugriffe sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Zugriffe gesichert.');
@@ -196,6 +197,7 @@ test('archive, restore, delete; accounts with items cannot be deleted', async ({
 
 	await page.goto('/konten');
 	await page.getByRole('link', { name: new RegExp(ACCOUNT) }).click();
+	await openTab(page, 'Bearbeiten');
 	await expect(page.getByRole('button', { name: 'Archivieren' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Konto löschen' })).toHaveCount(0);
 });

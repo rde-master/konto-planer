@@ -99,9 +99,11 @@ test('minimum balance up to the next salary; warning without overdraft', async (
 test('with enough overdraft only a hint remains', async ({ page }) => {
 	await login(page);
 	await openAccount(page);
+	await openTab(page, 'Bearbeiten');
 	await page.locator('main').getByLabel('Dispo-Rahmen in € (optional)').fill('500');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
+	await openTab(page, 'Übersicht');
 	await expect(page.getByRole('alert')).toHaveCount(0);
 	await expect(page.getByText('Der Dispo reicht dafür.')).toBeVisible();
 	// The overdraft never counts as available.
@@ -140,9 +142,11 @@ test('the cut-off day can be a fixed date or a chosen income; logged', async ({ 
 test('the buffer always adds to the minimum balance', async ({ page }) => {
 	await login(page);
 	await openAccount(page);
+	await openTab(page, 'Bearbeiten');
 	await page.locator('main').getByLabel('Puffer in € (optional)').fill('150');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
+	await openTab(page, 'Übersicht');
 	await expect(minimum(page)).toHaveText(/1\.350,00\s€/);
 	await expect(page.getByText('davon Puffer')).toBeVisible();
 	await expect(available(page)).toHaveText(/−350,00\s€/);
@@ -202,6 +206,7 @@ test('one-off payments after the cut-off day are only a hint', async ({ page }) 
 test('the 12-month forecast shows the lowest point', async ({ page }) => {
 	await login(page);
 	await openAccount(page);
+	await openTab(page, 'Verlauf');
 	const forecast = page.getByRole('region', { name: 'Vorschau 12 Monate' });
 	await expect(
 		forecast.getByRole('img', { name: 'Kontostand in den nächsten 12 Monaten' })

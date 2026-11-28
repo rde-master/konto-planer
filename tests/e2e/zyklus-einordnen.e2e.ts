@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // "Immer so einordnen": a category rule made at a booking – for its payee, for the bookings
 // without category that are there, and for new ones. Uses the account of zyklus-doppelt.
@@ -46,6 +47,7 @@ test('a rule from a booking categorises the payee’s bookings without category'
 	await expect(await row(page, `${PAYEE} 4711`, '20,00')).toContainText('Ohne Kategorie');
 
 	await (await row(page, `${PAYEE} 4711`, '20,00')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Immer so einordnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Immer so einordnen' });
 	// The proposal leaves out the number that changes from booking to booking.
@@ -89,6 +91,7 @@ test('a new booking without category gets the payee’s category', async ({ page
 
 	// Saving the same rule with another category changes the rule, not the bookings.
 	await (await row(page, `${PAYEE} 9999`, '31,00')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Immer so einordnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Immer so einordnen' });
 	await sheet.getByLabel('Kategorie', { exact: true }).selectOption({ label: 'Drogerie' });

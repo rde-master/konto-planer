@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 
 // Transfers between two accounts made by hand. Uses giro account and card of zyklus-kreditkarte.
@@ -80,7 +81,9 @@ test('a new booking is entered as a transfer; releasing removes the other side',
 
 	// Both sides know each other.
 	await (await found(page, 'Rücklage Test', '200,00')).click();
+	await openTab(page, 'Aktionen');
 	await expect(page.getByRole('button', { name: 'Als Umbuchung kennzeichnen' })).toHaveCount(0);
+	await openTab(page, 'Buchung');
 	await page.getByRole('link', { name: new RegExp(`Umbuchung.*Auf ${SAVINGS}`) }).click();
 	await expect(page.getByRole('heading', { level: 1, name: GIRO })).toBeVisible();
 	await expect(
@@ -98,6 +101,7 @@ test('a new booking is entered as a transfer; releasing removes the other side',
 
 	// Released: the booking the app created goes to the trash.
 	await (await found(page, 'Rücklage Test', '250,00')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Umbuchung auflösen' }).click();
 	const release = page.getByRole('dialog', { name: 'Umbuchung auflösen' });
 	await expect(release.getByLabel(`Buchung auf ${SAVINGS} löschen`)).toBeChecked();
@@ -118,6 +122,7 @@ test('two existing bookings are linked instead of creating a third', async ({ pa
 	await expect(await found(page, 'Übertrag Test', '75,00')).toHaveCount(2);
 
 	await (await found(page, 'Übertrag Test', '−75,00')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Als Umbuchung kennzeichnen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Umbuchung' });
 	await sheet.getByLabel('Umbuchung auf').selectOption({ label: CARD });
@@ -126,6 +131,7 @@ test('two existing bookings are linked instead of creating a third', async ({ pa
 	await expect(page.getByRole('status')).toContainText(
 		`Verknüpft mit der passenden Buchung auf ${CARD}.`
 	);
+	await openTab(page, 'Buchung');
 	await expect(
 		page.getByRole('link', { name: new RegExp(`Umbuchung.*Auf ${CARD}`) })
 	).toBeVisible();
@@ -133,6 +139,7 @@ test('two existing bookings are linked instead of creating a third', async ({ pa
 
 	// Transfers count neither as expense nor as income.
 	await (await found(page, 'Übertrag Test', '−75,00')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Umbuchung auflösen' }).click();
 	const release = page.getByRole('dialog', { name: 'Umbuchung auflösen' });
 	await release.getByLabel(`Buchung auf ${CARD} löschen`).uncheck();

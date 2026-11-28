@@ -33,6 +33,7 @@
 	import { formatDay } from '#lib/dates.js';
 	import { bookingTitle } from '#lib/booking-list.js';
 	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
+	import Tabs from '#lib/components/Tabs.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -57,6 +58,44 @@
 		goal: 'Umbuchung für Sparziel',
 		settlement: 'Kreditkartenabrechnung (berechnet)'
 	};
+
+	/** Splitting, tags, shared expense and logo: only where the booking has or allows them. */
+	const hasSorting = $derived(
+		booking.canSplit ||
+			booking.parts.length > 0 ||
+			booking.canTag ||
+			data.tags.selected.length > 0 ||
+			data.tags.inherited.length > 0 ||
+			data.shared !== null ||
+			data.canShare
+	);
+	const hasActions = $derived(
+		booking.canEdit ||
+			booking.canDelete ||
+			(data.templateAccounts.length > 0 &&
+				!['adjustment', 'interest', 'goal', 'settlement'].includes(booking.source))
+	);
+	/** Parts of the page. */
+	const tabs = $derived([
+		{ id: 'buchung', label: 'Buchung' },
+		...(hasSorting ? [{ id: 'einordnen', label: 'Einordnen' }] : []),
+		...(hasActions ? [{ id: 'aktionen', label: 'Aktionen' }] : [])
+	]);
+	/** Where the form of an action stands (the page opens there after a submit without JavaScript). */
+	const ACTION_TABS: Record<string, string> = {
+		split: 'einordnen',
+		tags: 'einordnen',
+		share: 'einordnen',
+		logo: 'einordnen',
+		assign: 'aktionen',
+		unassign: 'aktionen',
+		transfer: 'aktionen',
+		untransfer: 'aktionen',
+		always: 'aktionen',
+		template: 'aktionen'
+	};
+	// svelte-ignore state_referenced_locally
+	let tab = $state((form?.action ? ACTION_TABS[form.action] : undefined) ?? 'buchung');
 
 	let savePending = $state(false);
 	let deleteOpen = $state(false);
@@ -226,13 +265,27 @@
 	);
 </script>
 
-{#snippet assignRows()}
+<!-- What the booking belongs to: shown with the booking itself. -->
+{#snippet linkRows()}
 	{#if data.transfer}
 		<ListRow
 			label="Umbuchung"
 			value={transferLabel(booking.amount, data.transfer.accountName)}
 			href={data.transfer.bookingId ? `buchungen/${data.transfer.bookingId}` : undefined}
 		/>
+	{/if}
+	{#if data.assigned}
+		<ListRow
+			label="Dauerposten"
+			value={data.assigned.name}
+			href={`dauerposten/${data.assigned.id}`}
+		/>
+	{/if}
+{/snippet}
+
+<!-- What can be done about it: tab "Aktionen". -->
+{#snippet assignRows()}
+	{#if data.transfer}
 		{#if data.transfer.canRelease}
 			<ListRow label="Umbuchung auflösen" onclick={() => (untransferOpen = true)} />
 		{/if}
@@ -245,11 +298,6 @@
 		/>
 	{/if}
 	{#if data.assigned}
-		<ListRow
-			label="Dauerposten"
-			value={data.assigned.name}
-			href={`dauerposten/${data.assigned.id}`}
-		/>
 		{#if data.canUnassign}
 			<ListRow label="Zuordnung lösen" onclick={() => (unassignOpen = true)} />
 		{/if}
@@ -373,250 +421,208 @@
 
 	<AltNameToggle prefs={data.altNames} show={booking.altName !== null} class="mb-8" />
 
-	{#if booking.canEdit}
-		<form
-			method="POST"
-			action="?/update"
-			use:enhance={() => {
-				savePending = true;
-				return async ({ update }) => {
-					await update({ reset: false });
-					savePending = false;
-				};
-			}}
-		>
-			<BookingFields
-				{values}
-				errors={updateErrors}
-				accounts={data.accounts}
-				categories={data.categoryGroups}
-				full
-			/>
-			<div class="mt-6 mb-8">
-				<Button type="submit" disabled={savePending}>Sichern</Button>
-			</div>
-		</form>
+	<Tabs {tabs} bind:active={tab} />
 
-		<SplitSection
-			amount={booking.amount}
-			categoryName={categoryText}
-			parts={booking.parts}
-			canSplit={booking.canSplit}
-			categoryGroups={data.categoryGroups}
-			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
-		/>
-		<TagEditor
-			allTags={data.tags.all}
-			selected={data.tags.selected}
-			inherited={data.tags.inherited}
-			canEdit={booking.canTag}
-			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
-		/>
-		<SharedSection
-			shared={data.shared}
-			users={data.settleUsers}
-			me={data.user.id}
-			canEdit={data.canShare}
-			errors={form?.action === 'share' && 'shareErrors' in form ? form.shareErrors : undefined}
-		/>
-		{#if booking.payeeKey && booking.canTag}
-			<LogoPicker
-				name={booking.counterparty ?? booking.purpose ?? '?'}
-				logo={booking.logo}
-				chosen={booking.logoChosen}
-			/>
-		{/if}
-		<ListGroup
-			header="Verwaltung"
-			footer={data.canMakeRecurring
-				? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
-				: undefined}
-		>
-			{@render assignRows()}
-			{#if data.canMakeRecurring}
-				<ListRow
-					label="Dauerposten daraus machen"
-					icon={Repeat}
-					iconColor="bg-[#34c759]"
-					onclick={() => goto(resolve(`dauerposten?aus=${booking.id}`))}
-				/>
-			{/if}
-			<ListRow
-				label="Als Vorlage sichern"
-				icon={Zap}
-				iconColor="bg-[#5856d6]"
-				onclick={openTemplate}
-			/>
-			<ListRow label="Buchung löschen" destructive onclick={() => (deleteOpen = true)} />
-		</ListGroup>
-	{:else}
-		<ListGroup header="Details">
-			<ListRow label="Datum" value={formatDay(booking.bookingDate)} />
-			<ListRow label="Konto" value={booking.account.name} />
-			{#if booking.canCategorize}
-				<form
-					method="POST"
-					action="?/category"
-					use:enhance
-					bind:this={categoryForm}
-					class="contents"
-				>
-					<SelectField
-						label="Kategorie"
-						name="categoryId"
-						options={[{ value: '', label: 'Ohne Kategorie' }]}
-						groups={data.categoryGroups}
-						value={booking.categoryId ?? ''}
-						onchange={submitCategory}
-					/>
-				</form>
-			{:else}
-				<ListRow label="Kategorie" value={categoryText} />
-			{/if}
-			{#if booking.iban}<ListRow label="IBAN" value={formatIban(booking.iban)} />{/if}
-			{#if booking.bookingText}<ListRow label="Buchungstext" value={booking.bookingText} />{/if}
-			{#if booking.bankCategory}<ListRow
-					label="Kategorie der Bank"
-					value={booking.bankCategory}
-				/>{/if}
-			{#if booking.counterparty}<ListRow
-					label="Empfänger/Zahler"
-					value={booking.counterparty}
-				/>{/if}
-			{#if booking.purpose && booking.source !== 'provisional'}<ListRow
-					label="Notiz"
-					value={booking.purpose}
-				/>{/if}
-			<ListRow
-				label="Quelle"
-				value={credit?.confirmed
-					? 'Zinsen (Import)'
-					: (SOURCE_LABELS[booking.source] ?? booking.source)}
-			/>
-		</ListGroup>
-		<SplitSection
-			amount={booking.amount}
-			categoryName={categoryText}
-			parts={booking.parts}
-			canSplit={booking.canSplit}
-			categoryGroups={data.categoryGroups}
-			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
-		/>
-		<TagEditor
-			allTags={data.tags.all}
-			selected={data.tags.selected}
-			inherited={data.tags.inherited}
-			canEdit={booking.canTag}
-			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
-		/>
-		<SharedSection
-			shared={data.shared}
-			users={data.settleUsers}
-			me={data.user.id}
-			canEdit={data.canShare}
-			errors={form?.action === 'share' && 'shareErrors' in form ? form.shareErrors : undefined}
-		/>
-		{#if booking.payeeKey && booking.canTag}
-			<LogoPicker
-				name={booking.counterparty ?? booking.purpose ?? '?'}
-				logo={booking.logo}
-				chosen={booking.logoChosen}
-			/>
-		{/if}
-		{#if credit}
-			<ListGroup
-				header="Zinsgutschrift"
-				footer={credit.confirmed
-					? 'Betrag der Bank aus dem Import; er bleibt, auch wenn sich die Berechnung ändert.'
-					: credit.amountSet
-						? 'Betrag von Hand gesetzt; er bleibt, auch wenn sich die Berechnung ändert.'
-						: 'Berechnet aus Stand und Zinssatz. Weicht die Bank ab, übernimm ihren Betrag.'}
+	{#if tab === 'buchung'}
+		{#if booking.canEdit}
+			<form
+				method="POST"
+				action="?/update"
+				use:enhance={() => {
+					savePending = true;
+					return async ({ update }) => {
+						await update({ reset: false });
+						savePending = false;
+					};
+				}}
 			>
-				<ListRow label="Periode bis" value={formatDay(credit.periodEnd)} />
+				<BookingFields
+					{values}
+					errors={updateErrors}
+					accounts={data.accounts}
+					categories={data.categoryGroups}
+					full
+				/>
+				<div class="mt-6 mb-8">
+					<Button type="submit" disabled={savePending}>Sichern</Button>
+				</div>
+			</form>
+		{:else}
+			<ListGroup header="Details">
+				<ListRow label="Datum" value={formatDay(booking.bookingDate)} />
+				<ListRow label="Konto" value={booking.account.name} />
+				{#if booking.canCategorize}
+					<form
+						method="POST"
+						action="?/category"
+						use:enhance
+						bind:this={categoryForm}
+						class="contents"
+					>
+						<SelectField
+							label="Kategorie"
+							name="categoryId"
+							options={[{ value: '', label: 'Ohne Kategorie' }]}
+							groups={data.categoryGroups}
+							value={booking.categoryId ?? ''}
+							onchange={submitCategory}
+						/>
+					</form>
+				{:else}
+					<ListRow label="Kategorie" value={categoryText} />
+				{/if}
+				{#if booking.iban}<ListRow label="IBAN" value={formatIban(booking.iban)} />{/if}
+				{#if booking.bookingText}<ListRow label="Buchungstext" value={booking.bookingText} />{/if}
+				{#if booking.bankCategory}<ListRow
+						label="Kategorie der Bank"
+						value={booking.bankCategory}
+					/>{/if}
+				{#if booking.counterparty}<ListRow
+						label="Empfänger/Zahler"
+						value={booking.counterparty}
+					/>{/if}
+				{#if booking.purpose && booking.source !== 'provisional'}<ListRow
+						label="Notiz"
+						value={booking.purpose}
+					/>{/if}
+				<ListRow
+					label="Quelle"
+					value={credit?.confirmed
+						? 'Zinsen (Import)'
+						: (SOURCE_LABELS[booking.source] ?? booking.source)}
+				/>
 			</ListGroup>
-			{#if credit.canEdit}
-				<ListGroup>
-					<ListRow label="Betrag anpassen" onclick={() => (creditOpen = true)} />
-					{#if credit.amountSet}
-						<li>
-							<form method="POST" action="?/creditAmount" use:enhance>
-								<input type="hidden" name="reset" value="on" />
-								<button
-									type="submit"
-									class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
-								>
-									Berechneten Betrag verwenden
-								</button>
-							</form>
-						</li>
+			{#if credit}
+				<ListGroup
+					header="Zinsgutschrift"
+					footer={credit.confirmed
+						? 'Betrag der Bank aus dem Import; er bleibt, auch wenn sich die Berechnung ändert.'
+						: credit.amountSet
+							? 'Betrag von Hand gesetzt; er bleibt, auch wenn sich die Berechnung ändert.'
+							: 'Berechnet aus Stand und Zinssatz. Weicht die Bank ab, übernimm ihren Betrag.'}
+				>
+					<ListRow label="Periode bis" value={formatDay(credit.periodEnd)} />
+				</ListGroup>
+				{#if credit.canEdit}
+					<ListGroup>
+						<ListRow label="Betrag anpassen" onclick={() => (creditOpen = true)} />
+						{#if credit.amountSet}
+							<li>
+								<form method="POST" action="?/creditAmount" use:enhance>
+									<input type="hidden" name="reset" value="on" />
+									<button
+										type="submit"
+										class="flex min-h-11 w-full items-center px-4 py-2.5 text-left text-[17px] text-accent active:bg-fill"
+									>
+										Berechneten Betrag verwenden
+									</button>
+								</form>
+							</li>
+						{/if}
+					</ListGroup>
+				{/if}
+			{/if}
+			{#if data.goalTransfer}
+				{@const gt = data.goalTransfer}
+				<ListGroup
+					header="Sparziel"
+					footer="Am Tag der Zahlung vom Sparbuch aufs Girokonto gebucht, damit die Zahlung den Mindestbestand nicht belastet."
+				>
+					{#if gt.goalVisible && gt.goalId}
+						<ListRow label="Sparziel" value={gt.goalName ?? ''} href={`sparziele/${gt.goalId}`} />
+					{:else}
+						<ListRow label="Sparziel" value={gt.goalName ?? 'gelöscht'} />
 					{/if}
 				</ListGroup>
-			{/if}
-		{/if}
-		{#if data.goalTransfer}
-			{@const gt = data.goalTransfer}
-			<ListGroup
-				header="Sparziel"
-				footer="Am Tag der Zahlung vom Sparbuch aufs Girokonto gebucht, damit die Zahlung den Mindestbestand nicht belastet."
-			>
-				{#if gt.goalVisible && gt.goalId}
-					<ListRow label="Sparziel" value={gt.goalName ?? ''} href={`sparziele/${gt.goalId}`} />
-				{:else}
-					<ListRow label="Sparziel" value={gt.goalName ?? 'gelöscht'} />
+				{#if gt.canUndo}
+					<ListGroup>
+						<ListRow
+							label="Umbuchung zurücknehmen"
+							destructive
+							onclick={() => (goalUndoOpen = true)}
+						/>
+					</ListGroup>
 				{/if}
-			</ListGroup>
-			{#if gt.canUndo}
-				<ListGroup>
+			{/if}
+			{#if due}
+				<ListGroup
+					header="Vorläufige Buchung"
+					footer="Am Fälligkeitstag gebucht, damit der Kontostand stimmt. Der Import bestätigt sie später mit der echten Buchung."
+				>
 					<ListRow
-						label="Umbuchung zurücknehmen"
-						destructive
-						onclick={() => (goalUndoOpen = true)}
+						label="Dauerposten"
+						value={due.recurringName}
+						href={`dauerposten/${due.recurringId}`}
 					/>
+					<ListRow label="Fällig laut Plan" value={formatDay(due.dueDate)} />
+					{#if due.moved}<ListRow label="Verschoben auf" value={formatDay(due.bookingDate)} />{/if}
+					{#if due.amountSet}<ListRow label="Betrag" value="von Hand angepasst" />{/if}
 				</ListGroup>
+				{#if due.canManage}
+					<ListGroup>
+						<ListRow label="Verschieben" onclick={() => (moveOpen = true)} />
+						<ListRow label="Betrag anpassen" onclick={() => (amountOpen = true)} />
+						<ListRow label="Zurücknehmen" destructive onclick={() => (skipOpen = true)} />
+					</ListGroup>
+				{/if}
 			{/if}
+			<p class="mb-8 px-4 text-[13px] text-label-2">
+				{booking.source === 'interest'
+					? credit?.confirmed
+						? 'Diese Zinsgutschrift stammt aus dem Import der Bank.'
+						: 'Zinsgutschriften berechnet die App selbst.'
+					: booking.source === 'goal'
+						? 'Umbuchungen für Sparziele bucht die App selbst.'
+						: booking.source === 'provisional'
+							? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
+							: booking.source === 'adjustment'
+								? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
+								: 'Du kannst diese Buchung nur ansehen.'}
+			</p>
 		{/if}
-		{#if due}
-			<ListGroup
-				header="Vorläufige Buchung"
-				footer="Am Fälligkeitstag gebucht, damit der Kontostand stimmt. Der Import bestätigt sie später mit der echten Buchung."
-			>
-				<ListRow
-					label="Dauerposten"
-					value={due.recurringName}
-					href={`dauerposten/${due.recurringId}`}
-				/>
-				<ListRow label="Fällig laut Plan" value={formatDay(due.dueDate)} />
-				{#if due.moved}<ListRow label="Verschoben auf" value={formatDay(due.bookingDate)} />{/if}
-				{#if due.amountSet}<ListRow label="Betrag" value="von Hand angepasst" />{/if}
-			</ListGroup>
-			{#if due.canManage}
-				<ListGroup>
-					<ListRow label="Verschieben" onclick={() => (moveOpen = true)} />
-					<ListRow label="Betrag anpassen" onclick={() => (amountOpen = true)} />
-					<ListRow label="Zurücknehmen" destructive onclick={() => (skipOpen = true)} />
-				</ListGroup>
-			{/if}
-		{/if}
-		<p class="mb-8 px-4 text-[13px] text-label-2">
-			{booking.source === 'interest'
-				? credit?.confirmed
-					? 'Diese Zinsgutschrift stammt aus dem Import der Bank.'
-					: 'Zinsgutschriften berechnet die App selbst.'
-				: booking.source === 'goal'
-					? 'Umbuchungen für Sparziele bucht die App selbst.'
-					: booking.source === 'provisional'
-						? 'Vorläufige Buchungen ergeben sich aus dem Dauerposten.'
-						: booking.source === 'adjustment'
-							? 'Anpassungen entstehen beim Korrigieren des Kontostands. Ändern lassen sie sich nicht, nur löschen.'
-							: 'Du kannst diese Buchung nur ansehen.'}
-		</p>
-		{#if booking.canDelete}
-			<ListGroup header="Verwaltung">
-				<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
+		{#if data.transfer || data.assigned}
+			<ListGroup header="Gehört zu">
+				{@render linkRows()}
 			</ListGroup>
 		{/if}
-		{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal', 'settlement'].includes(booking.source)}
+	{/if}
+
+	{#if tab === 'einordnen'}
+		<SplitSection
+			amount={booking.amount}
+			categoryName={categoryText}
+			parts={booking.parts}
+			canSplit={booking.canSplit}
+			categoryGroups={data.categoryGroups}
+			errors={form?.action === 'split' && 'splitErrors' in form ? form.splitErrors : undefined}
+		/>
+		<TagEditor
+			allTags={data.tags.all}
+			selected={data.tags.selected}
+			inherited={data.tags.inherited}
+			canEdit={booking.canTag}
+			error={form?.action === 'tags' && 'tagError' in form ? form.tagError : undefined}
+		/>
+		<SharedSection
+			shared={data.shared}
+			users={data.settleUsers}
+			me={data.user.id}
+			canEdit={data.canShare}
+			errors={form?.action === 'share' && 'shareErrors' in form ? form.shareErrors : undefined}
+		/>
+		{#if booking.payeeKey && booking.canTag}
+			<LogoPicker
+				name={booking.counterparty ?? booking.purpose ?? '?'}
+				logo={booking.logo}
+				chosen={booking.logoChosen}
+			/>
+		{/if}
+	{/if}
+
+	{#if tab === 'aktionen'}
+		{#if booking.canEdit}
 			<ListGroup
+				header="Verwaltung"
 				footer={data.canMakeRecurring
 					? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
 					: undefined}
@@ -636,7 +642,37 @@
 					iconColor="bg-[#5856d6]"
 					onclick={openTemplate}
 				/>
+				<ListRow label="Buchung löschen" destructive onclick={() => (deleteOpen = true)} />
 			</ListGroup>
+		{:else}
+			{#if booking.canDelete}
+				<ListGroup header="Verwaltung">
+					<ListRow label="Anpassung löschen" destructive onclick={() => (deleteOpen = true)} />
+				</ListGroup>
+			{/if}
+			{#if data.templateAccounts.length && !['adjustment', 'interest', 'goal', 'settlement'].includes(booking.source)}
+				<ListGroup
+					footer={data.canMakeRecurring
+						? 'Kommt die Zahlung regelmäßig? Dann wird daraus ein Dauerposten – diese Buchung zählt als erste Zahlung.'
+						: undefined}
+				>
+					{@render assignRows()}
+					{#if data.canMakeRecurring}
+						<ListRow
+							label="Dauerposten daraus machen"
+							icon={Repeat}
+							iconColor="bg-[#34c759]"
+							onclick={() => goto(resolve(`dauerposten?aus=${booking.id}`))}
+						/>
+					{/if}
+					<ListRow
+						label="Als Vorlage sichern"
+						icon={Zap}
+						iconColor="bg-[#5856d6]"
+						onclick={openTemplate}
+					/>
+				</ListGroup>
+			{/if}
 		{/if}
 	{/if}
 </Page>

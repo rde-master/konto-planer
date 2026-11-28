@@ -2,6 +2,7 @@ import { createECDH, randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { SMTPServer } from 'smtp-server';
 import { expect, test, type Page } from '@playwright/test';
+import { openRule, openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays, addMonths } from '../../src/lib/recurring';
 
@@ -139,6 +140,7 @@ test('SMTP and Home Assistant are set up and tested', async ({ page }) => {
 	await expect(page.getByRole('status')).toHaveText('Test-E-Mail verschickt.');
 	expect(mails.at(-1)?.to).toBe('erika@example.org');
 
+	await openTab(page, 'Home Assistant');
 	const haRegion = page.getByRole('region', { name: 'Home Assistant' });
 	await haRegion.getByLabel('Adresse').fill(`http://127.0.0.1:${HA_PORT}`);
 	await haRegion.getByLabel('Zugriffstoken (langlebig)').fill('ha-test-token');
@@ -153,6 +155,7 @@ test('SMTP and Home Assistant are set up and tested', async ({ page }) => {
 test('each user picks their Home Assistant devices', async ({ page }) => {
 	await login(page);
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Home Assistant');
 	await page.getByLabel('mobile_app_testphone').check();
 	await page.getByRole('button', { name: 'Geräte sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Geräte gesichert.');
@@ -188,11 +191,12 @@ test('a near notice deadline is sent once by e-mail and Home Assistant', async (
 	await expect(sheet).toBeHidden();
 
 	await page.goto('/einstellungen/benachrichtigungen');
-	const rule = page.getByRole('region', { name: 'Meldungsregel Kündigungsfrist endet bald' });
+	const rule = await openRule(page, 'Kündigungsfrist endet bald');
 	await rule.getByRole('switch', { name: 'Über Home Assistant' }).check();
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
 
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText(/Meldungen? verschickt/);
 	expect(mails.some((m) => m.data.includes('Zeitung Melde'))).toBe(true);
@@ -220,7 +224,9 @@ test('an account in the red is reported', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await page.goto('/einstellungen/benachrichtigungen');
+	await openTab(page, 'Meldungen');
 	await expect(page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' })).toBeVisible();
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText(/Meldungen? verschickt/);
 	expect(mails.some((m) => m.data.includes('Dispo erreicht: Meldekonto'))).toBe(true);
@@ -248,6 +254,7 @@ const IPHONE =
 test('a device gets push messages from the web app', async ({ page }) => {
 	await login(page);
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Push');
 	await expect(page.getByRole('region', { name: 'Push', exact: true })).toBeVisible();
 
 	// Only known push services are accepted.
@@ -275,11 +282,12 @@ test('a device gets push messages from the web app', async ({ page }) => {
 
 	// A rule sends by push, too.
 	await page.goto('/einstellungen/benachrichtigungen');
-	const rule = page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' });
+	const rule = await openRule(page, 'Dispo erreicht');
 	await rule.getByRole('switch', { name: /^Push aus der Web-App/ }).check();
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
 	const before = pushCalls.length;
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText(/verschickt/);
 	expect(pushCalls.length).toBeGreaterThan(before);
@@ -293,6 +301,7 @@ test('devices the push service no longer knows are removed', async ({ page }) =>
 	const gone = await page.request.post('/api/push', { data: subscription('gone') });
 	expect(gone.ok()).toBe(true);
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Push');
 	const devices = page.getByRole('list', { name: 'Meine Push-Geräte' });
 	await expect(devices.getByRole('listitem')).toHaveCount(2);
 	await page.getByRole('button', { name: 'Push-Test an meine Geräte' }).click();
@@ -307,11 +316,13 @@ test('devices the push service no longer knows are removed', async ({ page }) =>
 test('Pushover gets the messages once token and user key are stored', async ({ page }) => {
 	await login(page);
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Pushover');
 	const mine = page.getByRole('region', { name: 'Pushover' });
 	await expect(mine).toContainText('Pushover ist noch nicht eingerichtet.');
 
 	// The admin stores the token of the application; it is never shown again.
 	await page.goto('/einstellungen/benachrichtigungen');
+	await openTab(page, 'Pushover');
 	const app = page.getByRole('region', { name: 'Pushover' });
 	await app.getByLabel('API-Token der Anwendung').fill('zu-kurz');
 	await app.getByRole('button', { name: 'Pushover sichern' }).click();
@@ -331,6 +342,7 @@ test('Pushover gets the messages once token and user key are stored', async ({ p
 
 	// Every user stores their own key. A key the service does not know is reported.
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Pushover');
 	await mine.getByLabel('Benutzerschlüssel (User Key)').fill(PUSHOVER_UNKNOWN);
 	await mine.getByRole('button', { name: 'Schlüssel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Benutzerschlüssel gesichert.');
@@ -359,11 +371,14 @@ test('Pushover gets the messages once token and user key are stored', async ({ p
 
 	// A rule sends over Pushover, with the page to open.
 	await page.goto('/einstellungen/benachrichtigungen');
-	const rule = page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' });
+	const rule = await openRule(page, 'Dispo erreicht');
 	await rule.getByRole('switch', { name: /^Über Pushover/ }).check();
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
+	// The folded rule says in one line how it is sent.
+	await expect(rule.locator('summary')).toContainText(/E-Mail.*Pushover/);
 	const before = pushoverCalls.length;
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText(/verschickt/);
 	// One message per account in the red (other test files leave such accounts, too).
@@ -383,6 +398,7 @@ test('Pushover gets the messages once token and user key are stored', async ({ p
 
 	// Without the key the user gets nothing more over Pushover.
 	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await openTab(page, 'Pushover');
 	await mine.getByRole('button', { name: 'Schlüssel entfernen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Benutzerschlüssel entfernt.');
 	await expect(mine.getByRole('button', { name: 'Pushover-Test an mich' })).toHaveCount(0);
@@ -403,7 +419,7 @@ test('a manual transfer is reminded until it is marked as transferred', async ({
 	await expect(sheet).toBeHidden();
 
 	await page.goto('/einstellungen/benachrichtigungen');
-	const rule = page.getByRole('region', { name: 'Meldungsregel Manuelle Überweisung fällig' });
+	const rule = await openRule(page, 'Manuelle Überweisung fällig');
 	await expect(rule.getByLabel('Vorlauf (Bankarbeitstage)')).toHaveValue('1');
 	await rule.getByLabel('Vorlauf (Bankarbeitstage)').fill('11');
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
@@ -413,6 +429,7 @@ test('a manual transfer is reminded until it is marked as transferred', async ({
 	await rule.getByRole('button', { name: 'Regel sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
 
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toHaveText(/verschickt/);
 	expect(mails.some((m) => m.data.includes('Garagenmiete Melde'))).toBe(true);
@@ -430,6 +447,7 @@ test('a manual transfer is reminded until it is marked as transferred', async ({
 	// Done: even "daily until done" sends nothing more.
 	await page.goto('/einstellungen/benachrichtigungen');
 	const before = mails.length;
+	await openTab(page, 'Versand');
 	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
 	await expect(page.getByRole('status')).toBeVisible();
 	expect(mails.slice(before).some((m) => m.data.includes('Garagenmiete Melde'))).toBe(false);
@@ -501,6 +519,7 @@ test('a read-only API token delivers the status and can be revoked', async ({
 test('the values are pushed to Home Assistant as sensors', async ({ page }) => {
 	await login(page);
 	await page.goto('/einstellungen/benachrichtigungen');
+	await openTab(page, 'Home Assistant');
 	const region = page.getByRole('region', { name: 'Home Assistant' });
 	await region.getByRole('switch', { name: /Werte als Sensoren senden/ }).check();
 	await region.getByRole('button', { name: 'Sichern und senden' }).click();

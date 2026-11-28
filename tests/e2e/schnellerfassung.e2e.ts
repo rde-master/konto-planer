@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -105,6 +106,7 @@ test('viewers see bookings read-only; others get 404', async ({ page }) => {
 test('deleting a booking; the account page links to its bookings; protocol', async ({ page }) => {
 	await login(page, ADMIN);
 	await page.goto(bookingUrl);
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Buchung löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Buchung löschen' })
@@ -123,6 +125,7 @@ test('deleting a booking; the account page links to its bookings; protocol', asy
 	// Accounts with bookings can only be archived.
 	await page.goto('/konten');
 	await page.getByRole('link', { name: new RegExp(ACCOUNT) }).click();
+	await openTab(page, 'Bearbeiten');
 	await expect(page.getByRole('button', { name: 'Konto löschen' })).toHaveCount(0);
 
 	await page.goto('/einstellungen/protokoll?bereich=booking');

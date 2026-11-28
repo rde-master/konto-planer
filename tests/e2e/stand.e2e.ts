@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -76,6 +77,7 @@ test('adjustments can be deleted, not changed; logged', async ({ page }) => {
 		.click();
 	await expect(page.getByText('Ändern lassen sie sich nicht, nur löschen.')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Sichern', exact: true })).toHaveCount(0);
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Anpassung löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Anpassung löschen' })
