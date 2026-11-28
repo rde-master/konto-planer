@@ -15,6 +15,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Repeat from '@lucide/svelte/icons/repeat';
 	import Page from '#lib/components/Page.svelte';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import RecurringFields from '#lib/components/RecurringFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
@@ -45,6 +46,8 @@
 		NO_CATEGORY,
 		categoryLabel,
 		compareList,
+		listTitle,
+		replacedName,
 		isFiltered,
 		listOptions,
 		listQuery,
@@ -77,6 +80,8 @@
 	const urlFilter = $derived(parseListFilter(page.url.searchParams));
 	let text = $state(untrack(() => urlFilter.text));
 	const filter = $derived<ListFilter>({ ...urlFilter, text });
+	/** The alternative names are shown instead of the items' own (switch on this page). */
+	const alt = $derived(data.altNames.on);
 	const filtered = $derived(isFiltered(filter));
 	const options = $derived(listOptions(data.items));
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -112,7 +117,7 @@
 	const shown = $derived(data.items.filter((i) => matchesList(i, filter)));
 	const active = $derived(shown.filter((i) => !i.archivedAt));
 	const archived = $derived(
-		shown.filter((i) => i.archivedAt).sort((a, b) => compareList(a, b, filter.sort))
+		shown.filter((i) => i.archivedAt).sort((a, b) => compareList(a, b, filter.sort, alt))
 	);
 
 	/** Accounts of an item the viewer can see (level null = name only). */
@@ -144,7 +149,7 @@
 				return {
 					...g,
 					// By default running items first by next due date, ended ones last.
-					entries: g.entries.sort((a, b) => compareList(a.item, b.item, filter.sort)),
+					entries: g.entries.sort((a, b) => compareList(a.item, b.item, filter.sort, alt)),
 					expense,
 					income,
 					steps: monthlySteps(
@@ -177,7 +182,7 @@
 			.sort(
 				(a, b) =>
 					a.change.validFrom.localeCompare(b.change.validFrom) ||
-					a.item.name.localeCompare(b.item.name, 'de')
+					listTitle(a.item, alt).localeCompare(listTitle(b.item, alt), 'de')
 			)
 	);
 
@@ -211,6 +216,8 @@
 				? `gekündigt zum ${formatDay(item.endDate)}`
 				: null;
 		return [
+			// The item's own name, where the title shows the alternative one.
+			replacedName(item, alt),
 			direction,
 			item.isSalary ? 'Gehalt' : null,
 			cancelled,
@@ -306,7 +313,7 @@
 				</span>
 			{/if}
 			<span class="min-w-0 flex-1">
-				<span class="block truncate text-[17px]">{item.name}</span>
+				<span class="block truncate text-[17px]">{listTitle(item, alt)}</span>
 				<!-- On a phone the category gets its own line; from tablet width on it follows. -->
 				<span class="flex flex-wrap items-center gap-x-1 text-[13px] text-label-2 md:flex-nowrap">
 					<span class="min-w-0 truncate">
@@ -474,6 +481,12 @@
 		</form>
 	{/if}
 
+	<AltNameToggle
+		prefs={data.altNames}
+		show={data.items.some((i) => i.altName)}
+		hint="statt der Bezeichnung des Dauerpostens"
+	/>
+
 	{#if filtered && shown.length === 0}
 		<div class="mb-8 rounded-[var(--radius-card)] bg-card px-6 py-8 text-center" role="status">
 			<p class="text-[17px] font-semibold">Kein Dauerposten passt</p>
@@ -529,7 +542,7 @@
 							class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
 						>
 							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[17px]">{item.name}</span>
+								<span class="block truncate text-[17px]">{listTitle(item, alt)}</span>
 								<span class="block truncate text-[13px] text-label-2">
 									{status.state === 'fixed' ? `kündbar zum ${formatDay(status.end)}` : ''}
 								</span>
@@ -561,7 +574,7 @@
 							class="flex min-h-11 items-center gap-3 px-4 py-2.5 active:bg-fill"
 						>
 							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[17px]">{item.name}</span>
+								<span class="block truncate text-[17px]">{listTitle(item, alt)}</span>
 								<span class="block truncate text-[13px] text-label-2 tabular">
 									ab {formatDay(change.validFrom)}
 								</span>

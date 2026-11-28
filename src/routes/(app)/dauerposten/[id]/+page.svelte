@@ -4,6 +4,8 @@
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Page from '#lib/components/Page.svelte';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
+	import { listTitle } from '#lib/recurring-list.js';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -164,7 +166,7 @@
 </script>
 
 <Page
-	title={item.name}
+	title={listTitle(item, data.altNames.on)}
 	back={item.interval === 'once'
 		? { path: 'geplant', label: 'Geplant' }
 		: { path: 'dauerposten', label: 'Dauerposten' }}
@@ -219,6 +221,13 @@
 			</p>
 		</div>
 	</section>
+
+	<AltNameToggle
+		prefs={data.altNames}
+		show={item.altName !== null}
+		hint="statt der Bezeichnung des Dauerpostens"
+		class="mb-8"
+	/>
 
 	{#if data.upcoming.length}
 		<ListGroup
@@ -577,7 +586,10 @@
 			{:else}
 				<ListRow label="Konto" value={item.account.name} />
 			{/if}
-			{#if item.altName}<ListRow label="Alternative Bezeichnung" value={item.altName} />{/if}
+			{#if item.altName}
+				<ListRow label="Bezeichnung" value={item.name} />
+				<ListRow label="Alternative Bezeichnung" value={item.altName} />
+			{/if}
 			<ListRow label="Start" value={formatDay(item.startDate)} />
 			{#if item.endDate}<ListRow label="Ende" value={formatDay(item.endDate)} />{/if}
 			{#if item.counterparty}

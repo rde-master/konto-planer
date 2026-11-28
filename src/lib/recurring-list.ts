@@ -108,6 +108,19 @@ export function categoryLabel(item: Pick<ListItem, 'category'>): string | null {
 
 const lower = (s: string) => s.toLocaleLowerCase('de');
 
+/** Title of an item: its alternative name if the user wants those shown, else its name. */
+export function listTitle(item: Pick<ListItem, 'name' | 'altName'>, alt: boolean): string {
+	return (alt ? item.altName?.trim() : '') || item.name;
+}
+
+/** The item's own name where the title shows the alternative one (null: the title is the name). */
+export function replacedName(
+	item: Pick<ListItem, 'name' | 'altName'>,
+	alt: boolean
+): string | null {
+	return listTitle(item, alt) === item.name ? null : item.name;
+}
+
 /** Every word of the search occurs in name, alternative name, payee, category, IBAN or note. */
 export function matchesList(item: ListItem, f: ListFilter): boolean {
 	if (f.kind && item.kind !== f.kind) return false;
@@ -132,9 +145,13 @@ export function matchesList(item: ListItem, f: ListFilter): boolean {
 	return words.every((w) => hay.includes(w) || compact.includes(w));
 }
 
-/** Order of the rows inside an account; the name decides between equals. */
-export function compareList(a: ListItem, b: ListItem, sort: ListSort): number {
-	const byName = a.name.localeCompare(b.name, 'de');
+/**
+ * Order of the rows inside an account; the title decides between equals (`alt`: the
+ * alternative names are shown, so they sort).
+ */
+export function compareList(a: ListItem, b: ListItem, sort: ListSort, alt = false): number {
+	const byName =
+		listTitle(a, alt).localeCompare(listTitle(b, alt), 'de') || a.name.localeCompare(b.name, 'de');
 	if (sort === 'name') return byName;
 	if (sort === 'amount') return Math.abs(b.amount ?? 0) - Math.abs(a.amount ?? 0) || byName;
 	if (sort === 'category') {

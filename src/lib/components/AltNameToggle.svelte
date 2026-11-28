@@ -10,9 +10,12 @@
 	let {
 		prefs,
 		show = prefs.any,
+		hint = 'statt der Namen von der Bank',
 		class: klass = 'mb-6'
 	}: {
 		prefs: { on: boolean; any: boolean };
+		/** What the alternative names stand in for on this page. */
+		hint?: string;
 		/** False hides the switch (nothing on the page it would change). */
 		show?: boolean;
 		class?: string;
@@ -46,7 +49,7 @@
 				<ToggleField
 					label="Alternative Bezeichnungen"
 					name="altNames"
-					hint="statt der Namen von der Bank"
+					{hint}
 					initial={prefs.on}
 					onchange={set}
 				/>
