@@ -55,9 +55,10 @@ test('the start page shows household, accounts, next payments and contracts', as
 		'aria-label',
 		'Verfügbar'
 	);
-	await expect(available.getByRole('link', { name: `${ACCOUNT} verfügbar` })).toContainText(
-		/Stand 750,00\s€/
-	);
+	// Right side: the balance today on top, below it the amount up to the cut-off day.
+	const row = available.getByRole('link', { name: `${ACCOUNT} verfügbar` });
+	await expect(row).toContainText(/750,00\s€/);
+	await expect(row).toContainText(/bis \d{2}\.\d{2}\.: /);
 
 	const next = page.getByRole('region', { name: 'Nächste 7 Tage' });
 	await expect(next.getByRole('link', { name: /Kinderturnen Start/ })).toContainText(/−20,00\s€/);
