@@ -19,6 +19,8 @@ export type RecurringInput = {
 	kind: string;
 	targetAccountId: string;
 	name: string;
+	/** Optional: forms without the field leave it out. */
+	altName?: string;
 	counterparty: string;
 	iban: string;
 	mandateReference: string;
@@ -41,6 +43,7 @@ export type RecurringValues = {
 	kind: RecurringKind;
 	targetAccountId: string | null;
 	name: string;
+	altName: string | null;
 	counterparty: string | null;
 	iban: string | null;
 	mandateReference: string | null;
@@ -176,6 +179,7 @@ export function validateRecurring(
 	}
 
 	const customerNumber = optional(input.customerNumber, 50, 'customerNumber', errors);
+	const altName = optional(input.altName ?? '', 60, 'altName', errors);
 	const note = multiline(input.note, 2000, 'note', errors);
 
 	let paymentMethod: PaymentMethod | null = null;
@@ -192,6 +196,8 @@ export function validateRecurring(
 			kind,
 			targetAccountId,
 			name,
+			// The same text as the name would change nothing.
+			altName: altName !== null && altName !== name ? altName : null,
 			counterparty,
 			iban: iban || null,
 			mandateReference,

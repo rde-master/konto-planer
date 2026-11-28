@@ -31,6 +31,7 @@ const item = (o: Partial<ListItem> & { name: string }): ListItem => ({
 
 const rent = item({
 	name: 'Miete',
+	altName: 'Wohnung Musterweg',
 	counterparty: 'Hausverwaltung Muster',
 	iban: 'DE09123456780001234567',
 	amount: 115000,
@@ -103,6 +104,7 @@ describe('matchesList', () => {
 	it('searches name, payee, category, IBAN and note – every word must occur', () => {
 		expect(names({ text: 'miete' })).toEqual(['Miete']);
 		expect(names({ text: 'HAUSVERWALTUNG' })).toEqual(['Miete']);
+		expect(names({ text: 'musterweg' })).toEqual(['Miete']);
 		expect(names({ text: 'wohnen' })).toEqual(['Miete', 'Strom', 'Rundfunkbeitrag']);
 		expect(names({ text: 'wohnen strom' })).toEqual(['Strom']);
 		expect(names({ text: 'DE09 1234' })).toEqual(['Miete']);

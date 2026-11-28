@@ -47,7 +47,7 @@ async function setDefaultLead(page: Page, days: string) {
 test('a cancellable contract with renewal appears as "bald kündbar"', async ({ page }) => {
 	await login(page);
 	const sheet = await openCreateSheet(page);
-	await sheet.getByLabel('Bezeichnung').fill('Handyvertrag');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Handyvertrag');
 	await sheet.getByLabel('Betrag in €').fill('29,99');
 	await sheet.getByLabel('Konto').selectOption({ label: 'Alltagskonto' });
 	await sheet.getByRole('switch', { name: /Kündbarer Vertrag/ }).check();

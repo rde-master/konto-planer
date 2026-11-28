@@ -109,7 +109,7 @@ test('a deleted recurring item comes back with its due dates; logged', async ({ 
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill('Zeitschrift Wertstoff');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Zeitschrift Wertstoff');
 	await sheet.getByLabel('Betrag in €').fill('9,90');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(addDays(todayBerlin(), 10));

@@ -84,6 +84,7 @@ export function isFiltered(f: ListFilter): boolean {
 
 export type ListItem = {
 	name: string;
+	altName?: string | null;
 	kind: string;
 	counterparty: string | null;
 	iban: string | null;
@@ -107,7 +108,7 @@ export function categoryLabel(item: Pick<ListItem, 'category'>): string | null {
 
 const lower = (s: string) => s.toLocaleLowerCase('de');
 
-/** Every word of the search occurs in name, payee, category, IBAN or note. */
+/** Every word of the search occurs in name, alternative name, payee, category, IBAN or note. */
 export function matchesList(item: ListItem, f: ListFilter): boolean {
 	if (f.kind && item.kind !== f.kind) return false;
 	if (f.interval && item.interval !== f.interval) return false;
@@ -123,7 +124,7 @@ export function matchesList(item: ListItem, f: ListFilter): boolean {
 	const words = lower(f.text).split(/\s+/).filter(Boolean);
 	if (!words.length) return true;
 	const hay = lower(
-		[item.name, item.counterparty, categoryLabel(item), item.iban, item.note]
+		[item.name, item.altName, item.counterparty, categoryLabel(item), item.iban, item.note]
 			.filter(Boolean)
 			.join(' ')
 	);

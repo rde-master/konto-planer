@@ -32,6 +32,8 @@ export const users = pgTable('users', {
 	notifyTargets: jsonb('notify_targets').$type<string[]>().notNull().default([]),
 	/** Monthly report by e-mail (opt-in). */
 	monthlyReport: boolean('monthly_report').notNull().default(false),
+	/** Bookings show the alternative name of their recurring item instead of the payee. */
+	altNames: boolean('alt_names').notNull().default(true),
 	/** Last version whose "Was ist neu" the user has seen. */
 	lastSeenVersion: text('last_seen_version'),
 	/** Sender address for letters (cancellations). */
@@ -223,6 +225,8 @@ export const recurringItems = pgTable(
 		}),
 		/** Display name, e.g. "Miete". */
 		name: text('name').notNull(),
+		/** Shown as the title of the item's bookings instead of the bank's payee name. */
+		altName: text('alt_name'),
 		/** Payee or payer as on the bank statement; used for import matching. */
 		counterparty: text('counterparty'),
 		iban: text('iban'),

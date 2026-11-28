@@ -10,6 +10,8 @@
 	import { formatEuro } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
 	import { monthLabel } from '#lib/tags.js';
+	import { bookingTitle } from '#lib/booking-list.js';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -94,6 +96,12 @@
 		</section>
 	{/if}
 
+	<AltNameToggle
+		prefs={data.altNames}
+		show={Object.values(s.bookings).some((b) => b.altName !== null)}
+		class="mb-8"
+	/>
+
 	{#each s.months as m (m.month)}
 		<section class="mb-8" aria-label={monthLabel(m.month)}>
 			<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
@@ -112,7 +120,7 @@
 						>
 							<span class="min-w-0 flex-1">
 								<span class="block truncate">
-									{info?.counterparty ?? info?.purpose ?? 'Buchung'}
+									{info ? bookingTitle(info, data.altNames.on) : 'Buchung'}
 								</span>
 								<span class="block truncate text-[13px] text-label-2">
 									{formatDay(b.bookingDate)} · {info?.accountName}{info?.inherited

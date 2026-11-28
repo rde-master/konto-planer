@@ -40,7 +40,7 @@ async function createItem(page: Page, name: string, amount: string, first: strin
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const item = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await item.getByLabel('Bezeichnung').fill(name);
+	await item.getByLabel('Bezeichnung', { exact: true }).fill(name);
 	await item.getByLabel('Betrag in €').fill(amount);
 	await item.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await item.getByLabel('Erste Fälligkeit').fill(first);

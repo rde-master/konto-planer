@@ -27,7 +27,8 @@
 	import BookingFields from '#lib/components/BookingFields.svelte';
 	import { accountColorCss } from '#lib/colors.js';
 	import Logo from '#lib/components/Logo.svelte';
-	import { categoryDots, recurringNote } from '#lib/booking-list.js';
+	import { bookingTitle, categoryDots, recurringNote } from '#lib/booking-list.js';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import { takeFab } from '#lib/fab.svelte.js';
 	import { formatEuro } from '#lib/money.js';
 	import { dayLabel, todayBerlin } from '#lib/dates.js';
@@ -63,7 +64,7 @@
 	});
 
 	function title(b: Booking) {
-		return b.counterparty ?? b.purpose ?? b.category?.name ?? 'Buchung';
+		return bookingTitle(b, data.altNames.on);
 	}
 
 	function subtitle(b: Booking) {
@@ -250,7 +251,13 @@
 	{/if}
 
 	{#if data.accountFilter.length > 1}
-		<ul class="kp-span mb-8 overflow-hidden rounded-[var(--radius-row)] bg-card">
+		<ul
+			class={[
+				'kp-span overflow-hidden rounded-[var(--radius-row)] bg-card',
+				// The switch below belongs to the same block of settings.
+				data.altNames.any ? 'mb-3' : 'mb-8'
+			]}
+		>
 			<SelectField
 				label="Konto"
 				name="konto"
@@ -260,6 +267,8 @@
 			/>
 		</ul>
 	{/if}
+
+	<AltNameToggle prefs={data.altNames} class="mb-8" />
 
 	{#if data.bookings.length === 0 && filtered}
 		<div class="rounded-[var(--radius-card)] bg-card px-6 py-12 text-center">

@@ -31,6 +31,8 @@
 	import { accountColorCss } from '#lib/colors.js';
 	import { formatEuro, formatEuroInput } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
+	import { bookingTitle } from '#lib/booking-list.js';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -38,9 +40,7 @@
 	const booking = $derived(data.booking);
 	const income = $derived(booking.amount > 0);
 	const Icon = $derived(income ? ArrowDownLeft : ArrowUpRight);
-	const title = $derived(
-		booking.counterparty ?? booking.purpose ?? booking.category?.name ?? 'Buchung'
-	);
+	const title = $derived(bookingTitle(booking, data.altNames.on));
 	const categoryText = $derived(
 		booking.category
 			? booking.category.parentName
@@ -370,6 +370,8 @@
 			Liegt vor dem Startsaldo des Kontos und zählt deshalb nicht zum Kontostand.
 		</p>
 	{/if}
+
+	<AltNameToggle prefs={data.altNames} show={booking.altName !== null} class="mb-8" />
 
 	{#if booking.canEdit}
 		<form

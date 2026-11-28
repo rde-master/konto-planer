@@ -3,6 +3,24 @@
 type Categorized = { category: { color: string | null } | null };
 
 /**
+ * Title of a booking: the alternative name of its recurring item if the user wants those
+ * shown, otherwise the payee as the bank wrote it, the purpose or the category.
+ */
+export function bookingTitle(
+	b: {
+		counterparty: string | null;
+		purpose: string | null;
+		altName?: string | null;
+		category?: { name: string } | null;
+	},
+	alt: boolean,
+	fallback = 'Buchung'
+): string {
+	const own = alt ? b.altName?.trim() : '';
+	return own || (b.counterparty ?? b.purpose ?? b.category?.name ?? fallback);
+}
+
+/**
  * "Dauerposten" for a booking that belongs to a recurring item – with the item's name unless
  * the row shows it already as its title. Null for bookings without an item.
  */

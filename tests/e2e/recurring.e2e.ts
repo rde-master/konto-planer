@@ -50,7 +50,7 @@ test('create a monthly expense; invalid creditor ID is rejected', async ({ page 
 	await expect(page.getByText('Noch keine Dauerposten')).toBeVisible();
 
 	const sheet = await openCreateSheet(page);
-	await sheet.getByLabel('Bezeichnung').fill('Streaming');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Streaming');
 	await sheet.getByLabel('Betrag in €').fill('12,99');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Kategorie').selectOption({ label: 'Abos und Streaming' });
@@ -78,7 +78,7 @@ test('income with salary flag and a custom interval', async ({ page }) => {
 	await sheet.getByText('Einnahme', { exact: true }).click();
 	// Income has no payment method but a salary switch.
 	await expect(sheet.getByLabel('Zahlart')).toHaveCount(0);
-	await sheet.getByLabel('Bezeichnung').fill('Gehalt');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Gehalt');
 	await sheet.getByLabel('Betrag in €').fill('2.500');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByRole('switch', { name: /Gehalt/ }).check();
@@ -89,7 +89,7 @@ test('income with salary flag and a custom interval', async ({ page }) => {
 	await expect(itemLink(page, 'Gehalt')).toContainText('Gehalt');
 
 	sheet = await openCreateSheet(page);
-	await sheet.getByLabel('Bezeichnung').fill('Wasser');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Wasser');
 	await sheet.getByLabel('Betrag in €').fill('60');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Intervall').selectOption({ label: 'Frei (alle …)' });

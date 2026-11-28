@@ -143,6 +143,7 @@ export async function seedDemo(today = todayBerlin()) {
 	): RecurringValues => ({
 		kind: 'expense',
 		targetAccountId: null,
+		altName: null,
 		counterparty: v.name,
 		iban: null,
 		mandateReference: null,
@@ -205,6 +206,7 @@ export async function seedDemo(today = todayBerlin()) {
 		item({
 			accountId: giro.id,
 			name: 'Miete',
+			altName: 'Wohnung Musterweg',
 			counterparty: 'Hausverwaltung Muster',
 			categoryId: cat('Miete'),
 			startDate: dayOf(today, -6, 1),
@@ -231,6 +233,7 @@ export async function seedDemo(today = todayBerlin()) {
 		item({
 			accountId: giro.id,
 			name: 'Internet',
+			altName: 'Internet und Telefon',
 			counterparty: 'Netz Beispiel',
 			categoryId: cat('Internet und Telefon'),
 			startDate: dayOf(today, -6, 3)

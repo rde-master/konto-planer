@@ -55,6 +55,7 @@ describe('validateRecurring', () => {
 				kind: 'expense',
 				targetAccountId: null,
 				name: 'Strom',
+				altName: null,
 				counterparty: 'Stadtwerke Musterstadt',
 				iban: 'DE89370400440532013000',
 				mandateReference: 'MANDAT-123',
@@ -133,6 +134,17 @@ describe('validateRecurring', () => {
 				{ targetAccountId: null }
 			);
 		});
+	});
+
+	it('takes an alternative name unless it says the same as the name', () => {
+		expect(
+			validateRecurring({ ...valid, altName: '  Strom  Musterweg ' }, ctx).values?.altName
+		).toBe('Strom Musterweg');
+		expect(validateRecurring({ ...valid, altName: ' Strom ' }, ctx).values?.altName).toBeNull();
+		expect(validateRecurring({ ...valid, altName: '' }, ctx).values?.altName).toBeNull();
+		expect(validateRecurring({ ...valid, altName: 'x'.repeat(61) }, ctx).errors?.altName).toBe(
+			'Höchstens 60 Zeichen.'
+		);
 	});
 
 	it('limits note and customer number', () => {

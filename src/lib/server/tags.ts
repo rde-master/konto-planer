@@ -1,4 +1,5 @@
 import { and, asc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
+import { altNamesOf } from './alt-names.js';
 import { db } from './db/index.js';
 import {
 	bookingParts,
@@ -261,7 +262,14 @@ export type TagYear = YearSummary & {
 	categoryNames: Record<string, string>;
 	bookings: Record<
 		string,
-		{ counterparty: string | null; purpose: string | null; accountName: string; inherited: boolean }
+		{
+			counterparty: string | null;
+			purpose: string | null;
+			/** Alternative name of the booking's recurring item. */
+			altName: string | null;
+			accountName: string;
+			inherited: boolean;
+		}
 	>;
 };
 
@@ -324,6 +332,7 @@ export async function tagYear(viewer: Viewer, tagId: string, year: number): Prom
 				)
 		: [];
 	const ownSet = new Set(own);
+	const altNames = await altNamesOf(rows.map((b) => b.recurringId));
 	const summary = yearSummary(
 		rows.map((b) => ({
 			id: b.id,
@@ -355,6 +364,7 @@ export async function tagYear(viewer: Viewer, tagId: string, year: number): Prom
 				{
 					counterparty: b.counterparty,
 					purpose: b.purpose,
+					altName: altNames.get(b.recurringId ?? '') ?? null,
 					accountName: names.get(b.accountId) ?? '',
 					inherited: !ownSet.has(b.id)
 				}

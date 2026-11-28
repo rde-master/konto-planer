@@ -9,6 +9,7 @@
 	import SelectField from '#lib/components/SelectField.svelte';
 	import { formatEuro, formatEuroInput } from '#lib/money.js';
 	import { formatDay } from '#lib/dates.js';
+	import AltNameToggle from '#lib/components/AltNameToggle.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -112,6 +113,11 @@
 	</div>
 
 	{#if o.expenses.length}
+		<AltNameToggle
+			prefs={data.altNames}
+			show={o.expenses.some((e) => e.altName !== null)}
+			class="mb-8"
+		/>
 		<section class="mb-8" aria-label="Gemeinsame Ausgaben">
 			<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Gemeinsame Ausgaben</h2>
 			<ul
@@ -121,7 +127,9 @@
 					<li>
 						{#snippet body()}
 							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[17px]">{e.label}</span>
+								<span class="block truncate text-[17px]">
+									{(data.altNames.on && e.altName) || e.label}
+								</span>
 								<span class="block truncate text-[13px] text-label-2">
 									{formatDay(e.date)} · bezahlt von {e.payerName}{e.own
 										? ` · dein Anteil ${formatEuro(e.own)}`

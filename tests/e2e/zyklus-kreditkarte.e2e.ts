@@ -206,7 +206,7 @@ test('a card payment is recognised although its name carries the day of purchase
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await create.getByLabel('Bezeichnung').fill('Musikdienst Karte');
+	await create.getByLabel('Bezeichnung', { exact: true }).fill('Musikdienst Karte');
 	await create.getByLabel('Betrag in €').fill('9,95');
 	await create.getByLabel('Konto').selectOption({ label: CARD });
 	await create.getByLabel('Erste Fälligkeit').fill(addDays(today, -2));

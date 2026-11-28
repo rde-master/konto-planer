@@ -161,6 +161,7 @@ const FIELD_LABELS: Record<string, string> = {
 	cancelledOn: 'Gekündigt am',
 	cancelAddress: 'Kündigungsadresse',
 	customerNumber: 'Kundennummer',
+	altName: 'Alternative Bezeichnung',
 	note: 'Notiz',
 	fileName: 'Datei',
 	size: 'Größe (Bytes)',

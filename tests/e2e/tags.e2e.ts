@@ -78,7 +78,7 @@ test('tags of a recurring item apply to its bookings', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill('Ferienwohnung');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Ferienwohnung');
 	await sheet.getByLabel('Betrag in €').fill('300');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(addDays(today, -10));

@@ -43,7 +43,7 @@ test('logos are matched by payee; others get initials', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const item = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await item.getByLabel('Bezeichnung').fill('Netflix');
+	await item.getByLabel('Bezeichnung', { exact: true }).fill('Netflix');
 	await item.getByLabel('Betrag in €').fill('12,99');
 	await item.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await item.getByLabel('Erste Fälligkeit').fill(addDays(today, 5));

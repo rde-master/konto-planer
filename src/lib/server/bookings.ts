@@ -67,17 +67,21 @@ export type BookingSummary = Booking & {
 	counts: boolean;
 	/** Name of the recurring item the booking belongs to (null without one). */
 	recurringName: string | null;
+	/** Alternative name of that item: shown instead of the payee if the user wants it. */
+	altName: string | null;
 };
 
 /** Names of recurring items by id. */
-async function recurringNames(ids: (string | null)[]): Promise<Map<string, string>> {
+async function recurringNames(
+	ids: (string | null)[]
+): Promise<Map<string, { name: string; altName: string | null }>> {
 	const wanted = [...new Set(ids.filter((id) => id !== null))];
 	if (!wanted.length) return new Map();
 	const rows = await db
-		.select({ id: recurringItems.id, name: recurringItems.name })
+		.select({ id: recurringItems.id, name: recurringItems.name, altName: recurringItems.altName })
 		.from(recurringItems)
 		.where(inArray(recurringItems.id, wanted));
-	return new Map(rows.map((r) => [r.id, r.name]));
+	return new Map(rows.map((r) => [r.id, { name: r.name, altName: r.altName }]));
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -177,7 +181,9 @@ async function filterConditions(f: BookingFilter): Promise<SQL[]> {
 				ilike(bookings.counterparty, like),
 				ilike(bookings.purpose, like),
 				ilike(bookings.bookingText, like),
-				ilike(bookings.iban, compact)
+				ilike(bookings.iban, compact),
+				// Found by what the list shows, too: the alternative name of the recurring item.
+				sql`exists (select 1 from recurring_items ri where ri.id = ${bookings.recurringId} and ri.alt_name ilike ${like})`
 			)!
 		);
 	}
@@ -279,7 +285,8 @@ export async function listBookingsFor(
 				canDelete: deletable(account, b),
 				canCategorize: categorizable(account, b),
 				counts: countsToBalance(account.openingDate, b.bookingDate),
-				recurringName: b.recurringId ? (names.get(b.recurringId) ?? null) : null
+				recurringName: b.recurringId ? (names.get(b.recurringId)?.name ?? null) : null,
+				altName: b.recurringId ? (names.get(b.recurringId)?.altName ?? null) : null
 			};
 		}),
 		more: rows.length > limit,
@@ -297,6 +304,7 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 	const category = await categoryInfo(db);
 	const parts = await partsOf(db, [b.id]);
 	const overrides = await logoOverrides([keyOf(b)]);
+	const item = (await recurringNames([b.recurringId])).get(b.recurringId ?? '');
 	return {
 		...b,
 		...logoFields(b, overrides),
@@ -314,7 +322,8 @@ export async function getBookingFor(viewer: Viewer, id: string): Promise<Booking
 		canDelete: deletable(account, b),
 		canCategorize: categorizable(account, b),
 		counts: countsToBalance(account.openingDate, b.bookingDate),
-		recurringName: (await recurringNames([b.recurringId])).get(b.recurringId ?? '') ?? null
+		recurringName: item?.name ?? null,
+		altName: item?.altName ?? null
 	};
 }
 

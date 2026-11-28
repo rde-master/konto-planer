@@ -22,6 +22,7 @@
 		kind: string;
 		targetAccountId: string | null;
 		name: string;
+		altName?: string | null;
 		counterparty: string | null;
 		iban: string | null;
 		mandateReference: string | null;
@@ -171,6 +172,15 @@
 			maxlength={60}
 			required
 			error={errors?.name}
+		/>
+		<FormField
+			label="Alternative Bezeichnung"
+			name="altName"
+			value={values.altName ?? ''}
+			autocomplete="off"
+			placeholder="optional, steht in den Buchungen"
+			maxlength={60}
+			error={errors?.altName}
 		/>
 		{#if withAmount}
 			<FormField

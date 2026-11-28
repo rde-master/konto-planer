@@ -337,6 +337,13 @@
       "when": 1795814124726,
       "tag": "0047_payee_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795848489733,
+      "tag": "0048_alt_names",
+      "breakpoints": true
     }
   ]
 }

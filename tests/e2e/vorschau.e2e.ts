@@ -23,7 +23,7 @@ test('planning a change shows old, new and the difference', async ({ page }) => 
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await create.getByLabel('Bezeichnung').fill('Fitnessstudio');
+	await create.getByLabel('Bezeichnung', { exact: true }).fill('Fitnessstudio');
 	await create.getByLabel('Betrag in €').fill('30');
 	await create.getByLabel('Konto').selectOption({ label: 'Alltagskonto' });
 	await create.getByRole('button', { name: 'Anlegen' }).click();
