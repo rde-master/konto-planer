@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.86.0] – Übersicht: Stand heute und bis zum Stichtag
+
+### Geändert
+
+- Übersicht: Rechts neben jedem Girokonto steht jetzt oben der Kontostand von heute und darunter der vorausberechnete Betrag bis zum nächsten Stichtag (mit Tag und Monat). Bisher stand dort nur der vorausberechnete Betrag, der heutige Stand klein unter dem Kontonamen
+
 ## [0.85.0] – Reiter auf den langen Seiten
 
 ### Neu

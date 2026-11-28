@@ -99,9 +99,6 @@
 								></span>
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[17px]">{g.name}</span>
-									<span class="block truncate text-[13px] text-label-2 tabular">
-										Stand {formatEuro(g.balance)}{g.cutoff ? ` · bis ${formatDay(g.cutoff)}` : ''}
-									</span>
 									{#if g.asOf}
 										<span
 											class={[
@@ -146,13 +143,19 @@
 										/>
 									</span>
 								{/if}
-								<span
-									class={[
-										'shrink-0 text-[20px] font-semibold tabular',
-										(g.available ?? 0) < 0 && 'text-danger'
-									]}
-								>
-									{g.available !== null ? formatEuro(g.available) : '–'}
+								<!-- Right: the balance today on top, below it what is left until the cut-off day. -->
+								<span class="flex shrink-0 flex-col items-end text-right tabular">
+									<span class={['text-[20px] font-semibold', g.balance < 0 && 'text-danger']}>
+										{formatEuro(g.balance)}
+									</span>
+									<span
+										class={['text-[13px]', (g.available ?? 0) < 0 ? 'text-danger' : 'text-label-2']}
+									>
+										{g.cutoff ? `bis ${formatDay(g.cutoff).slice(0, 6)}: ` : ''}{g.available !==
+										null
+											? formatEuro(g.available)
+											: '–'}
+									</span>
 								</span>
 								<ChevronRight class="size-5 shrink-0 text-label-3" strokeWidth={2.5} />
 							</a>
