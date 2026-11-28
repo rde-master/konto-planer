@@ -315,6 +315,7 @@ Jede Funktion kommt einzeln als eigene Unterversion 0.x.0, in dieser Reihenfolge
 | 0.80.0 | Alternative Bezeichnung am Dauerposten: Titel seiner Buchungen statt des Banknamens, Umschalter auf den Buchungsseiten (aus den manuellen Tests) |
 | 0.81.0 | Benachrichtigungen über Pushover: API-Token der Anwendung (Admin), Benutzerschlüssel je Benutzer, Schalter je Meldungsregel (aus den manuellen Tests) |
 | 0.82.0 | Umschalter für die alternative Bezeichnung auch auf der Dauerposten-Seite und am Dauerposten (aus den manuellen Tests) |
+| 0.83.0 | Übersicht: Kachel „Verfügbar“ mit den einzelnen Konten ganz oben, Sparvorschlag ganz unten (aus den manuellen Tests) |
 | 1.0.0 | Abschluss: Freigabe erst nach den manuellen Tests des Repo-Besitzers und auf dessen Aufforderung |
 
 Abnahme je Version: Die Funktion läuft im Docker und ist am Handy bedienbar; Rechenlogik ist durch Tests abgedeckt.

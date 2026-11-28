@@ -33,6 +33,14 @@
 		return f?.action === 'saving' ? (f as SavingErrors) : null;
 	});
 
+	/** Result of a savings suggestion: shown where the suggestion stands, at the end of the page. */
+	const savingResult = $derived.by(() => {
+		const f = form as { at?: string; success?: string; message?: string } | null | undefined;
+		if (f?.at !== 'saving') return null;
+		if (f.message) return { ok: false, text: f.message };
+		return f.success ? { ok: true, text: f.success } : null;
+	});
+
 	function asOfText(a: { date: string; source: string }) {
 		return `Stand vom ${formatDay(a.date)}${a.source === 'import' ? ' (Import)' : a.source === 'adjustment' ? ' (korrigiert)' : ' (Startsaldo)'}`;
 	}
@@ -45,7 +53,9 @@
 <Page title="Übersicht">
 	<p class="mb-6 text-[17px] text-label-2">Hallo {firstName}!</p>
 
-	{#if form && 'message' in form && form.message}
+	{#if savingResult}
+		<!-- Shown at the suggestion, at the end of the page. -->
+	{:else if form && 'message' in form && form.message}
 		<p
 			role="alert"
 			class="mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-danger"
@@ -69,80 +79,7 @@
 			</p>
 		</div>
 	{:else}
-		{#each data.suggestions as suggestion (suggestion.accountId)}
-			<SavingsSuggestion
-				{suggestion}
-				targets={data.targets}
-				errors={savingErrors?.accountId === suggestion.accountId ? savingErrors.errors : undefined}
-			/>
-		{/each}
-
-		<section class="mb-8 rounded-[var(--radius-card)] bg-card p-5" aria-label="Haushalt">
-			<p class="text-[13px] text-label-2">
-				Haushalt · {h.accountCount}
-				{h.accountCount === 1 ? 'Konto' : 'Konten'}
-			</p>
-			<p class="text-[28px] font-bold tabular" aria-label="Summe aller Konten">
-				{formatEuro(h.total)}
-			</p>
-			<dl class="mt-3 grid grid-cols-2 gap-3 text-[15px]">
-				<div>
-					<dt class="text-[13px] text-label-2">Verfügbar (Giro)</dt>
-					<dd class={['tabular', h.available < 0 && 'text-danger']} aria-label="Verfügbar gesamt">
-						{formatEuro(h.available)}
-					</dd>
-				</div>
-				<div>
-					<dt class="text-[13px] text-label-2">Sparbücher</dt>
-					<dd class="tabular" aria-label="Sparbücher gesamt">{formatEuro(h.savings)}</dd>
-				</div>
-				{#if h.goalCount}
-					<div class="col-span-2">
-						<dt class="text-[13px] text-label-2">Sparziele ({h.goalCount})</dt>
-						<dd class="tabular">
-							<a href={resolve('sparziele')} class="text-accent">
-								{formatEuro(h.goalsAllocated)} von {formatEuro(h.goalsTarget)} zurückgelegt
-							</a>
-						</dd>
-					</div>
-				{/if}
-			</dl>
-			{#if data.metrics && (data.metrics.fixedRatio !== null || data.metrics.savingsRate !== null)}
-				<a
-					href={resolve('auswertungen?ansicht=kennzahlen')}
-					class="mt-3 block text-[15px] text-accent tabular"
-					aria-label="Kennzahlen"
-				>
-					Fixkostenquote {data.metrics.fixedRatio === null
-						? '–'
-						: `${Math.round(data.metrics.fixedRatio * 100)} %`} · Sparquote {data.metrics
-						.savingsRate === null
-						? '–'
-						: `${Math.round(data.metrics.savingsRate * 100)} %`}
-				</a>
-			{/if}
-		</section>
-
-		{#if data.charts}
-			{@const nw = data.charts.netWorth}
-			<section class="mb-8" aria-label="Vermögensverlauf">
-				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
-					<span class="flex-1">Vermögen · 6 Monate und Vorschau</span>
-					<span class={['normal-case tabular', nw.change < 0 ? 'text-danger' : 'text-income']}>
-						{signed(nw.change)}
-					</span>
-				</h2>
-				<BalanceChart
-					series={nw.history}
-					forecast={nw.outlook}
-					label="Vermögensverlauf mit Vorschau"
-				/>
-				<p class="mt-1.5 px-4 text-[13px] text-label-2">
-					Summe aller Konten; gestrichelt die erwarteten Zahlungen der nächsten 30 Tage.
-				</p>
-			</section>
-		{/if}
-
+		<!-- The accounts one by one come first: what is available is the question of the day. -->
 		{#if data.giro.length}
 			<section class="mb-8" aria-label="Verfügbar">
 				<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Verfügbar</h2>
@@ -222,6 +159,72 @@
 						</li>
 					{/each}
 				</ul>
+			</section>
+		{/if}
+
+		<section class="mb-8 rounded-[var(--radius-card)] bg-card p-5" aria-label="Haushalt">
+			<p class="text-[13px] text-label-2">
+				Haushalt · {h.accountCount}
+				{h.accountCount === 1 ? 'Konto' : 'Konten'}
+			</p>
+			<p class="text-[28px] font-bold tabular" aria-label="Summe aller Konten">
+				{formatEuro(h.total)}
+			</p>
+			<dl class="mt-3 grid grid-cols-2 gap-3 text-[15px]">
+				<div>
+					<dt class="text-[13px] text-label-2">Verfügbar (Giro)</dt>
+					<dd class={['tabular', h.available < 0 && 'text-danger']} aria-label="Verfügbar gesamt">
+						{formatEuro(h.available)}
+					</dd>
+				</div>
+				<div>
+					<dt class="text-[13px] text-label-2">Sparbücher</dt>
+					<dd class="tabular" aria-label="Sparbücher gesamt">{formatEuro(h.savings)}</dd>
+				</div>
+				{#if h.goalCount}
+					<div class="col-span-2">
+						<dt class="text-[13px] text-label-2">Sparziele ({h.goalCount})</dt>
+						<dd class="tabular">
+							<a href={resolve('sparziele')} class="text-accent">
+								{formatEuro(h.goalsAllocated)} von {formatEuro(h.goalsTarget)} zurückgelegt
+							</a>
+						</dd>
+					</div>
+				{/if}
+			</dl>
+			{#if data.metrics && (data.metrics.fixedRatio !== null || data.metrics.savingsRate !== null)}
+				<a
+					href={resolve('auswertungen?ansicht=kennzahlen')}
+					class="mt-3 block text-[15px] text-accent tabular"
+					aria-label="Kennzahlen"
+				>
+					Fixkostenquote {data.metrics.fixedRatio === null
+						? '–'
+						: `${Math.round(data.metrics.fixedRatio * 100)} %`} · Sparquote {data.metrics
+						.savingsRate === null
+						? '–'
+						: `${Math.round(data.metrics.savingsRate * 100)} %`}
+				</a>
+			{/if}
+		</section>
+
+		{#if data.charts}
+			{@const nw = data.charts.netWorth}
+			<section class="mb-8" aria-label="Vermögensverlauf">
+				<h2 class="mb-1.5 flex px-4 text-[13px] text-label-2 uppercase">
+					<span class="flex-1">Vermögen · 6 Monate und Vorschau</span>
+					<span class={['normal-case tabular', nw.change < 0 ? 'text-danger' : 'text-income']}>
+						{signed(nw.change)}
+					</span>
+				</h2>
+				<BalanceChart
+					series={nw.history}
+					forecast={nw.outlook}
+					label="Vermögensverlauf mit Vorschau"
+				/>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Summe aller Konten; gestrichelt die erwarteten Zahlungen der nächsten 30 Tage.
+				</p>
 			</section>
 		{/if}
 
@@ -582,5 +585,25 @@
 				</ul>
 			</section>
 		{/if}
+
+		<!-- Last on the page: a suggestion is an offer, nothing that has to be done today. -->
+		{#if savingResult}
+			<p
+				role={savingResult.ok ? 'status' : 'alert'}
+				class={[
+					'mb-4 rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px]',
+					!savingResult.ok && 'text-danger'
+				]}
+			>
+				{savingResult.text}
+			</p>
+		{/if}
+		{#each data.suggestions as suggestion (suggestion.accountId)}
+			<SavingsSuggestion
+				{suggestion}
+				targets={data.targets}
+				errors={savingErrors?.accountId === suggestion.accountId ? savingErrors.errors : undefined}
+			/>
+		{/each}
 	{/if}
 </Page>
