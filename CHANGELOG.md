@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.80.0] – Alternative Bezeichnung für Dauerposten
+
+### Neu
+
+- Dauerposten haben ein neues Feld „Alternative Bezeichnung“. Die Buchungen des Dauerpostens zeigen sie als Titel – statt des Namens, den die Bank schreibt. Aus „FUNKNETZ GMBH 4711“ wird so zum Beispiel „Handy Lisa“. Der Dauerposten selbst heißt weiter wie bisher und steht wie gewohnt in der Zeile darunter
+- Umschalter „Alternative Bezeichnungen“ auf den Seiten mit Buchungen (Buchungsliste, einzelne Buchung, Jahresliste eines Tags, Ausgleich): ausgeschaltet stehen wieder die Namen von der Bank. Die Wahl gilt für dich auf allen Seiten und Geräten; der Schalter erscheint nur dort, wo es eine alternative Bezeichnung gibt
+- Die Suche in den Buchungen und in den Dauerposten findet auch die alternative Bezeichnung. Der Name von der Bank bleibt an der Buchung unter „Empfänger/Zahler“ stehen; Import, Logos und Auswertungen arbeiten weiter damit
+
 ## [0.79.0] – Auswertung nach Empfängern
 
 ### Neu

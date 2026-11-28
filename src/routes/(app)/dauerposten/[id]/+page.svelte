@@ -577,6 +577,7 @@
 			{:else}
 				<ListRow label="Konto" value={item.account.name} />
 			{/if}
+			{#if item.altName}<ListRow label="Alternative Bezeichnung" value={item.altName} />{/if}
 			<ListRow label="Start" value={formatDay(item.startDate)} />
 			{#if item.endDate}<ListRow label="Ende" value={formatDay(item.endDate)} />{/if}
 			{#if item.counterparty}

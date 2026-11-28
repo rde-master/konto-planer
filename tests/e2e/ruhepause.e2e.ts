@@ -36,7 +36,7 @@ test('a pause skips the due dates in between', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await create.getByLabel('Bezeichnung').fill('Zeitung');
+	await create.getByLabel('Bezeichnung', { exact: true }).fill('Zeitung');
 	await create.getByLabel('Betrag in €').fill('20');
 	await create.getByLabel('Konto').selectOption({ label: 'Alltagskonto' });
 	// Starts next month: today's due items are already booked provisionally.

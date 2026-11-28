@@ -41,7 +41,7 @@ async function createItem(
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
 	await sheet.getByText(o.kind, { exact: true }).click();
-	await sheet.getByLabel('Bezeichnung').fill(o.name);
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill(o.name);
 	await sheet.getByLabel('Betrag in €').fill(o.amount);
 	if (o.kind === 'Umbuchung') {
 		await sheet.getByLabel('Von Konto').selectOption({ label: o.account });

@@ -12,6 +12,7 @@ export function readRecurringForm(data: FormData): RecurringInput {
 		kind: formString(data, 'kind'),
 		targetAccountId: formString(data, 'targetAccountId'),
 		name: formString(data, 'name'),
+		altName: formString(data, 'altName'),
 		counterparty: formString(data, 'counterparty'),
 		iban: formString(data, 'iban'),
 		mandateReference: formString(data, 'mandateReference'),

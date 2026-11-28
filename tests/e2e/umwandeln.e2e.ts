@@ -47,7 +47,7 @@ test('a booking becomes a recurring item without being booked twice', async ({ p
 	// The form is open and filled from the booking.
 	const form = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
 	await expect(form).toBeVisible();
-	await expect(form.getByLabel('Bezeichnung')).toHaveValue(PAYEE);
+	await expect(form.getByLabel('Bezeichnung', { exact: true })).toHaveValue(PAYEE);
 	await expect(form.getByLabel('Betrag in €')).toHaveValue('9,90');
 	await expect(form.getByLabel('Konto')).toHaveValue(/.+/);
 	await expect(form.getByLabel('Erste Fälligkeit')).toHaveValue(today);

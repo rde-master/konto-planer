@@ -23,7 +23,7 @@ async function createItem(page: Page, name: string, amount: string) {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await create.getByLabel('Bezeichnung').fill(name);
+	await create.getByLabel('Bezeichnung', { exact: true }).fill(name);
 	await create.getByLabel('Betrag in €').fill(amount);
 	await create.getByLabel('Konto').selectOption({ label: CARD });
 	await create.getByLabel('Erste Fälligkeit').fill(addDays(today, -3));

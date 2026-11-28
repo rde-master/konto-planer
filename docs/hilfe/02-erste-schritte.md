@@ -30,9 +30,17 @@ Am Fälligkeitstag bucht die App den Posten **vorläufig**. Kommt später der Um
 
 ### Dauerposten finden
 
-Über der Liste steht ein Suchfeld: Es sucht in Name, Empfänger, Kategorie, IBAN und Notiz. Darunter filterst du nach Art (Ausgaben, Einnahmen, Umbuchungen), Kategorie und Rhythmus und wählst die Reihenfolge – nächste Fälligkeit, Name, Betrag oder Kategorie. Die Liste bleibt nach Konten gruppiert; die Monatssummen gelten dann für die Auswahl. So siehst du zum Beispiel mit dem Filter „Versicherungen“, was sie dich im Monat kosten.
+Über der Liste steht ein Suchfeld: Es sucht in Name, alternativer Bezeichnung, Empfänger, Kategorie, IBAN und Notiz. Darunter filterst du nach Art (Ausgaben, Einnahmen, Umbuchungen), Kategorie und Rhythmus und wählst die Reihenfolge – nächste Fälligkeit, Name, Betrag oder Kategorie. Die Liste bleibt nach Konten gruppiert; die Monatssummen gelten dann für die Auswahl. So siehst du zum Beispiel mit dem Filter „Versicherungen“, was sie dich im Monat kosten.
 
 Jede Zeile zeigt den Rhythmus farbig hinterlegt und die Kategorie – mit einem Punkt in ihrer Farbe links oben, wie in der Buchungsliste.
+
+### Alternative Bezeichnung
+
+Banken schreiben den Empfänger oft sperrig („FUNKNETZ GMBH 4711“). Trägst du am Dauerposten eine **Alternative Bezeichnung** ein, zeigen seine Buchungen diese als Titel – zum Beispiel „Handy Lisa“. Der Dauerposten selbst behält seine Bezeichnung; sie steht in der Buchungsliste wie gewohnt in der Zeile darunter.
+
+Auf den Seiten mit Buchungen (Buchungsliste, einzelne Buchung, Jahresliste eines Tags, Ausgleich) schaltest du mit **Alternative Bezeichnungen** zwischen deinem Namen und dem der Bank um. Die Wahl gilt für dich überall; andere Benutzer entscheiden für sich. Der Schalter erscheint nur, wo es eine alternative Bezeichnung gibt.
+
+Der Name von der Bank geht nicht verloren: Er steht an der Buchung unter „Empfänger/Zahler“, und Import, Logos und Auswertungen arbeiten weiter damit. Die Suche findet beide Namen.
 
 ### Kategorie aus den Buchungen
 

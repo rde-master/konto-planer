@@ -34,7 +34,7 @@ async function createItem(
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
 	if (item.income) await sheet.getByText('Einnahme', { exact: true }).click();
-	await sheet.getByLabel('Bezeichnung').fill(item.name);
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill(item.name);
 	await sheet.getByLabel('Betrag in €').fill(item.amount);
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	if (item.income) await sheet.getByRole('switch', { name: /Gehalt/ }).check();
@@ -54,7 +54,7 @@ async function planPayment(
 	await page.getByRole('button', { name: 'Zahlung planen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Zahlung planen' });
 	if (item.income) await sheet.getByText('Einnahme', { exact: true }).click();
-	await sheet.getByLabel('Bezeichnung').fill(item.name);
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill(item.name);
 	await sheet.getByLabel('Betrag in €').fill(item.amount);
 	await sheet.getByLabel('Datum').fill(item.date);
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
@@ -244,7 +244,7 @@ test('what if: cancel the rent, add a new expense', async ({ page }) => {
 	await expect(effect).toContainText(/350,00\s€\s*\+700,00\s€/);
 
 	await add(async () => {
-		await change.getByLabel('Bezeichnung').fill('Autoabo');
+		await change.getByLabel('Bezeichnung', { exact: true }).fill('Autoabo');
 		await change.getByLabel('Betrag in €').fill('100');
 		await change.getByLabel('Ab', { exact: true }).fill(addDays(today, 3));
 	});

@@ -67,7 +67,7 @@ test('loan data gives remaining debt and end', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill(ITEM);
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill(ITEM);
 	await sheet.getByLabel('Betrag in €').fill('500');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(firstDue);

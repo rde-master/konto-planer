@@ -166,7 +166,7 @@ test('a shortcut imports the export of a savings account', async ({ page, playwr
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const order = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
 	await order.getByText('Umbuchung', { exact: true }).click();
-	await order.getByLabel('Bezeichnung').fill(ORDER);
+	await order.getByLabel('Bezeichnung', { exact: true }).fill(ORDER);
 	await order.getByLabel('Betrag in €').fill('50');
 	await order.getByLabel('Von Konto').selectOption({ label: GIRO });
 	await order.getByLabel('Auf Konto').selectOption({ label: SAVINGS });
@@ -277,7 +277,7 @@ test('the bank’s rows replace the transfer of a savings goal on both accounts'
 	await page.goto('/geplant');
 	await page.getByRole('button', { name: 'Zahlung planen' }).click();
 	const plan = page.getByRole('dialog', { name: 'Zahlung planen' });
-	await plan.getByLabel('Bezeichnung').fill(GOAL);
+	await plan.getByLabel('Bezeichnung', { exact: true }).fill(GOAL);
 	await plan.getByLabel('Betrag in €').fill('150');
 	await plan.getByLabel('Datum').fill(today);
 	await plan.getByLabel('Konto').selectOption({ label: GIRO });

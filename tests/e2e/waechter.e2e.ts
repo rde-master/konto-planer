@@ -34,7 +34,7 @@ test('a higher amount shows up as price increase', async ({ page }) => {
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const create = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await create.getByLabel('Bezeichnung').fill('Videodienst Wächter');
+	await create.getByLabel('Bezeichnung', { exact: true }).fill('Videodienst Wächter');
 	await create.getByLabel('Betrag in €').fill('10');
 	await create.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await create.getByLabel('Erste Fälligkeit').fill(addDays(today, 5));

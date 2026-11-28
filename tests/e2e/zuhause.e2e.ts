@@ -35,7 +35,7 @@ test('the start page shows household, accounts, next payments and contracts', as
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill('Kinderturnen Start');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Kinderturnen Start');
 	await sheet.getByLabel('Betrag in €').fill('20');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(addDays(today, 3));

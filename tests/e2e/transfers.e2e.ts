@@ -68,7 +68,7 @@ test('lena transfers to an account she cannot see', async ({ page }) => {
 		'Manuelle Überweisung'
 	]);
 
-	await sheet.getByLabel('Bezeichnung').fill('Sparrate');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Sparrate');
 	await sheet.getByLabel('Betrag in €').fill('100');
 	await sheet.getByLabel('Von Konto').selectOption({ label: SOURCE });
 	// The source is not offered as target; foreign accounts are, by name.
@@ -119,7 +119,7 @@ test('admin sees both sides; savings accounts can only transfer', async ({ page 
 	const sheet = await openCreateSheet(page);
 	await expect(sheet.getByLabel('Konto').locator('option', { hasText: TARGET })).toHaveCount(0);
 	await sheet.getByText('Umbuchung', { exact: true }).click();
-	await sheet.getByLabel('Bezeichnung').fill('Urlaubsgeld');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Urlaubsgeld');
 	await sheet.getByLabel('Betrag in €').fill('300');
 	await sheet.getByLabel('Von Konto').selectOption({ label: TARGET });
 	await sheet.getByLabel('Auf Konto').selectOption({ label: 'Alltagskonto' });
@@ -145,7 +145,7 @@ test('the creator keeps editing after losing edit access', async ({ page }) => {
 	await group(page, SOURCE)
 		.getByRole('link', { name: /Sparrate/ })
 		.click();
-	await page.getByLabel('Bezeichnung').fill('Sparrate Erika');
+	await page.getByLabel('Bezeichnung', { exact: true }).fill('Sparrate Erika');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
 	await expect(page.getByRole('heading', { level: 1, name: 'Sparrate Erika' })).toBeVisible();

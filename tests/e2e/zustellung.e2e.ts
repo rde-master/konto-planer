@@ -145,7 +145,7 @@ test('a near notice deadline is sent once by e-mail and Home Assistant', async (
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill('Zeitung Melde');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Zeitung Melde');
 	await sheet.getByLabel('Betrag in €').fill('25');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(addDays(today, 3));
@@ -279,7 +279,7 @@ test('a manual transfer is reminded until it is marked as transferred', async ({
 	await page.goto('/dauerposten');
 	await page.getByRole('button', { name: 'Dauerposten anlegen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Neuer Dauerposten' });
-	await sheet.getByLabel('Bezeichnung').fill('Garagenmiete Melde');
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill('Garagenmiete Melde');
 	await sheet.getByLabel('Betrag in €').fill('80');
 	await sheet.getByLabel('Konto').selectOption({ label: ACCOUNT });
 	await sheet.getByLabel('Erste Fälligkeit').fill(today);

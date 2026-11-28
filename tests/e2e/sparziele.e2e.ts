@@ -42,7 +42,7 @@ async function planPayment(page: Page, name: string, amount: string, date: strin
 	await page.goto('/geplant');
 	await page.getByRole('button', { name: 'Zahlung planen' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Zahlung planen' });
-	await sheet.getByLabel('Bezeichnung').fill(name);
+	await sheet.getByLabel('Bezeichnung', { exact: true }).fill(name);
 	await sheet.getByLabel('Betrag in €').fill(amount);
 	await sheet.getByLabel('Datum').fill(date);
 	await sheet.getByLabel('Konto').selectOption({ label: GIRO });

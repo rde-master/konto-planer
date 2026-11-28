@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
+import { altNamesOf } from './alt-names.js';
 import { db } from './db/index.js';
 import { bookings, settlements, sharedExpenseShares, sharedExpenses, users } from './db/schema.js';
 import { audit, type Actor } from './audit.js';
@@ -193,6 +194,8 @@ export type SettleOverview = {
 		bookingId: string;
 		date: string;
 		label: string;
+		/** Alternative name of the booking's recurring item (only with access to the account). */
+		altName: string | null;
 		amount: number;
 		payerName: string;
 		/** Viewer's share in cents (0 if only payer). */
@@ -223,6 +226,7 @@ export async function settleOverview(viewer: Viewer): Promise<SettleOverview> {
 			date: bookings.bookingDate,
 			counterparty: bookings.counterparty,
 			purpose: bookings.purpose,
+			recurringId: bookings.recurringId,
 			accountId: bookings.accountId
 		})
 		.from(sharedExpenses)
@@ -257,17 +261,21 @@ export async function settleOverview(viewer: Viewer): Promise<SettleOverview> {
 	const mine = allShared.filter(
 		(e) => e.payerId === viewer.id || sharesOf(e.bookingId).has(viewer.id)
 	);
+	const altNames = await altNamesOf(mine.map((e) => e.recurringId));
 	const expenses = [];
 	for (const e of mine) {
 		const owed = owedAmounts(Math.abs(e.amount), sharesOf(e.bookingId));
+		const visible = (await getAccountFor(viewer, e.accountId)) !== null;
 		expenses.push({
 			bookingId: e.bookingId,
 			date: e.date,
 			label: e.counterparty ?? e.purpose ?? 'Ausgabe',
+			// The recurring item belongs to the account: only for those who see it.
+			altName: visible ? (altNames.get(e.recurringId ?? '') ?? null) : null,
 			amount: Math.abs(e.amount),
 			payerName: name.get(e.payerId) ?? '?',
 			own: owed.get(viewer.id) ?? 0,
-			visible: (await getAccountFor(viewer, e.accountId)) !== null
+			visible
 		});
 	}
 	return {

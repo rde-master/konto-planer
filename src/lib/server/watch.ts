@@ -132,6 +132,7 @@ export async function createFromHint(actor: NonNullable<Actor> & Viewer, id: str
 			kind: 'expense',
 			targetAccountId: null,
 			name: hint.name,
+			altName: null,
 			counterparty: hint.name,
 			iban: hint.iban,
 			mandateReference: null,
