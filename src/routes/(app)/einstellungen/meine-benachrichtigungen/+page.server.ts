@@ -10,6 +10,13 @@ import {
 	testHomeAssistant
 } from '#lib/server/notify.js';
 import { PushError, listDevices, pushToUser, unsubscribe, vapidKeys } from '#lib/server/push.js';
+import {
+	PushoverError,
+	hasPushoverKey,
+	pushoverToken,
+	setPushoverKey,
+	testPushover
+} from '#lib/server/pushover.js';
 import { formString } from '#lib/server/validation.js';
 import { sendReportNow } from '#lib/server/monthly-report.js';
 import { audit } from '#lib/server/audit.js';
@@ -17,14 +24,16 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
-	const [{ smtp, ha }, [me], devices, vapid] = await Promise.all([
+	const [{ smtp, ha }, [me], devices, vapid, pushover, pushoverKeySet] = await Promise.all([
 		notifySettings(),
 		db
 			.select({ targets: users.notifyTargets, monthlyReport: users.monthlyReport })
 			.from(users)
 			.where(eq(users.id, user.id)),
 		listDevices(user.id),
-		vapidKeys()
+		vapidKeys(),
+		pushoverToken(),
+		hasPushoverKey(user.id)
 	]);
 	let services: string[] = [];
 	let haError: string | null = null;
@@ -45,7 +54,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		targets,
 		monthlyReport: me?.monthlyReport ?? false,
 		vapidPublicKey: vapid.publicKey,
-		devices
+		devices,
+		pushoverReady: pushover !== null,
+		pushoverKeySet
 	};
 };
 
@@ -86,6 +97,30 @@ export const actions: Actions = {
 			throw e;
 		}
 		return { success: 'Monatsbericht verschickt.' };
+	},
+
+	pushoverKey: async ({ request, locals }) => {
+		const key = formString(await request.formData(), 'key');
+		if (!key.trim())
+			return fail(400, { message: 'Bitte deinen Benutzerschlüssel von Pushover eintragen.' });
+		const error = await setPushoverKey(locals.user!, key);
+		if (error) return fail(400, { message: error });
+		return { success: 'Benutzerschlüssel gesichert.' };
+	},
+
+	pushoverKeyRemove: async ({ locals }) => {
+		await setPushoverKey(locals.user!, '');
+		return { success: 'Benutzerschlüssel entfernt.' };
+	},
+
+	testPushover: async ({ locals }) => {
+		try {
+			await testPushover(locals.user!.id);
+		} catch (e) {
+			if (e instanceof PushoverError) return fail(400, { message: e.message });
+			throw e;
+		}
+		return { success: 'Pushover-Testnachricht verschickt.' };
 	},
 
 	removeDevice: async ({ request, locals }) => {

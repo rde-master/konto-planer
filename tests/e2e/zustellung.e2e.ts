@@ -21,6 +21,13 @@ let ha: Server;
 let smtp: SMTPServer;
 let push: Server;
 const pushCalls: { path: string; encoding?: string; auth?: string; size: number }[] = [];
+// Pushover: invented token and keys in the format of the service (30 letters and digits).
+const PUSHOVER_PORT = 18127;
+const PUSHOVER_TOKEN = 'aTestTokenKontoPlaner123456789';
+const PUSHOVER_KEY = 'uTestKeyErikaKontoPlaner123456';
+const PUSHOVER_UNKNOWN = 'uUnknownKeyKontoPlaner12345678';
+let pushover: Server;
+const pushoverCalls: { path: string; type?: string; fields: Record<string, string> }[] = [];
 
 test.beforeAll(async () => {
 	ha = createServer((req, res) => {
@@ -69,12 +76,35 @@ test.beforeAll(async () => {
 		});
 	});
 	await new Promise<void>((resolve) => push.listen(18124, '127.0.0.1', resolve));
+	// Pushover: answers like the real API – 200 with status 1, or 400 naming what is wrong.
+	pushover = createServer((req, res) => {
+		let body = '';
+		req.on('data', (c: Buffer) => (body += c.toString()));
+		req.on('end', () => {
+			const fields = Object.fromEntries(new URLSearchParams(body));
+			pushoverCalls.push({ path: req.url ?? '', type: req.headers['content-type'], fields });
+			res.setHeader('content-type', 'application/json');
+			if (fields.token !== PUSHOVER_TOKEN) {
+				res.statusCode = 400;
+				res.end(
+					JSON.stringify({ token: 'invalid', errors: ['application token is invalid'], status: 0 })
+				);
+			} else if (fields.user !== PUSHOVER_KEY) {
+				res.statusCode = 400;
+				res.end(
+					JSON.stringify({ user: 'invalid', errors: ['user identifier is invalid'], status: 0 })
+				);
+			} else res.end(JSON.stringify({ status: 1, request: 'test-request' }));
+		});
+	});
+	await new Promise<void>((resolve) => pushover.listen(PUSHOVER_PORT, '127.0.0.1', resolve));
 });
 
 test.afterAll(async () => {
 	await new Promise<void>((resolve) => ha.close(() => resolve()));
 	await new Promise<void>((resolve) => smtp.close(() => resolve()));
 	await new Promise<void>((resolve) => push.close(() => resolve()));
+	await new Promise<void>((resolve) => pushover.close(() => resolve()));
 });
 
 async function login(page: Page) {
@@ -218,7 +248,7 @@ const IPHONE =
 test('a device gets push messages from the web app', async ({ page }) => {
 	await login(page);
 	await page.goto('/einstellungen/meine-benachrichtigungen');
-	await expect(page.getByRole('region', { name: 'Push' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Push', exact: true })).toBeVisible();
 
 	// Only known push services are accepted.
 	const bad = await page.request.post('/api/push', {
@@ -272,6 +302,90 @@ test('devices the push service no longer knows are removed', async ({ page }) =>
 	await devices.getByRole('button', { name: 'iPhone · Safari entfernen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Gerät entfernt.');
 	await expect(devices).toBeHidden();
+});
+
+test('Pushover gets the messages once token and user key are stored', async ({ page }) => {
+	await login(page);
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	const mine = page.getByRole('region', { name: 'Pushover' });
+	await expect(mine).toContainText('Pushover ist noch nicht eingerichtet.');
+
+	// The admin stores the token of the application; it is never shown again.
+	await page.goto('/einstellungen/benachrichtigungen');
+	const app = page.getByRole('region', { name: 'Pushover' });
+	await app.getByLabel('API-Token der Anwendung').fill('zu-kurz');
+	await app.getByRole('button', { name: 'Pushover sichern' }).click();
+	await expect(
+		app.getByText('Das API-Token hat 30 Zeichen (Buchstaben und Ziffern).')
+	).toBeVisible();
+	await app.getByLabel('API-Token der Anwendung').fill(PUSHOVER_TOKEN);
+	await app.getByRole('button', { name: 'Pushover sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Pushover-Einstellungen gesichert.');
+	await expect(app.getByLabel('API-Token der Anwendung')).toHaveValue('');
+	// Without a user key there is nobody to send to.
+	await app.getByRole('button', { name: 'Pushover-Test an mich' }).click();
+	await expect(page.getByRole('alert')).toHaveText(
+		'Bitte zuerst deinen Benutzerschlüssel eintragen und sichern.'
+	);
+	expect(pushoverCalls).toHaveLength(0);
+
+	// Every user stores their own key. A key the service does not know is reported.
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await mine.getByLabel('Benutzerschlüssel (User Key)').fill(PUSHOVER_UNKNOWN);
+	await mine.getByRole('button', { name: 'Schlüssel sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Benutzerschlüssel gesichert.');
+	await mine.getByRole('button', { name: 'Pushover-Test an mich' }).click();
+	await expect(page.getByRole('alert')).toHaveText(
+		'Pushover kennt den Benutzerschlüssel nicht, oder es ist kein Gerät angemeldet.'
+	);
+	await mine.getByLabel('Benutzerschlüssel (User Key)').fill(PUSHOVER_KEY);
+	await mine.getByRole('button', { name: 'Schlüssel sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Benutzerschlüssel gesichert.');
+	await expect(mine.getByLabel('Benutzerschlüssel (User Key)')).toHaveValue('');
+	await mine.getByRole('button', { name: 'Pushover-Test an mich' }).click();
+	await expect(page.getByRole('status')).toHaveText('Pushover-Testnachricht verschickt.');
+	const test = pushoverCalls.at(-1)!;
+	expect(test.path).toBe('/1/messages.json');
+	expect(test.type).toContain('application/x-www-form-urlencoded');
+	expect(test.fields).toMatchObject({
+		token: PUSHOVER_TOKEN,
+		user: PUSHOVER_KEY,
+		title: 'Konto Planer',
+		url_title: 'Im Konto Planer öffnen'
+	});
+	expect(test.fields.url).toMatch(
+		/^http:\/\/localhost:\d+\/einstellungen\/meine-benachrichtigungen$/
+	);
+
+	// A rule sends over Pushover, with the page to open.
+	await page.goto('/einstellungen/benachrichtigungen');
+	const rule = page.getByRole('region', { name: 'Meldungsregel Dispo erreicht' });
+	await rule.getByRole('switch', { name: /^Über Pushover/ }).check();
+	await rule.getByRole('button', { name: 'Regel sichern' }).click();
+	await expect(page.getByRole('status')).toHaveText('Meldungsregel gesichert.');
+	const before = pushoverCalls.length;
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText(/verschickt/);
+	// One message per account in the red (other test files leave such accounts, too).
+	const sent = pushoverCalls.slice(before);
+	const own = sent.filter((c) => c.fields.title === 'Dispo erreicht: Meldekonto');
+	expect(own).toHaveLength(1);
+	expect(sent.every((c) => c.fields.title.startsWith('Dispo erreicht: '))).toBe(true);
+	expect(own[0].fields.url).toMatch(/^http:\/\/localhost:\d+\/konten\//);
+	await expect(page.getByRole('list', { name: 'Zuletzt verschickt' })).toContainText(
+		/Dispo erreicht: Meldekonto.*Pushover/s
+	);
+
+	// Sent once: the next run has nothing for Pushover.
+	await page.getByRole('button', { name: 'Jetzt prüfen und senden' }).click();
+	await expect(page.getByRole('status')).toHaveText('Keine Meldung fällig.');
+	expect(pushoverCalls.length).toBe(before + sent.length);
+
+	// Without the key the user gets nothing more over Pushover.
+	await page.goto('/einstellungen/meine-benachrichtigungen');
+	await mine.getByRole('button', { name: 'Schlüssel entfernen' }).click();
+	await expect(page.getByRole('status')).toHaveText('Benutzerschlüssel entfernt.');
+	await expect(mine.getByRole('button', { name: 'Pushover-Test an mich' })).toHaveCount(0);
 });
 
 test('a manual transfer is reminded until it is marked as transferred', async ({ page }) => {

@@ -37,6 +37,8 @@ export default defineConfig({
 			ATTACHMENT_DIR: 'test-results/attachments',
 			// Local stand-in for the browser push services (zustellung.e2e.ts).
 			PUSH_TEST_ORIGIN: 'http://127.0.0.1:18124',
+			// Stand-in for the Pushover API (zustellung.e2e.ts).
+			PUSHOVER_TEST_BASE: 'http://127.0.0.1:18127',
 			// Stand-in for company websites and the favicon service (firmenlogos-web.e2e.ts).
 			LOGO_TEST_BASE: 'http://127.0.0.1:18126'
 		}

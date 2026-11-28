@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Page from '#lib/components/Page.svelte';
 	import Button from '#lib/components/Button.svelte';
+	import FormField from '#lib/components/FormField.svelte';
 	import ListGroup from '#lib/components/ListGroup.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import PushSetup from '#lib/components/PushSetup.svelte';
@@ -104,6 +105,47 @@
 			Welche Meldungen per Push kommen, legt der Admin je Meldungsregel fest. Antippen öffnet die
 			passende Seite.
 		</p>
+	</section>
+
+	<section class="mb-8" aria-label="Pushover">
+		<h2 class="mb-1.5 px-4 text-[13px] text-label-2 uppercase">Pushover</h2>
+		{#if !data.pushoverReady}
+			<p class="rounded-[var(--radius-row)] bg-card px-4 py-3 text-[15px] text-label-2">
+				Pushover ist noch nicht eingerichtet.
+			</p>
+		{:else}
+			<form
+				method="POST"
+				action="?/pushoverKey"
+				use:enhance={() =>
+					async ({ result, update }) =>
+						update({ reset: result.type === 'success' })}
+			>
+				<ul class="overflow-hidden rounded-[var(--radius-row)] bg-card">
+					<FormField
+						label="Benutzerschlüssel (User Key)"
+						name="key"
+						type="password"
+						autocomplete="off"
+						placeholder={data.pushoverKeySet ? 'gespeichert – neu eintragen zum Ersetzen' : ''}
+					/>
+				</ul>
+				<p class="mt-1.5 px-4 text-[13px] text-label-2">
+					Den Schlüssel findest du in der Pushover-App und auf pushover.net („Your User Key“); er
+					wird verschlüsselt gespeichert. Welche Meldungen über Pushover kommen, legt der Admin je
+					Meldungsregel fest.
+				</p>
+				<div class="mt-3"><Button type="submit">Schlüssel sichern</Button></div>
+			</form>
+			{#if data.pushoverKeySet}
+				<form method="POST" action="?/testPushover" use:enhance class="mt-3">
+					<Button type="submit" variant="tinted">Pushover-Test an mich</Button>
+				</form>
+				<form method="POST" action="?/pushoverKeyRemove" use:enhance class="mt-3">
+					<Button type="submit" variant="destructive">Schlüssel entfernen</Button>
+				</form>
+			{/if}
+		{/if}
 	</section>
 
 	<section class="mb-8" aria-label="Home Assistant">

@@ -24,6 +24,7 @@ import { listAccountsFor } from './accounts.js';
 import { balancesOf } from './bookings.js';
 import { plansFor } from './minimum.js';
 import { pushToUser, pushUsers } from './push.js';
+import { PushoverError, pushoverToken, pushoverUsers, sendPushover } from './pushover.js';
 import { remindersFor } from './manual-transfers.js';
 import { suggestionsFor } from './savings-suggestion.js';
 import { forecastFor } from './forecast.js';
@@ -92,7 +93,8 @@ export async function notifySettingsView() {
 		smtpFrom: row?.smtpFrom ?? '',
 		smtpPasswordSet: !!row?.smtpPasswordEnc,
 		haUrl: row?.haUrl ?? '',
-		haTokenSet: !!row?.haTokenEnc
+		haTokenSet: !!row?.haTokenEnc,
+		pushoverSet: decrypt(row?.pushoverTokenEnc ?? null) !== null
 	};
 }
 
@@ -317,6 +319,7 @@ export type Rule = {
 	email: boolean;
 	homeAssistant: boolean;
 	push: boolean;
+	pushover: boolean;
 	/** null = everyone with edit right on the account. */
 	recipients: string[] | null;
 	repeat: Repeat;
@@ -336,6 +339,7 @@ export async function listRules(): Promise<Rule[]> {
 			email: r?.email ?? true,
 			homeAssistant: r?.homeAssistant ?? false,
 			push: r?.push ?? false,
+			pushover: r?.pushover ?? false,
 			recipients: r?.recipients ?? null,
 			repeat: (r?.repeat as Repeat) ?? 'once',
 			toleranceDays: r?.toleranceDays ?? 3,
@@ -365,6 +369,7 @@ export async function saveRule(actor: NonNullable<Actor>, rule: Rule) {
 				email: rule.email,
 				homeAssistant: rule.homeAssistant,
 				push: rule.push,
+				pushover: rule.pushover,
 				repeat: rule.repeat,
 				toleranceDays: rule.toleranceDays,
 				transferLeadDays: rule.leadDays
@@ -661,7 +666,9 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 	const today = todayBerlin(now);
 	const { smtp, ha } = await notifySettings();
 	const pushers = await pushUsers();
-	if (!smtp && !ha && !pushers.size) return 0;
+	const pushover = await pushoverToken();
+	const pushoverKeys = pushover ? await pushoverUsers() : new Map<string, string>();
+	if (!smtp && !ha && !pushers.size && !pushoverKeys.size) return 0;
 	const rules = new Map((await listRules()).map((r) => [r.type, r]));
 	const on = (t: NotificationType) => rules.get(t)?.enabled ?? false;
 	const events = [
@@ -699,10 +706,11 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 			for (const userId of recipients) {
 				const person = byId.get(userId);
 				if (!person) continue;
-				const channels: ('email' | 'ha' | 'push')[] = [];
+				const channels: ('email' | 'ha' | 'push' | 'pushover')[] = [];
 				if (rule.email && smtp && person.email) channels.push('email');
 				if (rule.homeAssistant && ha && person.targets.length) channels.push('ha');
 				if (rule.push && pushers.has(userId)) channels.push('push');
+				if (rule.pushover && pushoverKeys.has(userId)) channels.push('pushover');
 				for (const channel of channels) {
 					const [last] = await tx
 						.select({ sentAt: notificationLog.sentAt })
@@ -724,10 +732,16 @@ export async function runNotifications({ force = false, now = new Date() } = {})
 						if (channel === 'email')
 							await sendEmail(smtp!, person.email!, `Konto Planer: ${e.title}`, e.message);
 						else if (channel === 'push') await pushToUser(userId, e.title, e.message, e.url);
+						else if (channel === 'pushover')
+							await sendPushover(pushover!, pushoverKeys.get(userId)!, e.title, e.message, e.url);
 						else for (const t of person.targets) await haNotify(ha!, t, e.title, e.message);
 						sent++;
 					} catch (err) {
 						error = errorText(err).slice(0, 300);
+						// A refused token or key fails every time: one attempt per run, the service
+						// blocks senders that keep repeating refused requests.
+						if (err instanceof PushoverError && err.fault === 'token') pushoverKeys.clear();
+						if (err instanceof PushoverError && err.fault === 'user') pushoverKeys.delete(userId);
 					}
 					await tx.insert(notificationLog).values({
 						type: e.type,

@@ -13,6 +13,7 @@ import {
 	testEmail,
 	testHomeAssistant
 } from '#lib/server/notify.js';
+import { PushoverError, savePushoverToken, testPushover } from '#lib/server/pushover.js';
 import { formString } from '#lib/server/validation.js';
 import { ApiError, haSensorsEnabled, pushHaSensors, setHaSensors } from '#lib/server/api.js';
 import { NOTIFICATION_TYPES, REPEATS } from '#lib/notify.js';
@@ -100,6 +101,35 @@ export const actions: Actions = {
 		return { action: 'test' as const, success: 'Home Assistant ist erreichbar.' };
 	},
 
+	pushover: async ({ request, locals }) => {
+		const user = requireAdmin(locals.user);
+		const error = await savePushoverToken(
+			user,
+			formString(await request.formData(), 'token'),
+			false
+		);
+		if (error) return fail(400, { action: 'pushover' as const, errors: { token: error } });
+		return { action: 'pushover' as const, success: 'Pushover-Einstellungen gesichert.' };
+	},
+
+	pushoverRemove: async ({ locals }) => {
+		const user = requireAdmin(locals.user);
+		await savePushoverToken(user, '', true);
+		return { action: 'pushover' as const, success: 'Pushover entfernt.' };
+	},
+
+	testPushover: async ({ locals }) => {
+		const user = requireAdmin(locals.user);
+		try {
+			await testPushover(user.id);
+		} catch (e) {
+			if (e instanceof PushoverError)
+				return fail(400, { action: 'test' as const, message: e.message });
+			throw e;
+		}
+		return { action: 'test' as const, success: 'Pushover-Testnachricht verschickt.' };
+	},
+
 	rule: async ({ request, locals }) => {
 		const user = requireAdmin(locals.user);
 		const data = await request.formData();
@@ -121,6 +151,7 @@ export const actions: Actions = {
 			email: formString(data, 'email') === 'on',
 			homeAssistant: formString(data, 'homeAssistant') === 'on',
 			push: formString(data, 'push') === 'on',
+			pushover: formString(data, 'pushover') === 'on',
 			repeat: REPEATS.find((r) => r === formString(data, 'repeat')) ?? 'once',
 			recipients: formString(data, 'recipientMode') === 'chosen' ? chosen : null,
 			toleranceDays: tolerance,

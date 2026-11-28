@@ -9,6 +9,7 @@ import { backupDir, dump, prune } from './backup.js';
 import { backupFileName, isBackupFile } from './backup-rules.js';
 import { attachmentDir } from './attachments.js';
 import { notifySettings } from './notify.js';
+import { pushoverToken, pushoverUsers } from './pushover.js';
 import { haSensorsEnabled } from './api.js';
 import { JOB_LABELS, listJobRuns } from './jobs.js';
 import { compareVersions } from '../system.js';
@@ -100,36 +101,49 @@ export async function latestRelease(force = false) {
 }
 
 export async function systemStatus() {
-	const [[dbInfo], counts, jobs, backups, attachments, settings, haSensors, lastErrors, devices] =
-		await Promise.all([
-			db.execute<{ version: string; size: string }>(
-				sql`select version() as version, pg_database_size(current_database())::text as size`
-			),
-			db.execute<{ bookings: string; accounts: string; users: string; items: string }>(
-				sql`select (select count(*) from bookings)::text as bookings, (select count(*) from accounts)::text as accounts, (select count(*) from users)::text as users, (select count(*) from recurring_items)::text as items`
-			),
-			listJobRuns(),
-			listBackups(),
-			dirSize(attachmentDir()),
-			notifySettings(),
-			haSensorsEnabled(),
-			Promise.all(
-				['email', 'ha', 'push'].map(async (channel) => {
-					const [row] = await db
-						.select({
-							ok: notificationLog.ok,
-							error: notificationLog.error,
-							at: notificationLog.sentAt
-						})
-						.from(notificationLog)
-						.where(eq(notificationLog.channel, channel))
-						.orderBy(desc(notificationLog.sentAt))
-						.limit(1);
-					return [channel, row ?? null] as const;
-				})
-			),
-			db.select({ n: sql<string>`count(*)::text` }).from(pushSubscriptions)
-		]);
+	const [
+		[dbInfo],
+		counts,
+		jobs,
+		backups,
+		attachments,
+		settings,
+		haSensors,
+		lastErrors,
+		devices,
+		pushover,
+		pushoverKeys
+	] = await Promise.all([
+		db.execute<{ version: string; size: string }>(
+			sql`select version() as version, pg_database_size(current_database())::text as size`
+		),
+		db.execute<{ bookings: string; accounts: string; users: string; items: string }>(
+			sql`select (select count(*) from bookings)::text as bookings, (select count(*) from accounts)::text as accounts, (select count(*) from users)::text as users, (select count(*) from recurring_items)::text as items`
+		),
+		listJobRuns(),
+		listBackups(),
+		dirSize(attachmentDir()),
+		notifySettings(),
+		haSensorsEnabled(),
+		Promise.all(
+			['email', 'ha', 'push', 'pushover'].map(async (channel) => {
+				const [row] = await db
+					.select({
+						ok: notificationLog.ok,
+						error: notificationLog.error,
+						at: notificationLog.sentAt
+					})
+					.from(notificationLog)
+					.where(eq(notificationLog.channel, channel))
+					.orderBy(desc(notificationLog.sentAt))
+					.limit(1);
+				return [channel, row ?? null] as const;
+			})
+		),
+		db.select({ n: sql<string>`count(*)::text` }).from(pushSubscriptions),
+		pushoverToken(),
+		pushoverUsers()
+	]);
 	const release = await latestRelease();
 	const last = new Map(lastErrors);
 	return {
@@ -173,6 +187,12 @@ export async function systemStatus() {
 				ready: Number(devices[0]?.n ?? 0) > 0,
 				last: last.get('push') ?? null,
 				extra: `${devices[0]?.n ?? 0} Geräte`
+			},
+			{
+				name: 'Pushover',
+				ready: pushover !== null,
+				last: last.get('pushover') ?? null,
+				extra: pushover !== null ? `${pushoverKeys.size} Benutzer` : null
 			}
 		]
 	};
