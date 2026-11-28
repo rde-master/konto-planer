@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.82.0] – Alternative Bezeichnung auch bei den Dauerposten
+
+### Neu
+
+- Der Umschalter „Alternative Bezeichnungen“ steht jetzt auch auf der Dauerposten-Seite und an jedem Dauerposten mit alternativer Bezeichnung. Eingeschaltet heißt der Dauerposten dort so wie in den Buchungen – in der Liste, unter „Bald kündbar“ und „Geplante Änderungen“ und als Titel seiner eigenen Seite. Die eigentliche Bezeichnung steht in der Liste in der Zeile darunter
+- Sortiert nach Name richtet sich die Liste nach dem Namen, der gerade angezeigt wird. Der Schalter ist derselbe wie auf den Buchungsseiten: einmal umgestellt, gilt die Wahl überall
+
 ## [0.81.0] – Benachrichtigungen über Pushover
 
 ### Neu

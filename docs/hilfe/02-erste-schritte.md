@@ -36,9 +36,9 @@ Jede Zeile zeigt den Rhythmus farbig hinterlegt und die Kategorie – mit einem 
 
 ### Alternative Bezeichnung
 
-Banken schreiben den Empfänger oft sperrig („FUNKNETZ GMBH 4711“). Trägst du am Dauerposten eine **Alternative Bezeichnung** ein, zeigen seine Buchungen diese als Titel – zum Beispiel „Handy Lisa“. Der Dauerposten selbst behält seine Bezeichnung; sie steht in der Buchungsliste wie gewohnt in der Zeile darunter.
+Banken schreiben den Empfänger oft sperrig („FUNKNETZ GMBH 4711“). Trägst du am Dauerposten eine **Alternative Bezeichnung** ein, zeigen seine Buchungen diese als Titel – zum Beispiel „Handy Lisa“. Die eigentliche Bezeichnung bleibt erhalten; sie steht in der Buchungsliste wie gewohnt in der Zeile darunter.
 
-Auf den Seiten mit Buchungen (Buchungsliste, einzelne Buchung, Jahresliste eines Tags, Ausgleich) schaltest du mit **Alternative Bezeichnungen** zwischen deinem Namen und dem der Bank um. Die Wahl gilt für dich überall; andere Benutzer entscheiden für sich. Der Schalter erscheint nur, wo es eine alternative Bezeichnung gibt.
+Auf den Seiten mit Buchungen (Buchungsliste, einzelne Buchung, Jahresliste eines Tags, Ausgleich) schaltest du mit **Alternative Bezeichnungen** zwischen deinem Namen und dem der Bank um. Derselbe Schalter steht auf der Dauerposten-Seite und am Dauerposten selbst: Eingeschaltet heißt der Dauerposten auch dort so; seine eigentliche Bezeichnung steht in der Liste in der Zeile darunter. Die Wahl gilt für dich überall; andere Benutzer entscheiden für sich. Der Schalter erscheint nur, wo es eine alternative Bezeichnung gibt.
 
 Der Name von der Bank geht nicht verloren: Er steht an der Buchung unter „Empfänger/Zahler“, und Import, Logos und Auswertungen arbeiten weiter damit. Die Suche findet beide Namen.
 

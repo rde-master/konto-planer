@@ -95,7 +95,9 @@ test('bookings of an item show its alternative name; the switch brings the payee
 	await expect(await rows(page, accountId, ALT)).toHaveCount(1);
 });
 
-test('without an alternative name there is nothing to switch on a booking', async ({ page }) => {
+test('the recurring items show the alternative name; without one there is nothing to switch', async ({
+	page
+}) => {
 	await login(page);
 	await page.goto('/buchungen');
 	await page.getByRole('button', { name: 'Buchung erfassen' }).click();
@@ -114,15 +116,24 @@ test('without an alternative name there is nothing to switch on a booking', asyn
 	await expect(page.getByRole('heading', { level: 1, name: 'Kiosk Namen' })).toBeVisible();
 	await expect(toggle(page)).toHaveCount(0);
 
-	// Taking the alternative name away brings the item's payee back in the list.
+	// The list of recurring items shows the alternative name, too – with its own switch.
 	await page.goto('/dauerposten');
-	await page
-		.getByRole('main')
-		.getByRole('link', { name: new RegExp(ITEM) })
-		.first()
-		.click();
+	const items = page.getByRole('region', { name: ACCOUNT });
+	await expect(items.getByRole('link', { name: new RegExp(`^${ALT}.*${ITEM}`) })).toHaveCount(1);
+	await toggle(page).uncheck();
+	await expect(items.getByRole('link', { name: new RegExp(`^${ITEM}`) })).toHaveCount(1);
+	await expect(items.getByText(ALT)).toHaveCount(0);
+	await toggle(page).check();
+	await items.getByRole('link', { name: new RegExp(`^${ALT}`) }).click();
+	// The item's own page is titled the same way.
+	await expect(page.getByRole('heading', { level: 1, name: ALT })).toBeVisible();
+	await toggle(page).uncheck();
 	await expect(page.getByRole('heading', { level: 1, name: ITEM })).toBeVisible();
-	await page.getByRole('main').getByLabel('Alternative Bezeichnung').fill('');
+	await toggle(page).check();
+	await expect(page.getByRole('heading', { level: 1, name: ALT })).toBeVisible();
+
+	// Taking the alternative name away brings the item's payee back in the list.
+	await page.getByRole('main').getByRole('textbox', { name: 'Alternative Bezeichnung' }).fill('');
 	await page.getByRole('button', { name: 'Sichern' }).click();
 	await expect(page.getByText('Änderungen gesichert.')).toBeVisible();
 	await expect(await rows(page, accountId, PAYEE)).toHaveCount(1);

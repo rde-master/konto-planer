@@ -10,7 +10,9 @@ import {
 	listOptions,
 	listQuery,
 	mainCategory,
+	listTitle,
 	matchesList,
+	replacedName,
 	parseListFilter,
 	type ListFilter,
 	type ListItem
@@ -97,6 +99,29 @@ describe('parseListFilter / listQuery', () => {
 		expect(isFiltered(filter({ sort: 'name' }))).toBe(false);
 		expect(isFiltered(filter({ text: ' ' }))).toBe(false);
 		expect(isFiltered(filter({ interval: 'yearly' }))).toBe(true);
+	});
+});
+
+describe('listTitle', () => {
+	it('shows the alternative name only if wanted and present', () => {
+		expect(listTitle(rent, true)).toBe('Wohnung Musterweg');
+		expect(listTitle(rent, false)).toBe('Miete');
+		expect(listTitle(power, true)).toBe('Strom');
+		expect(listTitle({ name: 'Strom', altName: '  ' }, true)).toBe('Strom');
+	});
+
+	it('names the item itself where the title is the alternative name', () => {
+		expect(replacedName(rent, true)).toBe('Miete');
+		expect(replacedName(rent, false)).toBeNull();
+		expect(replacedName(power, true)).toBeNull();
+	});
+
+	it('sorts by the title that is shown', () => {
+		const byName = (alt: boolean) =>
+			[rent, power].sort((a, b) => compareList(a, b, 'name', alt)).map((i) => i.name);
+		expect(byName(false)).toEqual(['Miete', 'Strom']);
+		// "Strom" before "Wohnung Musterweg".
+		expect(byName(true)).toEqual(['Strom', 'Miete']);
 	});
 });
 
