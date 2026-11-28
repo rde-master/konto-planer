@@ -228,10 +228,12 @@ export const actions: Actions = {
 			if (result.errors)
 				return fail(400, { action: 'saving' as const, accountId, errors: result.errors });
 			return {
+				at: 'saving' as const,
 				success: `${formatEuro(result.amount)} auf ${result.target} umgebucht${result.goal ? ` und „${result.goal}“ zugeteilt` : ''}.`
 			};
 		} catch (e) {
-			if (e instanceof SuggestionError) return fail(400, { message: e.message });
+			if (e instanceof SuggestionError)
+				return fail(400, { at: 'saving' as const, message: e.message });
 			throw e;
 		}
 	},
@@ -244,9 +246,10 @@ export const actions: Actions = {
 				formString(data, 'accountId'),
 				formString(data, 'salaryDueDate')
 			);
-			return { success: 'Sparvorschlag ausgeblendet.' };
+			return { at: 'saving' as const, success: 'Sparvorschlag ausgeblendet.' };
 		} catch (e) {
-			if (e instanceof SuggestionError) return fail(400, { message: e.message });
+			if (e instanceof SuggestionError)
+				return fail(400, { at: 'saving' as const, message: e.message });
 			throw e;
 		}
 	},

@@ -75,6 +75,11 @@ test('after the salary the free amount can go to the savings account', async ({ 
 	await page.goto('/');
 	const card = page.getByRole('region', { name: `Sparvorschlag ${GIRO}` });
 	await expect(card).toContainText(/1\.800,00\s€ können aufs Sparbuch/);
+	// Suggestions stand at the very end of the page.
+	await expect(page.getByRole('main').getByRole('region').last()).toHaveAttribute(
+		'aria-label',
+		/^Sparvorschlag /
+	);
 
 	await card.getByLabel('Betrag in €').fill('2.000');
 	await card.getByRole('button', { name: 'Umbuchen' }).click();

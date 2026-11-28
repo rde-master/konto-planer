@@ -50,6 +50,11 @@ test('the start page shows household, accounts, next payments and contracts', as
 	await page.goto('/');
 	await expect(page.getByLabel('Summe aller Konten')).toHaveText(/€/);
 	const available = page.getByRole('region', { name: 'Verfügbar' });
+	// The accounts one by one stand first on the page.
+	await expect(page.getByRole('main').getByRole('region').first()).toHaveAttribute(
+		'aria-label',
+		'Verfügbar'
+	);
 	await expect(available.getByRole('link', { name: `${ACCOUNT} verfügbar` })).toContainText(
 		/Stand 750,00\s€/
 	);

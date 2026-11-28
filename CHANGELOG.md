@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.83.0] – Übersicht: Konten zuerst
+
+### Geändert
+
+- Übersicht: Die Kachel „Verfügbar“ mit den einzelnen Girokonten steht jetzt ganz oben – noch vor der Summe des Haushalts und dem Vermögensverlauf
+- Der Sparvorschlag steht jetzt ganz unten auf der Übersicht. Die Meldung nach dem Umbuchen oder Ausblenden erscheint dort, wo der Vorschlag stand
+
 ## [0.82.0] – Alternative Bezeichnung auch bei den Dauerposten
 
 ### Neu

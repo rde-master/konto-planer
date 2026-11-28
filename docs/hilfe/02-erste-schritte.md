@@ -58,6 +58,6 @@ Rutscht das Konto nach Plan ins Minus oder reicht der Dispo nicht, zeigt die Kon
 
 ## Die Übersicht
 
-Die Startseite zeigt den Haushalt auf einen Blick: Summe aller Konten, verfügbar je Girokonto, die nächsten Zahlungen, bald kündbare Verträge, Budgets, offene Überweisungen und Hinweise wie neue Abos oder Preiserhöhungen.
+Die Startseite zeigt den Haushalt auf einen Blick. Ganz oben steht **Verfügbar** mit jedem Girokonto einzeln, darunter die Summe aller Konten, dann die nächsten Zahlungen, bald kündbare Verträge, Budgets, offene Überweisungen und Hinweise wie neue Abos oder Preiserhöhungen. Ein Sparvorschlag am Gehaltstag steht ganz unten.
 
 Dazu kommen Grafiken: der **Vermögensverlauf** der letzten sechs Monate mit gestrichelter Vorschau auf die nächsten 30 Tage, die **Ausgaben des Monats nach Kategorie** als Ring, **Einnahmen und Ausgaben** der letzten sechs Monate und je Girokonto eine kleine Linie bis zum Stichtag – der rote Punkt markiert den tiefsten Stand. Budgets und Sparziele zeigen ihren Fortschritt als Ring.
