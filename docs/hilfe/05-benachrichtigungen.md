@@ -4,7 +4,7 @@ Konto Planer meldet sich, wenn etwas zu tun ist – per E-Mail, über Home Assis
 
 ## Kanäle einrichten (Admin)
 
-Unter **Einstellungen › Benachrichtigungen** trägt der Admin den E-Mail-Server (SMTP) und die Verbindung zu Home Assistant ein; beides lässt sich testen. Passwörter und Tokens werden verschlüsselt gespeichert.
+Unter **Einstellungen › Benachrichtigungen** trägt der Admin den E-Mail-Server (SMTP) und die Verbindung zu Home Assistant ein; beides lässt sich testen. Passwörter und Tokens werden verschlüsselt gespeichert. Die Seite hat je einen Reiter für E-Mail, Home Assistant und Pushover, dazu **Meldungen** und **Versand**.
 
 ### Pushover
 
@@ -20,7 +20,7 @@ Die Meldung enthält einen Link zur passenden Seite, wenn die App ihre Adresse k
 
 ## Meldungen
 
-Je Meldung legt der Admin fest, ob sie aktiv ist, über welche Kanäle sie geht, wer sie bekommt und ob sie täglich wiederholt wird, bis sie erledigt ist:
+Im Reiter **Meldungen** steht jede Meldung als Zeile mit ihrem Stand („E-Mail, Pushover · täglich“ oder „aus“); ein Tipp klappt ihre Einstellungen auf. Je Meldung legt der Admin fest, ob sie aktiv ist, über welche Kanäle sie geht, wer sie bekommt und ob sie täglich wiederholt wird, bis sie erledigt ist:
 
 - Kündigungsfrist endet bald
 - Mindestbestand unterschritten, Dispo erreicht, Dispo könnte nicht reichen
@@ -31,11 +31,11 @@ Je Meldung legt der Admin fest, ob sie aktiv ist, über welche Kanäle sie geht,
 - Dauerposten wird teurer, neue regelmäßige Abbuchung im Import
 - Import-Erinnerung am 30. (im Februar am Monatsletzten)
 
-Gesendet wird ab 8 Uhr.
+Gesendet wird ab 8 Uhr. Im Reiter **Versand** stößt „Jetzt prüfen und senden“ den Versand sofort an; darunter steht, was zuletzt verschickt wurde.
 
 ## Meine Benachrichtigungen
 
-Unter **Einstellungen › Meine Benachrichtigungen** wählt jeder selbst:
+Unter **Einstellungen › Meine Benachrichtigungen** wählt jeder selbst, je Weg in einem eigenen Reiter:
 
 - seine **Home-Assistant-Geräte** (z. B. die Home-Assistant-App auf dem Handy)
 - seinen **Pushover-Benutzerschlüssel**

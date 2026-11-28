@@ -8,6 +8,10 @@ In der Liste erkennst du auf einen Blick, was eine Buchung ist: Zahlungen, die z
 
 **Vorlagen** (Einstellungen › Vorlagen) füllen häufige Buchungen mit einem Tipp aus, z. B. „Bäcker“ mit Konto und Kategorie.
 
+### Die Seite einer Buchung
+
+Die Seite einer Buchung hat drei Reiter: **Buchung** zeigt die Angaben (bei von Hand erfassten Buchungen zum Ändern) und unter „Gehört zu“ den Dauerposten oder die Umbuchung, zu der sie gehört. **Einordnen** enthält Aufteilen, Tags, gemeinsame Ausgabe und Logo. Unter **Aktionen** stehen Dauerposten zuordnen, als Umbuchung kennzeichnen, „Immer so einordnen“, Vorlage und Löschen.
+
 ## Umbuchung zwischen zwei Konten
 
 Geht Geld von einem eigenen Konto auf ein anderes (Girokonto → Sparbuch, Girokonto → Kreditkarte), ist das eine **Umbuchung**: beim einen Konto ein Ausgang, beim anderen ein Eingang. In den Auswertungen und Budgets zählt sie weder als Ausgabe noch als Einnahme.

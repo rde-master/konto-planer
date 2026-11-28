@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -50,6 +51,7 @@ test('an expense is shared; the shares must add up to 100 %', async ({ page }) =
 	await expect(sheet).toBeHidden();
 
 	await page.getByRole('link', { name: new RegExp(PAYEE) }).click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Als gemeinsame Ausgabe markieren' }).click();
 	const shared = page.getByRole('dialog', { name: 'Gemeinsame Ausgabe' });
 	// Only Erika and Tom take part.
@@ -64,6 +66,7 @@ test('an expense is shared; the shares must add up to 100 %', async ({ page }) =
 	await shared.getByRole('button', { name: 'Sichern' }).click();
 	await expect(shared).toBeHidden();
 	await expect(page.getByRole('status')).toHaveText('Gemeinsame Ausgabe gesichert.');
+	await openTab(page, 'Einordnen');
 	const region = page.getByRole('region', { name: 'Gemeinsame Ausgabe' });
 	await expect(region).toContainText(ADMIN.name);
 	await expect(region).toContainText(/30 % · 90,00\s€/);
@@ -101,6 +104,7 @@ test('removing the share clears the balance; logged', async ({ page }) => {
 	await login(page, ADMIN);
 	await page.goto('/buchungen');
 	await page.getByRole('link', { name: new RegExp(PAYEE) }).click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Nicht mehr gemeinsam' }).click();
 	await expect(page.getByRole('region', { name: 'Gemeinsame Ausgabe' })).toHaveCount(0);
 

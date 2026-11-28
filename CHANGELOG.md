@@ -2,6 +2,16 @@
 
 Alle nennenswerten Änderungen an Konto Planer. Versionen folgen [SemVer](https://semver.org/lang/de/); jede Funktion erscheint als eigene Unterversion 0.x.0.
 
+## [0.85.0] – Reiter auf den langen Seiten
+
+### Neu
+
+- Konto: Die Seite ist in Reiter aufgeteilt – „Übersicht“ (Stand bis zum Stichtag, Sparziele, Abrechnung der Kreditkarte, Buchungen, Import, Kontostand korrigieren), „Zinsen“ (nur Sparbuch), „Verlauf“ (Vorschau für 12 Monate, Monatsübersicht) und „Bearbeiten“ (Kontodaten, Zugriff, archivieren)
+- Buchung: Reiter „Buchung“ (Angaben ändern bzw. ansehen), „Einordnen“ (aufteilen, Tags, gemeinsame Ausgabe, Logo) und „Aktionen“ (Dauerposten zuordnen, als Umbuchung kennzeichnen, immer so einordnen, Vorlage, löschen). Zu welchem Dauerposten oder welcher Umbuchung die Buchung gehört, steht unter „Gehört zu“ gleich im ersten Reiter
+- Einstellungen › Benachrichtigungen: Reiter „E-Mail“, „Home Assistant“, „Pushover“, „Meldungen“ und „Versand“. Die Meldungen stehen als Liste da – jede Zeile zeigt, ob und über welche Wege sie verschickt wird; ein Tipp klappt ihre Einstellungen auf
+- Meine Benachrichtigungen: Reiter „E-Mail“, „Push“, „Pushover“ und „Home Assistant“
+- Wie beim Dauerposten bleibt der gewählte Reiter beim Sichern stehen und ist nach „Zurück“ wieder derselbe
+
 ## [0.84.0] – Dauerposten: Buchungen und Reiter
 
 ### Neu

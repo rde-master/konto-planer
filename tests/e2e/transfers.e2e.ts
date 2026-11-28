@@ -33,6 +33,7 @@ async function createAccount(page: Page, name: string, savings: boolean) {
 async function setAccess(page: Page, account: string, user: string, level: 'view' | 'edit') {
 	await page.goto('/konten');
 	await page.getByRole('link', { name: new RegExp(account) }).click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel(user).selectOption(level);
 	await page.getByRole('button', { name: 'Zugriffe sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Zugriffe gesichert.');
@@ -160,6 +161,7 @@ test('accounts receiving a transfer cannot be deleted; protocol names the target
 	await login(page, ADMIN.username, ADMIN.password);
 	await page.goto('/konten');
 	await page.getByRole('link', { name: new RegExp(TARGET) }).click();
+	await openTab(page, 'Bearbeiten');
 	await expect(page.getByRole('button', { name: 'Archivieren' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Konto löschen' })).toHaveCount(0);
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { formatDay, todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 import { isBankDay } from '../../src/lib/bank-calendar';
@@ -149,6 +150,7 @@ test('a shortcut imports the export of a savings account', async ({ page, playwr
 	await expect(page.getByRole('heading', { level: 1, name: SAVINGS })).toBeVisible();
 	const savingsPath = new URL(page.url()).pathname;
 	const savingsId = savingsPath.split('/').at(-1)!;
+	await openTab(page, 'Zinsen');
 	await page.getByRole('button', { name: 'Zinssatz ändern' }).click();
 	const rate = page.getByRole('dialog', { name: 'Zinssatz ändern' });
 	await rate.getByLabel('Zinssatz in % p. a.').fill('2');
@@ -156,6 +158,7 @@ test('a shortcut imports the export of a savings account', async ({ page, playwr
 	await rate.getByRole('button', { name: 'Sichern' }).click();
 	await expect(rate).toBeHidden();
 	// The import is offered on a savings account as well.
+	await openTab(page, 'Übersicht');
 	await expect(page.getByRole('link', { name: 'CSV importieren' })).toBeVisible();
 	const list = `/buchungen?konto=${savingsId}`;
 	await page.goto(list);

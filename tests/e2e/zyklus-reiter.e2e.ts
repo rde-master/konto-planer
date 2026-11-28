@@ -102,3 +102,39 @@ test('a recurring item shows its parts in tabs, the bookings among them', async 
 		.click();
 	await expect(selected(page)).toHaveText('Übersicht');
 });
+
+test('the account and the booking show their parts in tabs, too', async ({ page }) => {
+	await login(page);
+	await page.goto('/konten');
+	await page.getByRole('link', { name: new RegExp(ACCOUNT) }).click();
+	await expect(page.getByRole('heading', { level: 1, name: ACCOUNT })).toBeVisible();
+	const tabs = page.getByRole('tablist', { name: 'Bereich' }).getByRole('tab');
+	await expect(tabs).toHaveText(['Übersicht', 'Verlauf', 'Bearbeiten']);
+	// What is used daily stays on the first tab.
+	await expect(page.getByRole('link', { name: 'CSV importieren' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Monatsübersicht' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Archivieren' })).toHaveCount(0);
+	await openTab(page, 'Verlauf');
+	await expect(page.getByRole('region', { name: 'Monatsübersicht' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'CSV importieren' })).toHaveCount(0);
+	await openTab(page, 'Bearbeiten');
+	await expect(page.getByRole('button', { name: 'Archivieren' })).toBeVisible();
+
+	// The booking: what it belongs to stands with the booking, the actions behind their tab.
+	await page.goto(`/buchungen?q=${encodeURIComponent(ITEM)}`);
+	await page
+		.getByRole('main')
+		.getByRole('link', { name: new RegExp(`${ITEM}.*6,50`) })
+		.click();
+	await expect(tabs).toHaveText(['Buchung', 'Einordnen', 'Aktionen']);
+	const itemLink = page
+		.getByRole('main')
+		.getByRole('link', { name: new RegExp(`Dauerposten.*${ITEM}`) });
+	await expect(itemLink).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Als Vorlage sichern' })).toHaveCount(0);
+	await openTab(page, 'Einordnen');
+	await expect(page.getByRole('region', { name: 'Tags' })).toBeVisible();
+	await expect(itemLink).toHaveCount(0);
+	await openTab(page, 'Aktionen');
+	await expect(page.getByRole('button', { name: 'Als Vorlage sichern' })).toBeVisible();
+});

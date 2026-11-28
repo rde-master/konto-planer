@@ -57,6 +57,7 @@ test('a booking gets tags; the tag page lists it', async ({ page }) => {
 	await expect(sheet).toBeHidden();
 
 	await page.getByRole('link', { name: /Hotel Bella Vista/ }).click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Tags ändern' }).click();
 	const tags = page.getByRole('dialog', { name: 'Tags' });
 	await tags.getByLabel('Urlaub Italien').check();
@@ -100,6 +101,7 @@ test('tags of a recurring item apply to its bookings', async ({ page }) => {
 		.getByRole('link', { name: /Ferienwohnung/ })
 		.first()
 		.click();
+	await openTab(page, 'Einordnen');
 	const region = page.getByRole('region', { name: 'Tags' });
 	await expect(region.getByRole('link', { name: 'Urlaub Italien' })).toBeVisible();
 	await expect(region).toContainText('Graue Tags kommen vom Dauerposten.');

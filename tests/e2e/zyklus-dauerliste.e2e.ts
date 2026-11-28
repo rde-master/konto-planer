@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -146,6 +147,7 @@ test('an item without a category takes the category of its booking', async ({ pa
 		.getByRole('main')
 		.getByRole('link', { name: /Funkhaus Listen.*55,08/ })
 		.click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Dauerposten zuordnen' }).click();
 	const assign = page.getByRole('dialog', { name: 'Dauerposten zuordnen' });
 	await assign.getByLabel('Dauerposten').selectOption({ label: 'Listenfunk' });

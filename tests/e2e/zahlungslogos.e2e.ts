@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 import { todayBerlin } from '../../src/lib/dates';
 import { addDays } from '../../src/lib/recurring';
 
@@ -69,6 +70,7 @@ test('a logo is chosen by hand for the payee, and back to initials', async ({ pa
 	await login(page);
 	await page.goto('/buchungen');
 	await page.getByRole('link', { name: /Kiosk am Eck/ }).click();
+	await openTab(page, 'Einordnen');
 	await page.getByRole('button', { name: 'Logo ändern' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Logo' });
 	await sheet.getByLabel('Logo suchen').fill('spotify');

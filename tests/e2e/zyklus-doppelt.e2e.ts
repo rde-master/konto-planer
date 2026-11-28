@@ -71,6 +71,7 @@ test('the payment that is there already counts for the new recurring item', asyn
 test('a payment released by hand is not taken again', async ({ page }) => {
 	await login(page);
 	await (await found(page, PAYEE, '3,49')).click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Zuordnung lösen' }).click();
 	const release = page.getByRole('dialog', { name: 'Zuordnung lösen' });
 	await release.getByRole('button', { name: 'Lösen' }).click();
@@ -86,6 +87,7 @@ test('a payment released by hand is not taken again', async ({ page }) => {
 	await expect(page.getByRole('status')).toBeVisible();
 	await expect(await found(page, ITEM, '3,49')).toHaveCount(1);
 	await (await found(page, PAYEE, '3,49')).click();
+	await openTab(page, 'Aktionen');
 	await expect(page.getByRole('button', { name: 'Dauerposten zuordnen' })).toBeVisible();
 });
 
@@ -125,6 +127,7 @@ test('the list marks payments of recurring items and shows the colour of the cat
 
 	// Assigned to the item, the real payment is marked and names the item.
 	await free.click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Dauerposten zuordnen' }).click();
 	const assign = page.getByRole('dialog', { name: 'Dauerposten zuordnen' });
 	await assign.getByLabel('Dauerposten').selectOption({ label: ITEM });

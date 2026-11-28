@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Runs after schnellerfassung (giro "Alltagskonto"; lena may only view it).
 test.describe.configure({ mode: 'serial' });
@@ -103,6 +104,7 @@ test('a booking is saved as template; order and deletion; protocol', async ({ pa
 		.getByRole('region', { name: 'Heute' })
 		.getByRole('link', { name: /Bäckerei Muster/ })
 		.click();
+	await openTab(page, 'Aktionen');
 	await page.getByRole('button', { name: 'Als Vorlage sichern' }).click();
 	const sheet = page.getByRole('dialog', { name: 'Als Vorlage sichern' });
 	await expect(sheet.getByLabel('Name')).toHaveValue('Bäckerei Muster');

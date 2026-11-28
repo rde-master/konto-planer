@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from './reiter';
 
 // Runs after foundation.e2e.ts, which created the admin "erika".
 test.describe.configure({ mode: 'serial' });
@@ -91,6 +92,7 @@ test('admin creates kai and grants view access to one account', async ({ page })
 
 	await page.goto('/konten');
 	await accountLink(page, 'Gemeinschaftskonto').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel(KAI.name).selectOption('view');
 	await page.getByRole('button', { name: 'Zugriffe sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Zugriffe gesichert.');
@@ -133,6 +135,7 @@ test('with edit access kai can change account data', async ({ page }) => {
 	await login(page, ADMIN.username, ADMIN.password);
 	await page.goto('/konten');
 	await accountLink(page, 'Gemeinschaftskonto').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel(KAI.name).selectOption('edit');
 	await page.getByRole('button', { name: 'Zugriffe sichern' }).click();
 	await expect(page.getByRole('status')).toHaveText('Zugriffe gesichert.');
@@ -140,12 +143,14 @@ test('with edit access kai can change account data', async ({ page }) => {
 	await login(page, KAI.username, KAI.password);
 	await page.goto('/konten');
 	await accountLink(page, 'Gemeinschaftskonto').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByLabel('Name').fill('Haushaltskonto');
 	await page.getByLabel('Dispo-Rahmen in € (optional)').fill('1.500,00');
 	await page.getByRole('button', { name: 'Sichern', exact: true }).click();
 	await expect(page.getByRole('status')).toHaveText('Änderungen gesichert.');
 	await expect(page.getByRole('heading', { level: 1, name: 'Haushaltskonto' })).toBeVisible();
 	// No admin functions for kai.
+	await openTab(page, 'Bearbeiten');
 	await expect(page.getByText('Archivieren')).toHaveCount(0);
 });
 
@@ -153,8 +158,10 @@ test('archive makes an account read-only, restore undoes it', async ({ page }) =
 	await login(page, ADMIN.username, ADMIN.password);
 	await page.goto('/konten');
 	await accountLink(page, 'Urlaubskasse').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Archivieren' }).click();
 	await expect(page.getByRole('status')).toContainText('Konto archiviert');
+	await openTab(page, 'Übersicht');
 	await expect(page.getByText('Archivierte Konten sind schreibgeschützt.')).toBeVisible();
 
 	await page.goto('/konten');
@@ -162,6 +169,7 @@ test('archive makes an account read-only, restore undoes it', async ({ page }) =
 	await expect(page.getByRole('heading', { name: 'Sparbücher' })).toHaveCount(0);
 
 	await accountLink(page, 'Urlaubskasse').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Wiederherstellen' }).click();
 	await expect(page.getByRole('status')).toHaveText('Konto wiederhergestellt.');
 	await expect(page.getByRole('button', { name: 'Sichern', exact: true })).toBeVisible();
@@ -190,6 +198,7 @@ test('admin deletes an account without data', async ({ page }) => {
 	await login(page, ADMIN.username, ADMIN.password);
 	await page.goto('/konten');
 	await accountLink(page, 'Urlaubskasse').click();
+	await openTab(page, 'Bearbeiten');
 	await page.getByRole('button', { name: 'Konto löschen' }).click();
 	await page
 		.getByRole('dialog', { name: 'Konto löschen' })
